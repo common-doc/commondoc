@@ -16,17 +16,15 @@ namespace CommonDoc\Container;
 
 use CommonDoc\CommandHandler\BuildSiteHandler;
 use Laminas\ServiceManager\Factory\FactoryInterface;
-use League\CommonMark\ConverterInterface;
 use Override;
-use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
-use Psr\Container\NotFoundExceptionInterface;
 
 /**
  * Construction seam for the build site handler.
  *
- * The handler takes the converter and nothing else. This factory is the single
- * place the remaining pipeline collaborators get injected once they exist.
+ * The handler takes no collaborators yet. This factory is the single place the
+ * pipeline collaborators get injected once they exist, so adding the converter
+ * here changes nothing else.
  *
  * @internal
  */
@@ -34,8 +32,6 @@ final readonly class BuildSiteHandlerFactory implements FactoryInterface
 {
     /**
      * @param ?array<array-key, mixed> $options
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
      */
     #[Override]
     public function __invoke(
@@ -43,6 +39,6 @@ final readonly class BuildSiteHandlerFactory implements FactoryInterface
         string $requestedName,
         ?array $options = null,
     ): BuildSiteHandler {
-        return new BuildSiteHandler($container->get(ConverterInterface::class));
+        return new BuildSiteHandler();
     }
 }

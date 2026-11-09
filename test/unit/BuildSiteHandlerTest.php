@@ -16,7 +16,6 @@ namespace CommonDocTest;
 
 use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\CommandHandler\BuildSiteHandler;
-use League\CommonMark\ConverterInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -34,7 +33,7 @@ final class BuildSiteHandlerTest extends TestCase
             source: 'docs',
             output: 'build',
         );
-        $handler = new BuildSiteHandler($this->createStub(ConverterInterface::class));
+        $handler = new BuildSiteHandler();
         $result  = $handler->handle($command);
 
         static::assertSame($command, $result->getCommand());
