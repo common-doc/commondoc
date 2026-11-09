@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "presets": {
-    "webware-standard": {
+    "common-doc-standard": {
       "version": "1.0.0",
       "source": "local",
-      "manifest_hash": "sha256:ed3d605a43ca0449df511d7594dfd487c98a019f629ffa3296cf6307b798f466",
+      "manifest_hash": "sha256:492a263d847c70c395125ab706bc50d2df3e5ea8908ae418c4960b1658c4cc8b",
       "enabled": true,
       "priority": 5,
       "registered_commands": {},

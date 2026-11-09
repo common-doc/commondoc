@@ -1,12 +1,12 @@
 schema_version: "1.0"
 
 preset:
-  id: "webware-standard"
-  name: "Webware Standard"
+  id: "common-doc-standard"
+  name: "CommonDoc Standard"
   version: "1.0.0"
-  description: "The Webware fleet constitution standard, resolved into every derived repository."
-  author: "webinertia"
-  repository: "https://github.com/webinertia/repo-template"
+  description: "The CommonDoc constitution standard, resolved into every derived repository."
+  author: "common-doc"
+  repository: "https://github.com/common-doc/commondoc"
   license: "MIT"
 
 requires:
@@ -17,11 +17,11 @@ provides:
     - type: "template"
       name: "constitution-template"
       file: "templates/constitution-template.md"
-      description: "Webware fleet constitution"
+      description: "CommonDoc constitution"
       replaces: "constitution-template"
       strategy: "replace"
 
 tags:
-  - "webware"
+  - "commondoc"
   - "constitution"
   - "standard"
