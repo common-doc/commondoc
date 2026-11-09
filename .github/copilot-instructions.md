@@ -1,4 +1,4 @@
-# webware/skeleton: Copilot Agent Instructions
+# common-doc/commondoc: Copilot Agent Instructions
 
 ## Read this before acting: fleet working agreements
 
@@ -32,7 +32,7 @@ Mago distinguishes what a `*::class` string may reference:
 - `trait-string<T>` - a **trait**
 - `class-like-string<T>` - any of class / interface / enum
 
-Webware aliases against interfaces and builds to interfaces, so prefer the precise form:
+This package aliases against interfaces and builds to interfaces, so prefer the precise form:
 
 - DI aliases: `array<interface-string, class-string>` (e.g. `UserRepositoryInterface::class => UserRepository::class`)
 - handler/command/query maps: `array<class-string, class-string>` (e.g. `FetchUsers::class => FetchUsersHandler::class`)
