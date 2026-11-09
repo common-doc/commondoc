@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * This file is part of the commondoc package.
+ *
+ * Copyright (c) 2026 Joey Smith <jsmith@webinertia.net>
+ * and contributors.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ *
+ * @var string $title
+ * @var string $content
+ */
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title><?= $this->escapeHtml($title) ?></title>
+</head>
+<body>
+    <main>
+        <?= $content ?>
+    </main>
+</body>
+</html>
