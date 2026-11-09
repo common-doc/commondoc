@@ -17,7 +17,6 @@ use Laminas\ConfigAggregator\ArrayProvider;
 use Laminas\ConfigAggregator\ConfigAggregator;
 use Laminas\ConfigAggregator\PhpFileProvider;
 use Laminas\Hydrator\ConfigProvider as HydratorProvider;
-use Laminas\Serializer\ConfigProvider as SerializerProvider;
 use Laminas\View\ConfigProvider as ViewProvider;
 use Mezzio\Helper\ConfigProvider as HelperProvider;
 use Mezzio\LaminasView\ConfigProvider as LaminasViewProvider;
@@ -46,7 +45,6 @@ $aggregator = new ConfigAggregator(
         ThemeProvider::class,
         HydratorProvider::class,
         HelperProvider::class,
-        SerializerProvider::class,
         // The event dispatcher has to be aggregated before webware-event: the latter
         // aliases EventDispatcherInterface to it but ships no factory for it.
         EventDispatcherProvider::class,
