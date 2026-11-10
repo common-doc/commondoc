@@ -28,7 +28,6 @@ use Webware\MessageBus\MessageBusInterface;
 use Webware\MessageBus\MessageStatus;
 
 use function array_filter;
-use function array_values;
 use function is_array;
 use function is_string;
 use function sprintf;
@@ -107,7 +106,7 @@ final class BuildCommand extends Command
         /** @var mixed $raw */
         $raw = $result->getResult();
 
-        $messages = is_array($raw) ? array_values(array_filter($raw, is_string(...))) : [];
+        $messages = is_array($raw) ? array_filter($raw, is_string(...)) : [];
 
         foreach ($messages as $message) {
             $output->writeln(
