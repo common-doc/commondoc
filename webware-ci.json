@@ -4,7 +4,7 @@
     "8.5"
   ],
   "run_integration": true,
-  "enable_codecov": false,
+  "enable_codecov": true,
   "enable_infection": false,
   "coverage_php_version": "8.5",
   "min_msi": "95",
