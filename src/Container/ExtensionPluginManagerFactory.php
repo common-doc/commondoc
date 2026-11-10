@@ -36,7 +36,7 @@ final readonly class ExtensionPluginManagerFactory implements FactoryInterface
     /**
      * @return array<string, mixed>
      */
-    private static function sectionFrom(mixed $config): array
+    private static function getConfig(mixed $config): array
     {
         if (! is_array($config) || ! is_array($config[ExtensionPluginManager::class] ?? null)) {
             return [];
@@ -55,6 +55,6 @@ final readonly class ExtensionPluginManagerFactory implements FactoryInterface
         string $requestedName,
         ?array $options = null,
     ): ExtensionPluginManager {
-        return new ExtensionPluginManager($container, self::sectionFrom($container->get('config')));
+        return new ExtensionPluginManager($container, self::getConfig($container->get('config')));
     }
 }

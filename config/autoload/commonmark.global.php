@@ -17,11 +17,11 @@ declare(strict_types=1);
  * with one deliberate override: `allow_unsafe_links` is false, so `javascript:`
  * and `data:` targets are refused.
  *
- * The seven extension blocks below belong to the extensions registered in
- * commonmark-extensions.global.php, and all of them sit at their documented
- * default. That combination is the locked definition of safe mode: allow raw
- * HTML, filter the nine GFM tagfilter tags, refuse unsafe links. Do not switch
- * `html_input` to 'escape'; that is a different, stricter mode.
+ * The seven extension blocks below belong to the extensions declared in
+ * CommonDoc\ConfigProvider::getExtensionConfig(), and all of them sit at their
+ * documented default. That combination is the locked definition of safe mode:
+ * allow raw HTML, filter the nine GFM tagfilter tags, refuse unsafe links. Do
+ * not switch `html_input` to 'escape'; that is a different, stricter mode.
  *
  * Defaults mirror Environment::createDefaultConfiguration() and the schemas
  * contributed by CommonMarkCoreExtension and the registered extensions.

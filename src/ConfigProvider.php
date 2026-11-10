@@ -33,6 +33,15 @@ use CommonDoc\Middleware\LayoutWrappingMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Environment\EnvironmentInterface;
+use League\CommonMark\Extension\Autolink\AutolinkExtension;
+use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
+use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
+use League\CommonMark\Extension\NormalizeHeadings\NormalizeHeadingsExtension;
+use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
+use League\CommonMark\Extension\Table\TableExtension;
+use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
+use League\CommonMark\Extension\TaskList\TaskListExtension;
 use League\CommonMark\MarkdownConverter;
 use Webware\Console\ConsoleInterface;
 use Webware\Event\ConfigProvider as EventProvider;
@@ -65,11 +74,21 @@ use function dirname;
  * 0 layout wrapping, -100 post-handle event. `SplPriorityQueue` is not stable,
  * so each custom middleware needs a priority of its own rather than a shared one.
  *
- * The extension plugin manager is registered here rather than in an autoload
- * file because this provider is merged unconditionally: an autoload file that
- * is removed or overridden cannot drop the manager, so an extension package
- * always has somewhere to land. The extensions themselves are still contributed
- * by extension packages under the plugin manager's own class-name key.
+ * The extension plugin manager is wired here in both halves: its factory entry
+ * and the extension set this package ships. Neither half belongs in an autoload
+ * file, because this provider is merged unconditionally through
+ * `extra.laminas.config-provider`, so a file that is removed or overridden
+ * cannot drop the manager or the extensions it loads. An extension package
+ * still contributes its own entries under the plugin manager's class-name key,
+ * which is what lets it gain features on its own release cycle without a change
+ * here.
+ *
+ * The resulting order is the aggregator's, not this file's. In `config.php` the
+ * third-party providers are aggregated before this one, and
+ * `ConfigAggregator::mergeArray` keeps first-seen key order while recursing into
+ * the shared class-name key, so a third-party extension lands ahead of the nine
+ * declared in `getExtensionConfig()`. The environment still adds
+ * `CommonMarkCoreExtension` ahead of every one of them.
  *
  * @type CommandMap = array<class-string, class-string>
  * @type MiddlewareSpec = array{middleware: class-string, priority: int}
@@ -77,6 +96,8 @@ use function dirname;
  * @type BusConfig = array{command_map: CommandMap, middleware_pipeline: MiddlewarePipeline}
  * @type ListenerConfig = array<class-string, list<class-string>>
  * @type ConsoleConfig = array{commands: array<string, class-string>}
+ * @type ExtensionSet = array{invokables: array<class-string, class-string>}
+ * @type ExtensionConfig = array{'CommonDoc\Container\ExtensionPluginManager': ExtensionSet}
  * @type Dependencies = array{
  *   aliases: array<class-string, class-string>,
  *   factories: array<class-string, class-string>,
@@ -88,6 +109,7 @@ use function dirname;
  *   Webware\Console\ConsoleInterface: ConsoleConfig,
  *   Webware\MessageBus\MessageBusInterface: BusConfig,
  *   listeners: ListenerConfig,
+ *   'CommonDoc\Container\ExtensionPluginManager': ExtensionSet,
  * }
  * @internal
  */
@@ -144,6 +166,42 @@ final readonly class ConfigProvider
         ];
     }
 
+    /**
+     * The extension set this package ships.
+     *
+     * Keyed by the plugin manager's own class name, which is the contract every
+     * extension package's ConfigProvider targets, so the aggregator unions the
+     * two sections instead of one replacing the other.
+     *
+     * Every entry is invokable, so the name is the whole registration. An
+     * extension that needs config or a collaborator contributes a factory under
+     * the same key instead and reads `$container->get('config')`.
+     *
+     * Do not add AttributesExtension, SmartPunctExtension, EmbedExtension,
+     * MentionExtension, HighlightExtension, InlinesOnlyExtension or
+     * GithubFlavoredMarkdownExtension: those are out of scope for this package.
+     *
+     * @return ExtensionConfig
+     */
+    public function getExtensionConfig(): array
+    {
+        return [
+            ExtensionPluginManager::class => [
+                'invokables' => [
+                    TableExtension::class             => TableExtension::class,
+                    StrikethroughExtension::class     => StrikethroughExtension::class,
+                    TaskListExtension::class          => TaskListExtension::class,
+                    HeadingPermalinkExtension::class  => HeadingPermalinkExtension::class,
+                    TableOfContentsExtension::class   => TableOfContentsExtension::class,
+                    NormalizeHeadingsExtension::class => NormalizeHeadingsExtension::class,
+                    ExternalLinkExtension::class      => ExternalLinkExtension::class,
+                    AutolinkExtension::class          => AutolinkExtension::class,
+                    DisallowedRawHtmlExtension::class => DisallowedRawHtmlExtension::class,
+                ],
+            ],
+        ];
+    }
+
     /** @return ListenerConfig */
     public function getListenerConfig(): array
     {
@@ -172,6 +230,7 @@ final readonly class ConfigProvider
             ConsoleInterface::class     => $this->getConsoleConfig(),
             MessageBusInterface::class  => $this->getBusConfig(),
             EventProvider::LISTENER_KEY => $this->getListenerConfig(),
+            ...$this->getExtensionConfig(),
         ];
     }
 }

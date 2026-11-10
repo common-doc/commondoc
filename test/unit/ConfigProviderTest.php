@@ -34,6 +34,15 @@ use CommonDoc\Middleware\LayoutWrappingMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Environment\EnvironmentInterface;
+use League\CommonMark\Extension\Autolink\AutolinkExtension;
+use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
+use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
+use League\CommonMark\Extension\NormalizeHeadings\NormalizeHeadingsExtension;
+use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
+use League\CommonMark\Extension\Table\TableExtension;
+use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
+use League\CommonMark\Extension\TaskList\TaskListExtension;
 use League\CommonMark\MarkdownConverter;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
@@ -51,6 +60,7 @@ use Webware\MessageBus\MessageBusInterface;
 #[CoversMethod(ConfigProvider::class, 'getBusConfig')]
 #[CoversMethod(ConfigProvider::class, 'getConsoleConfig')]
 #[CoversMethod(ConfigProvider::class, 'getDependencies')]
+#[CoversMethod(ConfigProvider::class, 'getExtensionConfig')]
 #[CoversMethod(ConfigProvider::class, 'getListenerConfig')]
 #[CoversMethod(ConfigProvider::class, 'getViewConfig')]
 final class ConfigProviderTest extends TestCase
@@ -67,6 +77,7 @@ final class ConfigProviderTest extends TestCase
                 ConsoleInterface::class     => $provider->getConsoleConfig(),
                 MessageBusInterface::class  => $provider->getBusConfig(),
                 EventProvider::LISTENER_KEY => $provider->getListenerConfig(),
+                ...$provider->getExtensionConfig(),
             ],
             $provider->__invoke(),
         );
@@ -82,6 +93,29 @@ final class ConfigProviderTest extends TestCase
                 ],
             ],
             new ConfigProvider()->getConsoleConfig(),
+        );
+    }
+
+    #[Test]
+    public function contributesTheExtensionSetUnderThePluginManagerKey(): void
+    {
+        static::assertSame(
+            [
+                ExtensionPluginManager::class => [
+                    'invokables' => [
+                        TableExtension::class             => TableExtension::class,
+                        StrikethroughExtension::class     => StrikethroughExtension::class,
+                        TaskListExtension::class          => TaskListExtension::class,
+                        HeadingPermalinkExtension::class  => HeadingPermalinkExtension::class,
+                        TableOfContentsExtension::class   => TableOfContentsExtension::class,
+                        NormalizeHeadingsExtension::class => NormalizeHeadingsExtension::class,
+                        ExternalLinkExtension::class      => ExternalLinkExtension::class,
+                        AutolinkExtension::class          => AutolinkExtension::class,
+                        DisallowedRawHtmlExtension::class => DisallowedRawHtmlExtension::class,
+                    ],
+                ],
+            ],
+            new ConfigProvider()->getExtensionConfig(),
         );
     }
 
