@@ -17,9 +17,14 @@ namespace CommonDocTest;
 use CommonDoc\Container\ExtensionPluginManager;
 use Laminas\ServiceManager\Exception\InvalidServiceException;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
-use League\CommonMark\Extension\ExtensionInterface;
+use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
+use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
+use League\CommonMark\Extension\NormalizeHeadings\NormalizeHeadingsExtension;
 use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
 use League\CommonMark\Extension\Table\TableExtension;
+use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
+use League\CommonMark\Extension\TaskList\TaskListExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -27,85 +32,12 @@ use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use stdClass;
 
-use function array_map;
-
 #[CoversClass(ExtensionPluginManager::class)]
-#[CoversMethod(ExtensionPluginManager::class, '__construct')]
-#[CoversMethod(ExtensionPluginManager::class, 'extensions')]
+#[CoversMethod(ExtensionPluginManager::class, 'getDefaultExtensions')]
 final class ExtensionPluginManagerTest extends TestCase
 {
     #[Test]
-    public function exposesNoExtensionsWhenTheConfigDeclaresNone(): void
-    {
-        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), [
-            'services' => [],
-        ]);
-
-        static::assertSame([], $manager->extensions());
-    }
-
-    #[Test]
-    public function ignoresASectionThatIsNotAnArray(): void
-    {
-        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), [
-            'factories' => null,
-        ]);
-
-        static::assertSame([], $manager->extensions());
-    }
-
-    #[Test]
-    public function ignoresSectionsThatDoNotDeclareExtensions(): void
-    {
-        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), [
-            'extension-settings' => [
-                'enabled' => true,
-            ],
-        ]);
-
-        static::assertSame([], $manager->extensions());
-    }
-
-    #[Test]
-    public function keepsFactoryEntriesAheadOfInvokableEntriesWhenTheConfigDeclaresThemThatWay(): void
-    {
-        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), [
-            'factories'  => [
-                TableExtension::class => static fn(): TableExtension => new TableExtension(),
-            ],
-            'invokables' => [
-                StrikethroughExtension::class => StrikethroughExtension::class,
-            ],
-        ]);
-
-        static::assertSame(
-            [
-                TableExtension::class,
-                StrikethroughExtension::class,
-            ],
-            array_map(
-                static fn(ExtensionInterface $extension): string => $extension::class,
-                $manager->extensions(),
-            ),
-        );
-    }
-
-    #[Test]
-    public function rejectsAnInstanceThatIsNotAnExtension(): void
-    {
-        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), [
-            'factories' => [
-                'not-an-extension' => static fn(): stdClass => new stdClass(),
-            ],
-        ]);
-
-        $this->expectException(InvalidServiceException::class);
-
-        $manager->extensions();
-    }
-
-    #[Test]
-    public function resolvesAnExtensionThroughAFactoryThatReadsTheContainerConfig(): void
+    public function buildsAnExtensionThroughAFactoryThatReadsTheContainerConfig(): void
     {
         $config = [
             'extension-settings' => ['enabled' => true],
@@ -129,48 +61,57 @@ final class ExtensionPluginManagerTest extends TestCase
             ],
         ]);
 
-        $extensions = $manager->extensions();
+        $extension = $manager->get(TableExtension::class);
 
-        static::assertCount(1, $extensions);
-        static::assertInstanceOf(TableExtension::class, $extensions[0]);
+        static::assertInstanceOf(TableExtension::class, $extension);
+        static::assertSame($extension, $manager->get(TableExtension::class));
     }
 
     #[Test]
-    public function resolvesAnInvokableExtensionWithNoFactoryEntry(): void
+    public function declaresTheAlwaysLoadedExtensionsInTheConstOrder(): void
     {
-        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), [
-            'invokables' => [
-                StrikethroughExtension::class => StrikethroughExtension::class,
-            ],
-        ]);
-
-        $extensions = $manager->extensions();
-
-        static::assertCount(1, $extensions);
-        static::assertInstanceOf(StrikethroughExtension::class, $extensions[0]);
-    }
-
-    #[Test]
-    public function returnsExtensionsInTheDeclaredOrder(): void
-    {
-        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), [
-            'invokables' => [
-                TableExtension::class         => TableExtension::class,
-                StrikethroughExtension::class => StrikethroughExtension::class,
-                AutolinkExtension::class      => AutolinkExtension::class,
-            ],
-        ]);
+        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class));
 
         static::assertSame(
             [
                 TableExtension::class,
                 StrikethroughExtension::class,
+                TaskListExtension::class,
+                HeadingPermalinkExtension::class,
+                TableOfContentsExtension::class,
+                NormalizeHeadingsExtension::class,
+                ExternalLinkExtension::class,
                 AutolinkExtension::class,
+                DisallowedRawHtmlExtension::class,
             ],
-            array_map(
-                static fn(ExtensionInterface $extension): string => $extension::class,
-                $manager->extensions(),
-            ),
+            $manager->getDefaultExtensions(),
         );
+    }
+
+    #[Test]
+    public function keepsTheAlwaysLoadedExtensionsWhenASectionIsSupplied(): void
+    {
+        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), [
+            'factories' => [
+                'an-extension' => static fn(): StrikethroughExtension => new StrikethroughExtension(),
+            ],
+        ]);
+
+        static::assertTrue($manager->has(TableExtension::class));
+        static::assertTrue($manager->has('an-extension'));
+    }
+
+    #[Test]
+    public function rejectsAnInstanceThatIsNotAnExtension(): void
+    {
+        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), [
+            'factories' => [
+                'not-an-extension' => static fn(): stdClass => new stdClass(),
+            ],
+        ]);
+
+        $this->expectException(InvalidServiceException::class);
+
+        $manager->get('not-an-extension');
     }
 }

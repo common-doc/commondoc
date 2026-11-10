@@ -16,74 +16,70 @@ namespace CommonDocTest;
 
 use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Container\ExtensionPluginManagerFactory;
-use League\CommonMark\Extension\ExtensionInterface;
 use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
+use League\CommonMark\Extension\Table\TableExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 
-use function array_map;
-
 #[CoversClass(ExtensionPluginManagerFactory::class)]
 #[CoversMethod(ExtensionPluginManagerFactory::class, '__invoke')]
 final class ExtensionPluginManagerFactoryTest extends TestCase
 {
-    #[Test]
-    public function buildsAnEmptyManagerWhenTheConfigIsNotAnArray(): void
-    {
-        $manager = new ExtensionPluginManagerFactory()(
-            $this->containerWithConfig('not-an-array'),
-            ExtensionPluginManager::class,
-        );
-
-        static::assertSame([], $manager->extensions());
-    }
-
-    #[Test]
-    public function buildsAnEmptyManagerWhenTheSectionIsMissing(): void
-    {
-        $manager = new ExtensionPluginManagerFactory()(
-            $this->containerWithConfig(['dependencies' => []]),
-            ExtensionPluginManager::class,
-        );
-
-        static::assertSame([], $manager->extensions());
-    }
-
-    #[Test]
-    public function buildsAnEmptyManagerWhenTheSectionIsNotAnArray(): void
-    {
-        $manager = new ExtensionPluginManagerFactory()(
-            $this->containerWithConfig([ExtensionPluginManager::class => 'not-an-array']),
-            ExtensionPluginManager::class,
-        );
-
-        static::assertSame([], $manager->extensions());
-    }
-
     #[Test]
     public function buildsTheManagerFromTheSectionKeyedByItsClassName(): void
     {
         $manager = new ExtensionPluginManagerFactory()(
             $this->containerWithConfig([
                 ExtensionPluginManager::class => [
-                    'invokables' => [
-                        StrikethroughExtension::class => StrikethroughExtension::class,
+                    'factories' => [
+                        'an-extension' => static fn(): StrikethroughExtension => new StrikethroughExtension(),
                     ],
                 ],
             ]),
             ExtensionPluginManager::class,
         );
 
-        static::assertSame(
-            [StrikethroughExtension::class],
-            array_map(
-                static fn(ExtensionInterface $extension): string => $extension::class,
-                $manager->extensions(),
-            ),
+        static::assertTrue($manager->has('an-extension'));
+        static::assertInstanceOf(StrikethroughExtension::class, $manager->get('an-extension'));
+    }
+
+    #[Test]
+    public function carriesTheDefaultsWhenTheConfigIsNotAnArray(): void
+    {
+        $manager = new ExtensionPluginManagerFactory()(
+            $this->containerWithConfig('not-an-array'),
+            ExtensionPluginManager::class,
         );
+
+        static::assertTrue($manager->has(TableExtension::class));
+        static::assertFalse($manager->has('an-extension'));
+    }
+
+    #[Test]
+    public function carriesTheDefaultsWhenTheSectionIsMissing(): void
+    {
+        $manager = new ExtensionPluginManagerFactory()(
+            $this->containerWithConfig(['dependencies' => []]),
+            ExtensionPluginManager::class,
+        );
+
+        static::assertTrue($manager->has(TableExtension::class));
+        static::assertFalse($manager->has('an-extension'));
+    }
+
+    #[Test]
+    public function carriesTheDefaultsWhenTheSectionIsNotAnArray(): void
+    {
+        $manager = new ExtensionPluginManagerFactory()(
+            $this->containerWithConfig([ExtensionPluginManager::class => 'not-an-array']),
+            ExtensionPluginManager::class,
+        );
+
+        static::assertTrue($manager->has(TableExtension::class));
+        static::assertFalse($manager->has('an-extension'));
     }
 
     private function containerWithConfig(mixed $config): ContainerInterface

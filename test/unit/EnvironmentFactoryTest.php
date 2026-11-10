@@ -17,10 +17,19 @@ namespace CommonDocTest;
 use CommonDoc\Container\EnvironmentFactory;
 use CommonDoc\Container\ExtensionPluginManager;
 use League\CommonMark\Environment\EnvironmentInterface;
+use League\CommonMark\Extension\Attributes\AttributesExtension;
+use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
 use League\CommonMark\Extension\ExtensionInterface;
+use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
+use League\CommonMark\Extension\NormalizeHeadings\NormalizeHeadingsExtension;
+use League\CommonMark\Extension\SmartPunct\SmartPunctExtension;
 use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
 use League\CommonMark\Extension\Table\TableExtension;
+use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
+use League\CommonMark\Extension\TaskList\TaskListExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -33,6 +42,61 @@ use function array_map;
 #[CoversMethod(EnvironmentFactory::class, '__invoke')]
 final class EnvironmentFactoryTest extends TestCase
 {
+    /**
+     * @return list<class-string<ExtensionInterface>>
+     */
+    private static function defaultExtensionClasses(): array
+    {
+        return [
+            TableExtension::class,
+            StrikethroughExtension::class,
+            TaskListExtension::class,
+            HeadingPermalinkExtension::class,
+            TableOfContentsExtension::class,
+            NormalizeHeadingsExtension::class,
+            ExternalLinkExtension::class,
+            AutolinkExtension::class,
+            DisallowedRawHtmlExtension::class,
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function extensionClasses(EnvironmentInterface $environment): array
+    {
+        return array_map(
+            static fn(ExtensionInterface $extension): string => $extension::class,
+            [...$environment->getExtensions()],
+        );
+    }
+
+    #[Test]
+    public function addsTheSectionExtensionsAfterTheAlwaysLoadedOnes(): void
+    {
+        $section = [
+            'invokables' => [
+                AttributesExtension::class => AttributesExtension::class,
+                SmartPunctExtension::class => SmartPunctExtension::class,
+            ],
+        ];
+
+        $environment = new EnvironmentFactory()(
+            $this->containerWithConfig([ExtensionPluginManager::class => $section], $section),
+            EnvironmentInterface::class,
+        );
+
+        static::assertSame(
+            [
+                CommonMarkCoreExtension::class,
+                ...self::defaultExtensionClasses(),
+                AttributesExtension::class,
+                SmartPunctExtension::class,
+            ],
+            self::extensionClasses($environment),
+        );
+    }
+
     #[Test]
     public function appliesTheConfiguredSection(): void
     {
@@ -67,52 +131,91 @@ final class EnvironmentFactoryTest extends TestCase
     }
 
     #[Test]
-    public function registersCoreFirstThenThePluginManagerExtensionsInOrder(): void
+    public function keepsTheSectionDeclarationOrderAcrossFactoriesAndInvokables(): void
     {
-        $pluginManager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), [
+        $section = [
             'invokables' => [
-                TableExtension::class         => TableExtension::class,
-                StrikethroughExtension::class => StrikethroughExtension::class,
+                AttributesExtension::class => AttributesExtension::class,
             ],
-        ]);
+            'factories'  => [
+                SmartPunctExtension::class => static fn(): SmartPunctExtension => new SmartPunctExtension(),
+            ],
+        ];
 
         $environment = new EnvironmentFactory()(
-            $this->containerWithConfig([EnvironmentInterface::class => []], $pluginManager),
+            $this->containerWithConfig([ExtensionPluginManager::class => $section], $section),
             EnvironmentInterface::class,
         );
 
         static::assertSame(
             [
                 CommonMarkCoreExtension::class,
-                TableExtension::class,
-                StrikethroughExtension::class,
+                ...self::defaultExtensionClasses(),
+                AttributesExtension::class,
+                SmartPunctExtension::class,
             ],
-            array_map(
-                static fn(ExtensionInterface $extension): string => $extension::class,
-                [...$environment->getExtensions()],
-            ),
+            self::extensionClasses($environment),
         );
     }
 
     #[Test]
-    public function registersTheCommonMarkCoreExtension(): void
+    public function registersCoreFirstThenTheAlwaysLoadedExtensions(): void
     {
         $environment = new EnvironmentFactory()(
             $this->containerWithConfig([EnvironmentInterface::class => []]),
             EnvironmentInterface::class,
         );
 
-        $extensions = [...$environment->getExtensions()];
-
-        static::assertCount(1, $extensions);
-        static::assertInstanceOf(CommonMarkCoreExtension::class, $extensions[0]);
+        static::assertSame(
+            [
+                CommonMarkCoreExtension::class,
+                ...self::defaultExtensionClasses(),
+            ],
+            self::extensionClasses($environment),
+        );
     }
 
+    #[Test]
+    public function skipsSectionEntriesThatDeclareNoExtensions(): void
+    {
+        $environment = new EnvironmentFactory()(
+            $this->containerWithConfig(
+                [
+                    ExtensionPluginManager::class => [
+                        'extension-settings' => ['enabled' => true],
+                        'factories'          => 'not-an-array',
+                        'invokables'         => [
+                            AttributesExtension::class => AttributesExtension::class,
+                        ],
+                    ],
+                ],
+                [
+                    'invokables' => [
+                        AttributesExtension::class => AttributesExtension::class,
+                    ],
+                ],
+            ),
+            EnvironmentInterface::class,
+        );
+
+        static::assertSame(
+            [
+                CommonMarkCoreExtension::class,
+                ...self::defaultExtensionClasses(),
+                AttributesExtension::class,
+            ],
+            self::extensionClasses($environment),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $managerSection
+     */
     private function containerWithConfig(
         mixed $config,
-        ?ExtensionPluginManager $pluginManager = null,
+        array $managerSection = [],
     ): ContainerInterface {
-        $pluginManager ??= new ExtensionPluginManager($this->createStub(ContainerInterface::class));
+        $pluginManager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), $managerSection);
 
         $container = $this->createStub(ContainerInterface::class);
         $container

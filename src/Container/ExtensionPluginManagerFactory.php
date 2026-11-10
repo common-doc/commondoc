@@ -25,9 +25,13 @@ use function is_array;
  *
  * The section is keyed by the plugin manager's own class name, so an extension
  * package's ConfigProvider lands in the same place as every other one and this
- * package never names an extension. A missing section yields an empty manager
- * rather than an error, so an installation with no extension package still
- * renders core Markdown.
+ * package never names an extension. A missing section yields a manager holding
+ * only the extensions it always loads, rather than an error, so an installation
+ * with no extension package still renders the defaults.
+ *
+ * The section is passed here rather than read by the manager because the manager
+ * has no container of its own to ask. Which of those names to load, and in what
+ * order, is the environment's reading of the same section.
  *
  * @internal
  */

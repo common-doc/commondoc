@@ -16,18 +16,20 @@ namespace CommonDoc\Container;
 
 use Laminas\ServiceManager\AbstractSingleInstancePluginManager;
 use Laminas\ServiceManager\ServiceManager;
+use League\CommonMark\Extension\Autolink\AutolinkExtension;
+use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
 use League\CommonMark\Extension\ExtensionInterface;
-use Psr\Container\ContainerExceptionInterface;
+use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
+use League\CommonMark\Extension\NormalizeHeadings\NormalizeHeadingsExtension;
+use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
+use League\CommonMark\Extension\Table\TableExtension;
+use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
+use League\CommonMark\Extension\TaskList\TaskListExtension;
 use Psr\Container\ContainerInterface;
-use Psr\Container\NotFoundExceptionInterface;
 
-use function array_filter;
-use function array_intersect_key;
 use function array_keys;
-use function array_map;
-use function array_merge;
-use function array_values;
-use function is_array;
+use function array_replace_recursive;
 
 /**
  * Plugin manager for the CommonMark extensions the environment loads.
@@ -42,6 +44,8 @@ use function is_array;
  *
  * The config section is keyed by this class name, so every extension package
  * contributes to the same section and this package never names an extension.
+ * Which names to load, and in what order, is the consumer's reading of that
+ * section; this class only builds and validates them.
  *
  * @extends AbstractSingleInstancePluginManager<ExtensionInterface>
  * @psalm-import-type ServiceManagerConfiguration from ServiceManager
@@ -49,82 +53,46 @@ use function is_array;
  */
 final class ExtensionPluginManager extends AbstractSingleInstancePluginManager
 {
-    /**
-     * The config keys that declare an extension.
-     *
-     * A map rather than a list so array_intersect_key can select them, and so
-     * the selection keeps the order the config declared them in.
-     */
-    private const array EXTENSION_KEYS = ['factories' => true, 'invokables' => true];
+    private const array CONFIG = [
+        'invokables' => [
+            TableExtension::class             => TableExtension::class,
+            StrikethroughExtension::class     => StrikethroughExtension::class,
+            TaskListExtension::class          => TaskListExtension::class,
+            HeadingPermalinkExtension::class  => HeadingPermalinkExtension::class,
+            TableOfContentsExtension::class   => TableOfContentsExtension::class,
+            NormalizeHeadingsExtension::class => NormalizeHeadingsExtension::class,
+            ExternalLinkExtension::class      => ExternalLinkExtension::class,
+            AutolinkExtension::class          => AutolinkExtension::class,
+            DisallowedRawHtmlExtension::class => DisallowedRawHtmlExtension::class,
+        ],
+    ];
 
     protected string $instanceOf = ExtensionInterface::class;
 
     /**
-     * The extension names in declaration order.
-     *
-     * @var list<string>
-     */
-    private array $names = [];
-
-    /**
      * @param array<string, mixed> $config
      */
-    public function __construct(ContainerInterface $creationContext, array $config = [])
-    {
-        $this->names = self::namesFrom($config);
+    public function __construct(
+        ContainerInterface $creationContext,
+        array $config = [],
+    ) {
+        /** @var ServiceManagerConfiguration $merged */
+        $merged = array_replace_recursive(self::CONFIG, $config);
 
-        /** @var ServiceManagerConfiguration $config */
-        parent::__construct($creationContext, $config);
+        parent::__construct($creationContext, $merged);
     }
 
     /**
-     * @param array<string, mixed> $config
-     * @return list<string>
-     */
-    private static function namesFrom(array $config): array
-    {
-        // The intersection keeps the config's own key order, and array_values
-        // flattens the sections back into the single order they were declared in.
-        return array_merge(
-            [],
-            ...array_values(array_map(
-                self::namesIn(...),
-                array_filter(
-                    array_intersect_key($config, self::EXTENSION_KEYS),
-                    is_array(...),
-                ),
-            )),
-        );
-    }
-
-    /**
-     * @param array<array-key, mixed> $services
-     * @return list<string>
-     */
-    private static function namesIn(array $services): array
-    {
-        return array_map(strval(...), array_keys($services));
-    }
-
-    /**
-     * The extensions to load, in the order the config declared them.
+     * The always-loaded extensions, in the order CONFIG declares them.
      *
-     * @return list<ExtensionInterface>
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
+     * The environment adds these ahead of anything an extension package
+     * contributes, so they are present even when no package is installed.
+     *
+     * @return list<class-string<ExtensionInterface>>
      */
-    public function extensions(): array
+    public function getDefaultExtensions(): array
     {
-        return array_map($this->extensionNamed(...), $this->names);
-    }
-
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
-    private function extensionNamed(string $name): ExtensionInterface
-    {
-        /** @var ExtensionInterface */
-        return $this->get($name);
+        /** @var list<class-string<ExtensionInterface>> */
+        return array_keys(self::CONFIG['invokables']);
     }
 }
