@@ -22,6 +22,8 @@ use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
 use CommonDoc\Container\EnvironmentFactory;
+use CommonDoc\Container\ExtensionPluginManager;
+use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\LayoutWrappingMiddlewareFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
@@ -62,6 +64,12 @@ use function dirname;
  * ordering contract: 100 pre-handle event, 50 source loading, 1 message handler,
  * 0 layout wrapping, -100 post-handle event. `SplPriorityQueue` is not stable,
  * so each custom middleware needs a priority of its own rather than a shared one.
+ *
+ * The extension plugin manager is registered here rather than in an autoload
+ * file because this provider is merged unconditionally: an autoload file that
+ * is removed or overridden cannot drop the manager, so an extension package
+ * always has somewhere to land. The extensions themselves are still contributed
+ * by extension packages under the plugin manager's own class-name key.
  *
  * @type CommandMap = array<class-string, class-string>
  * @type MiddlewareSpec = array{middleware: class-string, priority: int}
@@ -128,6 +136,7 @@ final readonly class ConfigProvider
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
+                ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
                 LayoutWrappingMiddleware::class  => LayoutWrappingMiddlewareFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,

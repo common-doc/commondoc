@@ -23,6 +23,8 @@ use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
 use CommonDoc\Container\EnvironmentFactory;
+use CommonDoc\Container\ExtensionPluginManager;
+use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\LayoutWrappingMiddlewareFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
@@ -158,6 +160,7 @@ final class ConfigProviderTest extends TestCase
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
+                ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
                 LayoutWrappingMiddleware::class  => LayoutWrappingMiddlewareFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,

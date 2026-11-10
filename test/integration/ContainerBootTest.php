@@ -18,11 +18,24 @@ use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\ConfigProvider;
 use CommonDoc\Console\BuildCommand;
+use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\LayoutWrappingMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use Laminas\ServiceManager\ServiceManager;
+use League\CommonMark\Environment\EnvironmentInterface;
+use League\CommonMark\Extension\Autolink\AutolinkExtension;
+use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
+use League\CommonMark\Extension\ExtensionInterface;
+use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
+use League\CommonMark\Extension\NormalizeHeadings\NormalizeHeadingsExtension;
+use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
+use League\CommonMark\Extension\Table\TableExtension;
+use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
+use League\CommonMark\Extension\TaskList\TaskListExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -42,6 +55,8 @@ use Webware\MessageBus\Middleware\MessageHandlerMiddleware;
 use Webware\MessageBus\MiddlewareInterface;
 use Webware\MessageBus\MiddlewarePipe;
 
+use function array_map;
+
 /**
  * Boots the real container from config/container.php and asserts that every
  * scaffolded seam resolves.
@@ -55,6 +70,7 @@ use Webware\MessageBus\MiddlewarePipe;
 #[CoversClass(CommandPostHandleListener::class)]
 #[CoversClass(SourceLoadingMiddleware::class)]
 #[CoversClass(LayoutWrappingMiddleware::class)]
+#[CoversClass(ExtensionPluginManager::class)]
 final class ContainerBootTest extends TestCase
 {
     #[Test]
@@ -93,6 +109,32 @@ final class ContainerBootTest extends TestCase
 
         static::assertSame(MessageStatus::Success, $result->getStatus());
         static::assertSame([], $result->getResult());
+    }
+
+    #[Test]
+    public function loadsTheDeclaredExtensionsAfterCore(): void
+    {
+        $environment = $this->container()->get(EnvironmentInterface::class);
+
+        static::assertInstanceOf(EnvironmentInterface::class, $environment);
+        static::assertSame(
+            [
+                CommonMarkCoreExtension::class,
+                TableExtension::class,
+                StrikethroughExtension::class,
+                TaskListExtension::class,
+                HeadingPermalinkExtension::class,
+                TableOfContentsExtension::class,
+                NormalizeHeadingsExtension::class,
+                ExternalLinkExtension::class,
+                AutolinkExtension::class,
+                DisallowedRawHtmlExtension::class,
+            ],
+            array_map(
+                static fn(ExtensionInterface $extension): string => $extension::class,
+                [...$environment->getExtensions()],
+            ),
+        );
     }
 
     #[Test]

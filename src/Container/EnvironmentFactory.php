@@ -33,6 +33,9 @@ use function is_array;
  * section, so the option surface lives in config/autoload/commonmark.global.php
  * rather than in this class.
  *
+ * Core is added first because it is the non-negotiable baseline; every extension
+ * the plugin manager holds then lands after it in declared order.
+ *
  * @internal
  */
 final readonly class EnvironmentFactory implements FactoryInterface
@@ -64,6 +67,10 @@ final readonly class EnvironmentFactory implements FactoryInterface
     ): EnvironmentInterface {
         $environment = new Environment($this->optionsFrom($container->get('config')));
         $environment->addExtension(new CommonMarkCoreExtension());
+
+        foreach ($container->get(ExtensionPluginManager::class)->extensions() as $extension) {
+            $environment->addExtension($extension);
+        }
 
         return $environment;
     }
