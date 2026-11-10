@@ -12,6 +12,14 @@
 /data/cache/*
 !/data/cache/.gitkeep
 /.vscode
+
+# Development mode is a machine concern. `dev:mode --enable` writes this file and
+# `dev:mode --disable` deletes it, along with the gitignored
+# `config/autoload/development.local.php`. The tracked counterpart is
+# `config/development.config.php.dist`: edit that one so the settings survive a
+# mode switch. Keeping the generated file ignored also keeps a machine's local
+# settings, such as a database connection, out of the repository.
+/config/development.config.php
 /mago-results.txt
 *:Zone.Identifier
 

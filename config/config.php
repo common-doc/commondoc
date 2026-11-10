@@ -16,13 +16,17 @@ use CommonDoc\ConfigProvider;
 use Laminas\ConfigAggregator\ArrayProvider;
 use Laminas\ConfigAggregator\ConfigAggregator;
 use Laminas\ConfigAggregator\PhpFileProvider;
+use Laminas\Hydrator\ConfigProvider as HydratorProvider;
 use Laminas\View\ConfigProvider as ViewProvider;
+use Mezzio\Helper\ConfigProvider as HelperProvider;
+use Mezzio\LaminasView\ConfigProvider as LaminasViewProvider;
 use Phly\EventDispatcher\ConfigProvider as EventDispatcherProvider;
 use Webware\Console\ConfigProvider as ConsoleProvider;
 use Webware\Event\ConfigProvider as EventProvider;
 use Webware\MessageBus\ConfigProvider as BusProvider;
 use Webware\MessageBus\Event\ConfigProvider as BusEventProvider;
 use Webware\Router\ConfigProvider as RouterProvider;
+use Webware\Theme\ConfigProvider as ThemeProvider;
 
 // To enable or disable caching, set the `ConfigAggregator::ENABLE_CACHE` boolean in
 // `config/autoload/local.php`.
@@ -32,6 +36,15 @@ $cacheConfig = [
 
 $aggregator = new ConfigAggregator(
     [
+        // Third party providers are aggregated first so that the application
+        // providers below win wherever the two overlap.
+        // webware-theme has to be aggregated after the Laminas view provider: both
+        // own AggregateResolver::class, the later provider wins, and the theme has
+        // to be the resolver consulted first.
+        LaminasViewProvider::class,
+        ThemeProvider::class,
+        HydratorProvider::class,
+        HelperProvider::class,
         // The event dispatcher has to be aggregated before webware-event: the latter
         // aliases EventDispatcherInterface to it but ships no factory for it.
         EventDispatcherProvider::class,

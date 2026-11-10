@@ -22,17 +22,25 @@
     },
     "require": {
         "php": "~8.4.1 || ~8.5.0",
+        "ext-curl": "*",
+        "ext-json": "*",
         "ext-mbstring": "*",
         "laminas/laminas-config-aggregator": "^1.20",
+        "laminas/laminas-diactoros": "^3.8",
         "laminas/laminas-servicemanager": "^4.5",
         "laminas/laminas-view": "^3.1",
         "league/commonmark": "^2.10",
         "psr/container": "^2.0",
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1.1",
+        "psr/http-message": "^2.0",
         "symfony/console": "^7.4 || ^8.0",
         "webware/message-bus": "^2.0.0-beta.7",
         "webware/messagebus-event": "^2.0.0-beta.6",
         "webware/query-param-router": "^1.0.0-alpha.4",
-        "webware/webware-console": "^1.0.0-alpha.8"
+        "webware/webware-console": "^1.0.0-alpha.8",
+        "webware/webware-log": "^2.0.0-alpha.7",
+        "webware/webware-theme": "^1.0.0-alpha.5"
     },
     "require-dev": {
         "infection/infection": "^0.35.0",
@@ -62,7 +70,7 @@
         },
         "allow-plugins": {
             "infection/extension-installer": true,
-            "laminas/laminas-component-installer": true
+            "laminas/laminas-component-installer": false
         },
         "github-protocols": [
             "https"
