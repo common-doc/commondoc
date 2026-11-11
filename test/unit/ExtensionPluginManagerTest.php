@@ -16,11 +16,13 @@ namespace CommonDocTest;
 
 use CommonDoc\Container\ExtensionPluginManager;
 use Laminas\ServiceManager\Exception\InvalidServiceException;
+use League\CommonMark\Extension\Attributes\AttributesExtension;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
 use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
 use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 use League\CommonMark\Extension\NormalizeHeadings\NormalizeHeadingsExtension;
+use League\CommonMark\Extension\SmartPunct\SmartPunctExtension;
 use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
 use League\CommonMark\Extension\Table\TableExtension;
 use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
@@ -113,5 +115,36 @@ final class ExtensionPluginManagerTest extends TestCase
         $this->expectException(InvalidServiceException::class);
 
         $manager->get('not-an-extension');
+    }
+
+    #[Test]
+    public function reportsTheSectionNamesAfterTheAlwaysLoadedOnes(): void
+    {
+        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), [
+            'extension-settings' => ['enabled' => true],
+            'invokables'         => [
+                AttributesExtension::class => AttributesExtension::class,
+            ],
+            'factories'          => [
+                'an-extension' => static fn(): SmartPunctExtension => new SmartPunctExtension(),
+            ],
+        ]);
+
+        static::assertSame(
+            [
+                TableExtension::class,
+                StrikethroughExtension::class,
+                TaskListExtension::class,
+                HeadingPermalinkExtension::class,
+                TableOfContentsExtension::class,
+                NormalizeHeadingsExtension::class,
+                ExternalLinkExtension::class,
+                AutolinkExtension::class,
+                DisallowedRawHtmlExtension::class,
+                AttributesExtension::class,
+                'an-extension',
+            ],
+            $manager->getDefaultExtensions(),
+        );
     }
 }

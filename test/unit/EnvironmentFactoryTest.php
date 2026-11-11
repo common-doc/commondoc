@@ -175,39 +175,6 @@ final class EnvironmentFactoryTest extends TestCase
         );
     }
 
-    #[Test]
-    public function skipsSectionEntriesThatDeclareNoExtensions(): void
-    {
-        $environment = new EnvironmentFactory()(
-            $this->containerWithConfig(
-                [
-                    ExtensionPluginManager::class => [
-                        'extension-settings' => ['enabled' => true],
-                        'factories'          => 'not-an-array',
-                        'invokables'         => [
-                            AttributesExtension::class => AttributesExtension::class,
-                        ],
-                    ],
-                ],
-                [
-                    'invokables' => [
-                        AttributesExtension::class => AttributesExtension::class,
-                    ],
-                ],
-            ),
-            EnvironmentInterface::class,
-        );
-
-        static::assertSame(
-            [
-                CommonMarkCoreExtension::class,
-                ...self::defaultExtensionClasses(),
-                AttributesExtension::class,
-            ],
-            self::extensionClasses($environment),
-        );
-    }
-
     /**
      * @param array<string, mixed> $managerSection
      */

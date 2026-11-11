@@ -28,6 +28,7 @@ use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
 use League\CommonMark\Extension\TaskList\TaskListExtension;
 use Psr\Container\ContainerInterface;
 
+use function array_combine;
 use function array_keys;
 use function array_replace_recursive;
 
@@ -53,19 +54,33 @@ use function array_replace_recursive;
  */
 final class ExtensionPluginManager extends AbstractSingleInstancePluginManager
 {
+    /**
+     * The extensions that load whether or not any package registers one.
+     *
+     * A list because the declaration order is the contract. The constructor
+     * combines it into an `invokables` map, because laminas requires the id to
+     * equal the class name.
+     *
+     * @var list<class-string<ExtensionInterface>>
+     */
     private const array CONFIG = [
-        'invokables' => [
-            TableExtension::class             => TableExtension::class,
-            StrikethroughExtension::class     => StrikethroughExtension::class,
-            TaskListExtension::class          => TaskListExtension::class,
-            HeadingPermalinkExtension::class  => HeadingPermalinkExtension::class,
-            TableOfContentsExtension::class   => TableOfContentsExtension::class,
-            NormalizeHeadingsExtension::class => NormalizeHeadingsExtension::class,
-            ExternalLinkExtension::class      => ExternalLinkExtension::class,
-            AutolinkExtension::class          => AutolinkExtension::class,
-            DisallowedRawHtmlExtension::class => DisallowedRawHtmlExtension::class,
-        ],
+        TableExtension::class,
+        StrikethroughExtension::class,
+        TaskListExtension::class,
+        HeadingPermalinkExtension::class,
+        TableOfContentsExtension::class,
+        NormalizeHeadingsExtension::class,
+        ExternalLinkExtension::class,
+        AutolinkExtension::class,
+        DisallowedRawHtmlExtension::class,
     ];
+
+    /**
+     * The config the manager was constructed with, our starting list merged in.
+     *
+     * @var ServiceManagerConfiguration
+     */
+    private array $merged;
 
     protected string $instanceOf = ExtensionInterface::class;
 
@@ -77,22 +92,30 @@ final class ExtensionPluginManager extends AbstractSingleInstancePluginManager
         array $config = [],
     ) {
         /** @var ServiceManagerConfiguration $merged */
-        $merged = array_replace_recursive(self::CONFIG, $config);
+        $merged = array_replace_recursive(
+            ['invokables' => array_combine(self::CONFIG, self::CONFIG)],
+            $config,
+        );
 
-        parent::__construct($creationContext, $merged);
+        $this->merged = $merged;
+
+        parent::__construct($creationContext, $this->merged);
     }
 
     /**
-     * The always-loaded extensions, in the order CONFIG declares them.
+     * Every extension this manager will serve, in load order.
      *
-     * The environment adds these ahead of anything an extension package
-     * contributes, so they are present even when no package is installed.
+     * The starting list comes first, then whatever the application's section
+     * declares, because the constructor merges our list into the config it is
+     * handed.
      *
-     * @return list<class-string<ExtensionInterface>>
+     * @return list<string>
      */
     public function getDefaultExtensions(): array
     {
-        /** @var list<class-string<ExtensionInterface>> */
-        return array_keys(self::CONFIG['invokables']);
+        /** @var array<string, mixed> $factories */
+        $factories = $this->merged['factories'] ?? [];
+
+        return [...array_keys($this->merged['invokables']), ...array_keys($factories)];
     }
 }
