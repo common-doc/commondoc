@@ -22,6 +22,8 @@ use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
 use CommonDoc\Container\EnvironmentFactory;
+use CommonDoc\Container\ExtensionPluginManager;
+use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\LayoutWrappingMiddlewareFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
@@ -63,12 +65,38 @@ use function dirname;
  * 0 layout wrapping, -100 post-handle event. `SplPriorityQueue` is not stable,
  * so each custom middleware needs a priority of its own rather than a shared one.
  *
+ * The extension plugin manager is wired here in both halves: its factory entry
+ * and the plugin manager's class-name key. Neither half belongs in an autoload
+ * file, because this provider is merged unconditionally through
+ * `extra.laminas.config-provider`, so a file that is removed or overridden
+ * cannot drop either one.
+ *
+ * `getExtensions()` returns the fragment and `__invoke()` supplies the top-level
+ * key, the same split `getDependencies()` uses for `'dependencies'`. That key is
+ * the plugin manager's class name, which is the contract every extension
+ * package's ConfigProvider targets, so the aggregator unions the sections
+ * instead of one replacing the other. This package contributes the empty
+ * section: the extensions it always loads are the plugin manager's own `CONFIG`,
+ * not a list here, so no edit to this file can drop them.
+ *
+ * That split is what fixes the load order. The environment adds
+ * `CommonMarkCoreExtension` first, then the plugin manager's always-loaded set,
+ * then the names this section declares, so core and the defaults always precede
+ * a package's extensions. Within the section the order is the aggregator's, not
+ * this file's: `config.php` aggregates the third-party providers before this
+ * one, and `ConfigAggregator::mergeArray` keeps first-seen key order while
+ * recursing into the shared class-name key.
+ *
  * @type CommandMap = array<class-string, class-string>
  * @type MiddlewareSpec = array{middleware: class-string, priority: int}
  * @type MiddlewarePipeline = list<MiddlewareSpec>
  * @type BusConfig = array{command_map: CommandMap, middleware_pipeline: MiddlewarePipeline}
  * @type ListenerConfig = array<class-string, list<class-string>>
  * @type ConsoleConfig = array{commands: array<string, class-string>}
+ * @type ExtensionSet = array{
+ *   factories?: array<class-string, class-string>,
+ *   invokables?: array<class-string, class-string>,
+ * }
  * @type Dependencies = array{
  *   aliases: array<class-string, class-string>,
  *   factories: array<class-string, class-string>,
@@ -80,6 +108,7 @@ use function dirname;
  *   Webware\Console\ConsoleInterface: ConsoleConfig,
  *   Webware\MessageBus\MessageBusInterface: BusConfig,
  *   listeners: ListenerConfig,
+ *   'CommonDoc\Container\ExtensionPluginManager': ExtensionSet,
  * }
  * @internal
  */
@@ -128,11 +157,27 @@ final readonly class ConfigProvider
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
+                ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
                 LayoutWrappingMiddleware::class  => LayoutWrappingMiddlewareFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
         ];
+    }
+
+    /**
+     * The plugin manager section this package contributes.
+     *
+     * Empty by default, because the extensions this package always loads are
+     * `ExtensionPluginManager::CONFIG` and are not declared here. An extension
+     * package contributes its own `factories` or `invokables` under the same
+     * class-name key, which is the whole registration step for that package.
+     *
+     * @return ExtensionSet
+     */
+    public function getExtensions(): array
+    {
+        return [];
     }
 
     /** @return ListenerConfig */
@@ -158,11 +203,12 @@ final readonly class ConfigProvider
     public function __invoke(): array
     {
         return [
-            'dependencies'              => $this->getDependencies(),
-            'view_manager'              => $this->getViewConfig(),
-            ConsoleInterface::class     => $this->getConsoleConfig(),
-            MessageBusInterface::class  => $this->getBusConfig(),
-            EventProvider::LISTENER_KEY => $this->getListenerConfig(),
+            'dependencies'                => $this->getDependencies(),
+            'view_manager'                => $this->getViewConfig(),
+            ConsoleInterface::class       => $this->getConsoleConfig(),
+            MessageBusInterface::class    => $this->getBusConfig(),
+            EventProvider::LISTENER_KEY   => $this->getListenerConfig(),
+            ExtensionPluginManager::class => $this->getExtensions(),
         ];
     }
 }

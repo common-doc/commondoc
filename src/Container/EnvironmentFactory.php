@@ -19,6 +19,7 @@ use League\CommonMark\Environment\Environment;
 use League\CommonMark\Environment\EnvironmentInterface;
 use League\CommonMark\Exception\AlreadyInitializedException;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\ExtensionInterface;
 use Override;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
@@ -29,9 +30,14 @@ use function is_array;
 /**
  * Construction seam for the Markdown environment.
  *
- * The environment is configured from the aggregated config's environment
- * section, so the option surface lives in config/autoload/commonmark.global.php
- * rather than in this class.
+ * The environment options come from the config's EnvironmentInterface section,
+ * so the option surface lives in config/autoload/commonmark.global.php rather
+ * than in this class.
+ *
+ * Extensions are added core first, then every name the plugin manager serves, in
+ * the order the manager reports them. The manager owns that list, because it is
+ * constructed with the const defaults already merged into the application's
+ * section, so this class never re-reads the section and cannot load a name twice.
  *
  * @internal
  */
@@ -62,8 +68,17 @@ final readonly class EnvironmentFactory implements FactoryInterface
         string $requestedName,
         ?array $options = null,
     ): EnvironmentInterface {
+        $manager = $container->get(ExtensionPluginManager::class);
+
         $environment = new Environment($this->optionsFrom($container->get('config')));
         $environment->addExtension(new CommonMarkCoreExtension());
+
+        foreach ($manager->getDefaultExtensions() as $name) {
+            /** @var ExtensionInterface $extension */
+            $extension = $manager->get($name);
+
+            $environment->addExtension($extension);
+        }
 
         return $environment;
     }

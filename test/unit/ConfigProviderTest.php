@@ -23,6 +23,8 @@ use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
 use CommonDoc\Container\EnvironmentFactory;
+use CommonDoc\Container\ExtensionPluginManager;
+use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\LayoutWrappingMiddlewareFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
@@ -49,6 +51,7 @@ use Webware\MessageBus\MessageBusInterface;
 #[CoversMethod(ConfigProvider::class, 'getBusConfig')]
 #[CoversMethod(ConfigProvider::class, 'getConsoleConfig')]
 #[CoversMethod(ConfigProvider::class, 'getDependencies')]
+#[CoversMethod(ConfigProvider::class, 'getExtensions')]
 #[CoversMethod(ConfigProvider::class, 'getListenerConfig')]
 #[CoversMethod(ConfigProvider::class, 'getViewConfig')]
 final class ConfigProviderTest extends TestCase
@@ -60,11 +63,12 @@ final class ConfigProviderTest extends TestCase
 
         static::assertSame(
             [
-                'dependencies'              => $provider->getDependencies(),
-                'view_manager'              => $provider->getViewConfig(),
-                ConsoleInterface::class     => $provider->getConsoleConfig(),
-                MessageBusInterface::class  => $provider->getBusConfig(),
-                EventProvider::LISTENER_KEY => $provider->getListenerConfig(),
+                'dependencies'                => $provider->getDependencies(),
+                'view_manager'                => $provider->getViewConfig(),
+                ConsoleInterface::class       => $provider->getConsoleConfig(),
+                MessageBusInterface::class    => $provider->getBusConfig(),
+                EventProvider::LISTENER_KEY   => $provider->getListenerConfig(),
+                ExtensionPluginManager::class => $provider->getExtensions(),
             ],
             $provider->__invoke(),
         );
@@ -128,6 +132,13 @@ final class ConfigProviderTest extends TestCase
     }
 
     #[Test]
+    public function publishesThePluginManagerKeyWithAnEmptyFragment(): void
+    {
+        static::assertSame([], new ConfigProvider()->getExtensions());
+        static::assertSame([], new ConfigProvider()->__invoke()[ExtensionPluginManager::class]);
+    }
+
+    #[Test]
     public function registersAListenerForEachCommandEvent(): void
     {
         static::assertSame(
@@ -158,6 +169,7 @@ final class ConfigProviderTest extends TestCase
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
+                ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
                 LayoutWrappingMiddleware::class  => LayoutWrappingMiddlewareFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
