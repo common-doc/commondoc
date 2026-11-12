@@ -26,7 +26,7 @@ config:
 | Path | Role |
 |---|---|
 | `mago.toml` | Extends the centre (`vendor/webware/webware-tools/mago.toml`) and overrides `php-version` only. Never re-add general rules locally. |
-| `mago.bat` | Windows shim Infection needs to run the native Mago binary. Tracked, not ignored. No effect on Linux or CI. See webinertia/webware-tools issue 59. |
+| `bin/mago.bat` | Windows shim Infection needs to run the native Mago binary. Tracked, not ignored. No effect on Linux or CI. See webinertia/webware-tools issue 59. |
 | `webware-ci.json` | The house CI workflow's parameter contract, read from the repository root. See Continuous integration below. |
 | `phpunit.xml.dist` | PHPUnit 13 strict mode: `requireCoverageMetadata`, `failOnNotice`, `failOnWarning`, `failOnDeprecation`. |
 | `compose.yml` / `Dockerfile` / `.devcontainer/` | The containerized toolchain (Composer, PHPUnit, Mago, Infection, PHPBench, roave BC-check). |
@@ -34,7 +34,7 @@ config:
 | `.specify/` / `.github/skills/` | Spec Kit project files and the Copilot agent skills, on PowerShell scripts. |
 | `.specify/presets/common-doc-standard/` | The vendored Spec Kit preset carrying this repository's constitution template, registered in `.specify/presets/.registry`. |
 
-`mago.toml`, `mago.bat`, `phpunit.xml.dist`, `.gitattributes`, `.gitignore`, `codecov.yml`, `Dockerfile`,
+`mago.toml`, `bin/mago.bat`, `phpunit.xml.dist`, `.gitattributes`, `.gitignore`, `codecov.yml`, `Dockerfile`,
 `.dockerignore`, `infection.json5.dist`, `phpbench.json.dist` and devcontainer config are
 byte-identical to the canonical artifacts in
 `webware-tools/presets/webware-alignment/artifacts/` - copy updates from there rather than
