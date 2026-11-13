@@ -18,11 +18,17 @@ use CommonDoc\View\DocumentViewRenderer;
 use Laminas\ServiceManager\ServiceManager;
 use Laminas\View\Exception\RenderingFailedException;
 use League\CommonMark\ConverterInterface;
+use League\CommonMark\Environment\EnvironmentInterface;
+use League\CommonMark\MarkdownConverter;
+use League\CommonMark\Node\Block\Document;
+use League\CommonMark\Renderer\Block\DocumentRenderer;
+use League\CommonMark\Renderer\NodeRendererInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function array_map;
 use function bin2hex;
 use function file_put_contents;
 use function glob;
@@ -49,12 +55,62 @@ final class DocumentViewRenderingTest extends TestCase
     private string $directory;
 
     #[Test]
+    public function keepsTheLibraryRendererAndConverterUnsubclassed(): void
+    {
+        $container = $this->container($this->config());
+
+        static::assertSame(MarkdownConverter::class, $container->get(ConverterInterface::class)::class);
+
+        /** @var EnvironmentInterface $environment */
+        $environment = $container->get(EnvironmentInterface::class);
+
+        $renderers = array_map(
+            static fn(NodeRendererInterface $renderer): string => $renderer::class,
+            [...$environment->getRenderersForClass(Document::class)],
+        );
+
+        static::assertSame(DocumentViewRenderer::class, $renderers[0]);
+        static::assertContains(DocumentRenderer::class, $renderers);
+    }
+
+    #[Test]
     public function raisesTheTemplateNotFoundFailureWhenTheBodyNameResolvesToNothing(): void
     {
         $this->expectException(RenderingFailedException::class);
         $this->expectExceptionMessage('commondoc::document');
 
         $this->renderDocument($this->configWithoutABodyTemplate());
+    }
+
+    #[Test]
+    public function rendersAHelperContributedRegionInsideTheBody(): void
+    {
+        $body = "{$this->directory}/helper.phtml";
+        file_put_contents($body, data: <<<'PHTML'
+            <?php $this->headLink()->appendStylesheet('/assets/helper.css'); ?>
+            <main class="document">
+                <?= $this->headLink() ?>
+                <?= $documentBody ?>
+            </main>
+            PHTML);
+
+        $output = $this->renderDocument($this->configMappedTo($body));
+
+        static::assertStringContainsString('helper.css', $output);
+        static::assertStringContainsString('rel="stylesheet"', $output);
+        static::assertStringContainsString('<p>Body paragraph.</p>', $output);
+    }
+
+    #[Test]
+    public function rendersANodeContributedByAnInstalledExtension(): void
+    {
+        $output = $this->renderDocument(
+            $this->config(),
+            "| a | b |\n| - | - |\n| 1 | 2 |",
+        );
+
+        static::assertStringContainsString('<table>', $output);
+        static::assertStringContainsString('<td>1</td>', $output);
     }
 
     #[Test]
@@ -159,13 +215,13 @@ final class DocumentViewRenderingTest extends TestCase
     /**
      * @param array<string, mixed> $config
      */
-    private function renderDocument(array $config): string
+    private function renderDocument(array $config, string $markdown = "# Heading\n\nBody paragraph."): string
     {
         $container = $this->container($config);
 
         /** @var ConverterInterface $converter */
         $converter = $container->get(ConverterInterface::class);
 
-        return (string) $converter->convert("# Heading\n\nBody paragraph.");
+        return (string) $converter->convert($markdown);
     }
 }
