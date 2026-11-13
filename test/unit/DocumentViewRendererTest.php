@@ -60,6 +60,36 @@ final class DocumentViewRendererTest extends TestCase
     }
 
     #[Test]
+    public function asksTheChildRendererOnceForTheDocumentChildren(): void
+    {
+        $children = [new Paragraph(), new Paragraph()];
+        $document = self::documentWith($children);
+
+        $childRenderer = $this->createMock(ChildNodeRendererInterface::class);
+        $childRenderer
+            ->expects($this->once())
+            ->method('renderNodes')
+            ->with($children)
+            ->willReturn('<p>body</p>');
+
+        new DocumentViewRenderer($this->createStub(TemplateRendererInterface::class))
+            ->render($document, $childRenderer);
+    }
+
+    #[Test]
+    public function handsTheChildRendererOutputToTheTemplateUnchanged(): void
+    {
+        $body   = "<p>first</p>\n<p>second &amp; third</p>";
+        $name   = null;
+        $params = null;
+
+        new DocumentViewRenderer($this->templateCapturing($name, $params))
+            ->render(self::documentWith([new Paragraph()]), $this->childRendererReturning($body));
+
+        static::assertSame($body, $params['documentBody'] ?? null);
+    }
+
+    #[Test]
     public function passesANullPageWhenTheDocumentCarriesNone(): void
     {
         $name   = null;
@@ -119,6 +149,20 @@ final class DocumentViewRendererTest extends TestCase
             ->render($document, $childRenderer);
 
         static::assertSame($children, $receivedNodes);
+    }
+
+    #[Test]
+    public function rendersTheDocumentWhenTheChildRendererReturnsAnEmptyString(): void
+    {
+        $name   = null;
+        $params = null;
+
+        $result = new DocumentViewRenderer($this->templateCapturing($name, $params))
+            ->render(self::documentWith([new Paragraph()]), $this->childRendererReturning(''));
+
+        static::assertSame('commondoc::document', $name);
+        static::assertSame('', $params['documentBody'] ?? null);
+        static::assertNotSame('', $result);
     }
 
     #[Test]
