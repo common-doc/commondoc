@@ -40,6 +40,69 @@ byte-identical to the canonical artifacts in
 `webware-tools/presets/webware-alignment/artifacts/` - copy updates from there rather than
 editing them here.
 
+## Document rendering
+
+A document renders through a real Laminas view. `CommonDoc\View\DocumentViewRenderer` is
+registered for `League\CommonMark\Node\Block\Document` at priority 10, ahead of the library's own
+document renderer, and it does three things: it asks the injected
+`ChildNodeRendererInterface` for `renderNodes($node->children())`, hands that string to
+`Mezzio\LaminasView\LaminasViewRenderer` as `documentBody`, and returns the result. The layout
+wrap, every view helper and the helper state reset come from the framework, so neither
+`HtmlRenderer`, `MarkdownConverter` nor `MarkdownConverterInterface` is subclassed or wrapped.
+
+`ConfigProvider::getViewConfig()` registers:
+
+| Template name | File | Variables |
+| --- | --- | --- |
+| `commondoc::document` | `templates/commondoc/document.phtml` | `documentBody` (`string`), `page` (`CommonDoc\View\Page\|null`) |
+| `commondoc::layout` | `templates/commondoc/layout.phtml` | `content` (`string`), written by the view renderer |
+
+`page` carries the `CommonDoc\View\Page` for the document being converted, put there by
+`PageContextListener`, which writes `commondoc.page` into the document data before the render. A
+render performed outside a build, where `PageContext` holds nothing, gets `null` and still
+succeeds.
+
+### Overriding the body template from configuration
+
+A site replaces the body template from its own configuration. Nothing in this package changes,
+no delegator is needed and no file precedence game is played:
+
+```php
+// config/autoload/templates.global.php in the site
+return [
+    'templates' => [
+        'map' => [
+            'commondoc::document' => __DIR__ . '/../templates/document.phtml',
+        ],
+    ],
+];
+```
+
+The site template receives the same two variables and may use any Laminas view helper. Two rules
+hold for it:
+
+- It must not set `content`. That name is reserved for the layout and is written by the view
+  renderer.
+- It must not require a page. A no-page render still calls it with `page` set to `null`.
+
+Removing the site entry restores the packaged template.
+
+### Template resolution order
+
+Resolution follows `webware-theme`, highest priority first:
+
+| Priority | Source |
+| --- | --- |
+| 100 | theme resolver |
+| 50 | `templates.map`, packaged or site |
+| 1 | template path stack, when a consumer configures one |
+
+The map is the deliberate override point: it is the mechanism that lets a site restyle the body
+through configuration alone.
+
+A missing template name raises the view renderer's template-not-found exception, naming the
+template. It is not caught here, because a missing body template is a configuration error.
+
 ## Continuous integration
 
 This repository has no `.github/workflows` directory. `webware-ci.json` is the parameter
