@@ -27,11 +27,15 @@ use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\LayoutWrappingMiddlewareFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
+use CommonDoc\Container\PageContextFactory;
+use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\LayoutWrappingMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
+use CommonDoc\View\PageContext;
+use CommonDoc\View\PageContextListener;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Environment\EnvironmentInterface;
 use League\CommonMark\MarkdownConverter;
@@ -172,6 +176,8 @@ final class ConfigProviderTest extends TestCase
                 ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
                 LayoutWrappingMiddleware::class  => LayoutWrappingMiddlewareFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
+                PageContext::class               => PageContextFactory::class,
+                PageContextListener::class       => PageContextListenerFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
             $dependencies['factories'],
