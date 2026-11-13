@@ -103,6 +103,37 @@ final class DocumentViewRendererTest extends TestCase
     }
 
     #[Test]
+    public function passesANullPageWhenTheDocumentEntryIsExplicitlyNull(): void
+    {
+        $document = self::documentWith([new Paragraph()]);
+        $document->data->set('commondoc.page', null);
+
+        $name   = null;
+        $params = null;
+
+        new DocumentViewRenderer($this->templateCapturing($name, $params))
+            ->render($document, $this->childRendererReturning('<p>body</p>'));
+
+        static::assertSame('commondoc::document', $name);
+        static::assertSame(['documentBody' => '<p>body</p>', 'page' => null], $params);
+    }
+
+    #[Test]
+    public function passesANullPageWhenTheDocumentEntryIsNotAPage(): void
+    {
+        $document = self::documentWith([new Paragraph()]);
+        $document->data->set('commondoc.page', 'not a page');
+
+        $name   = null;
+        $params = null;
+
+        new DocumentViewRenderer($this->templateCapturing($name, $params))
+            ->render($document, $this->childRendererReturning('<p>body</p>'));
+
+        static::assertSame(['documentBody' => '<p>body</p>', 'page' => null], $params);
+    }
+
+    #[Test]
     public function passesTheBodyAndThePageToTheBodyTemplate(): void
     {
         $page     = self::page('Reference page');

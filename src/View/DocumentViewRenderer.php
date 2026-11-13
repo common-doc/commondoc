@@ -47,8 +47,8 @@ final readonly class DocumentViewRenderer implements NodeRendererInterface
 
     /**
      * @throws InvalidArgumentException when the node is not a document
-     * @throws InvalidPathException from the document data read, which the
-     *         default value prevents in practice
+     * @throws InvalidPathException from the page read, which the default value
+     *         prevents in practice
      */
     #[Override]
     public function render(Node $node, ChildNodeRendererInterface $childRenderer): Stringable|string|null
@@ -61,12 +61,28 @@ final readonly class DocumentViewRenderer implements NodeRendererInterface
             ));
         }
 
-        /** @var Page|null $page */
-        $page = $node->data->get('commondoc.page', null);
-
         return $this->renderer->render('commondoc::document', [
             'documentBody' => $childRenderer->renderNodes($node->children()),
-            'page'         => $page,
+            'page'         => $this->pageFor($node),
         ]);
+    }
+
+    /**
+     * The page this document belongs to, or null when the render is not part of
+     * a build.
+     *
+     * The read carries a null default and the result is narrowed, so the null
+     * case is a declared outcome rather than an assumption: a preview render and
+     * a build render travel the same path.
+     *
+     * @throws InvalidPathException from the data read, which the default value
+     *         prevents in practice
+     */
+    private function pageFor(Document $document): ?Page
+    {
+        /** @var mixed $page */
+        $page = $document->data->get('commondoc.page', null);
+
+        return $page instanceof Page ? $page : null;
     }
 }

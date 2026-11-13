@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace CommonDocTestIntegration;
 
 use CommonDoc\View\DocumentViewRenderer;
+use CommonDoc\View\PageContext;
 use Laminas\ServiceManager\ServiceManager;
 use Laminas\View\Exception\RenderingFailedException;
 use League\CommonMark\ConverterInterface;
@@ -80,6 +81,27 @@ final class DocumentViewRenderingTest extends TestCase
         $this->expectExceptionMessage('commondoc::document');
 
         $this->renderDocument($this->configWithoutABodyTemplate());
+    }
+
+    #[Test]
+    public function rendersADocumentWithNoPagePresent(): void
+    {
+        $container = $this->container($this->config());
+
+        /** @var PageContext $context */
+        $context = $container->get(PageContext::class);
+
+        static::assertNull($context->current());
+
+        /** @var ConverterInterface $converter */
+        $converter = $container->get(ConverterInterface::class);
+
+        $output = (string) $converter->convert("# Heading\n\nBody paragraph.");
+
+        static::assertStringContainsString('<!DOCTYPE html>', $output);
+        static::assertStringContainsString('<main class="document">', $output);
+        static::assertStringContainsString('<p>Body paragraph.</p>', $output);
+        static::assertStringContainsString('<title></title>', $output);
     }
 
     #[Test]
