@@ -21,7 +21,6 @@ use CommonDoc\Console\BuildCommand;
 use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
-use CommonDoc\Middleware\LayoutWrappingMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use Laminas\ServiceManager\ServiceManager;
 use League\CommonMark\Environment\EnvironmentInterface;
@@ -69,7 +68,6 @@ use function array_map;
 #[CoversClass(CommandPreHandleListener::class)]
 #[CoversClass(CommandPostHandleListener::class)]
 #[CoversClass(SourceLoadingMiddleware::class)]
-#[CoversClass(LayoutWrappingMiddleware::class)]
 #[CoversClass(ExtensionPluginManager::class)]
 final class ContainerBootTest extends TestCase
 {
@@ -156,7 +154,6 @@ final class ContainerBootTest extends TestCase
                 CommandPreHandleMiddleware::class,
                 SourceLoadingMiddleware::class,
                 MessageHandlerMiddleware::class,
-                LayoutWrappingMiddleware::class,
                 CommandPostHandleMiddleware::class,
             ],
             $order,
@@ -190,15 +187,11 @@ final class ContainerBootTest extends TestCase
     }
 
     #[Test]
-    public function resolvesBothCustomMiddleware(): void
+    public function resolvesTheSourceLoadingMiddleware(): void
     {
         static::assertInstanceOf(
             SourceLoadingMiddleware::class,
             $this->container()->get(SourceLoadingMiddleware::class),
-        );
-        static::assertInstanceOf(
-            LayoutWrappingMiddleware::class,
-            $this->container()->get(LayoutWrappingMiddleware::class),
         );
     }
 

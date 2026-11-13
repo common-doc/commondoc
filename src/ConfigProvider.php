@@ -21,18 +21,18 @@ use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
+use CommonDoc\Container\DocumentViewRendererFactory;
 use CommonDoc\Container\EnvironmentFactory;
 use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Container\ExtensionPluginManagerFactory;
-use CommonDoc\Container\LayoutWrappingMiddlewareFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
-use CommonDoc\Middleware\LayoutWrappingMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
+use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use League\CommonMark\ConverterInterface;
@@ -66,8 +66,15 @@ use function dirname;
  *
  * The middleware pipeline merges the same way, and the priorities are the
  * ordering contract: 100 pre-handle event, 50 source loading, 1 message handler,
- * 0 layout wrapping, -100 post-handle event. `SplPriorityQueue` is not stable,
- * so each custom middleware needs a priority of its own rather than a shared one.
+ * -100 post-handle event. `SplPriorityQueue` is not stable, so the one custom
+ * middleware carries a priority of its own rather than a shared one.
+ *
+ * The view configuration is contributed here rather than in an autoload file for
+ * the same reason: a host that overrides a local file still aggregates this
+ * provider, so the body and layout addresses always resolve. Both are map
+ * entries, which is the override seam a site uses when it wants a different body
+ * without a code change: adding the same address to its own `templates.map`
+ * replaces the entry, and the map outranks the path stack.
  *
  * The extension plugin manager is wired here in both halves: its factory entry
  * and the plugin manager's class-name key. Neither half belongs in an autoload
@@ -105,10 +112,11 @@ use function dirname;
  *   aliases: array<interface-string, class-string>,
  *   factories: array<class-string, class-string>,
  * }
- * @type ViewConfig = array{template_path_stack: list<non-empty-string>}
+ * @type TemplateMap = array<non-empty-string, non-empty-string>
+ * @type ViewConfig = array{map: TemplateMap, layout: non-empty-string}
  * @type ProviderConfig = array{
  *   dependencies: Dependencies,
- *   view_manager: ViewConfig,
+ *   templates: ViewConfig,
  *   Webware\Console\ConsoleInterface: ConsoleConfig,
  *   Webware\MessageBus\MessageBusInterface: BusConfig,
  *   listeners: ListenerConfig,
@@ -129,10 +137,6 @@ final readonly class ConfigProvider
                 [
                     'middleware' => SourceLoadingMiddleware::class,
                     'priority'   => 50,
-                ],
-                [
-                    'middleware' => LayoutWrappingMiddleware::class,
-                    'priority'   => 0,
                 ],
             ],
         ];
@@ -160,9 +164,9 @@ final readonly class ConfigProvider
                 BuildSiteHandler::class          => BuildSiteHandlerFactory::class,
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
+                DocumentViewRenderer::class      => DocumentViewRendererFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
                 ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
-                LayoutWrappingMiddleware::class  => LayoutWrappingMiddlewareFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 PageContext::class               => PageContextFactory::class,
                 PageContextListener::class       => PageContextListenerFactory::class,
@@ -199,9 +203,11 @@ final readonly class ConfigProvider
     public function getViewConfig(): array
     {
         return [
-            'template_path_stack' => [
-                dirname(__DIR__) . '/templates',
+            'map'    => [
+                'commondoc::document' => dirname(__DIR__) . '/templates/commondoc/document.phtml',
+                'commondoc::layout'   => dirname(__DIR__) . '/templates/commondoc/layout.phtml',
             ],
+            'layout' => 'commondoc::layout',
         ];
     }
 
@@ -210,7 +216,7 @@ final readonly class ConfigProvider
     {
         return [
             'dependencies'                => $this->getDependencies(),
-            'view_manager'                => $this->getViewConfig(),
+            'templates'                   => $this->getViewConfig(),
             ConsoleInterface::class       => $this->getConsoleConfig(),
             MessageBusInterface::class    => $this->getBusConfig(),
             EventProvider::LISTENER_KEY   => $this->getListenerConfig(),

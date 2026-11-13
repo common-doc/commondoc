@@ -112,8 +112,8 @@ return [
             'internal_hosts'     => [],
             'open_in_new_window' => false,
             'html_class'         => '',
-            // Each of these takes 'none', 'all', 'internal' or 'external'.
-            'nofollow'           => 'none',
+            // Each of these takes '' (apply to none), 'all', 'internal' or 'external'.
+            'nofollow'           => '',
             'noopener'           => 'external',
             'noreferrer'         => 'external',
         ],

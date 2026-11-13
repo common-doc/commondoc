@@ -9,19 +9,18 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  *
- * @var string $title
- * @var string $content
+ * The body template for one document. The body arrives already rendered by
+ * CommonMark and is echoed inside the body region; the page arrives when the
+ * render belongs to one and is absent otherwise, so it is only read behind a
+ * null check. `content` belongs to the layout and is never set here.
+ *
+ * @var string $documentBody
+ * @var \CommonDoc\View\Page|null $page
  */
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title><?= $this->escapeHtml($title) ?></title>
-</head>
-<body>
-    <main>
-        <?= $content ?>
-    </main>
-</body>
-</html>
+<?php if (null !== $page) : ?>
+    <?php $this->headTitle($page->label); ?>
+<?php endif ?>
+<main class="document">
+    <?= $documentBody ?>
+</main>
