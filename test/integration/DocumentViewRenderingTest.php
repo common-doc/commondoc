@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace CommonDocTestIntegration;
 
 use CommonDoc\View\DocumentViewRenderer;
+use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use Laminas\ServiceManager\ServiceManager;
 use Laminas\View\Exception\RenderingFailedException;
@@ -37,6 +38,7 @@ use function is_array;
 use function mkdir;
 use function random_bytes;
 use function rmdir;
+use function sprintf;
 use function sys_get_temp_dir;
 use function unlink;
 
@@ -133,6 +135,46 @@ final class DocumentViewRenderingTest extends TestCase
 
         static::assertStringContainsString('<table>', $output);
         static::assertStringContainsString('<td>1</td>', $output);
+    }
+
+    #[Test]
+    public function rendersEachDocumentWithOnlyItsOwnContent(): void
+    {
+        $container = $this->container($this->config());
+
+        /** @var ConverterInterface $converter */
+        $converter = $container->get(ConverterInterface::class);
+
+        /** @var PageContext $context */
+        $context = $container->get(PageContext::class);
+
+        $seen = [];
+
+        for ($index = 1; $index <= 10; $index++) {
+            $label = sprintf('Page %02d', $index);
+
+            $context->set(new Page(
+                label       : $label,
+                projectName : 'CommonDoc',
+                projectSlug : 'commondoc',
+                sourcePath  : "docs/page-{$index}.md",
+                url         : "/page-{$index}",
+                versionLabel: '1.0',
+            ));
+
+            $output = (string) $converter->convert("## Section {$index}\n\nBody {$index}.");
+            $context->clear();
+
+            static::assertStringContainsString("<title>{$label}</title>", $output);
+            static::assertStringContainsString("Section {$index}", $output);
+            static::assertStringContainsString("Body {$index}.", $output);
+
+            foreach ($seen as $earlier) {
+                static::assertStringNotContainsString($earlier, $output);
+            }
+
+            $seen[] = $label;
+        }
     }
 
     #[Test]

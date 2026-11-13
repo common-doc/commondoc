@@ -151,6 +151,39 @@ final class DocumentViewRendererTest extends TestCase
     }
 
     #[Test]
+    public function performsOneTemplateRenderPerDocumentAndKeepsNoState(): void
+    {
+        $calls = [];
+
+        $template = $this->createStub(TemplateRendererInterface::class);
+        $template
+            ->method('render')
+            ->willReturnCallback(
+                static function (string $name, array|object $params = []) use (&$calls): string {
+                    $calls[] = is_array($params) ? $params : [];
+
+                    return '<html>rendered document</html>';
+                },
+            );
+
+        $renderer = new DocumentViewRenderer($template);
+        $page     = self::page('Second document');
+
+        $renderer->render(self::documentWith([new Paragraph()]), $this->childRendererReturning('<p>first</p>'));
+
+        $second = self::documentWith([new Paragraph()]);
+        $second->data->set('commondoc.page', $page);
+
+        $renderer->render($second, $this->childRendererReturning('<p>second</p>'));
+
+        static::assertCount(2, $calls);
+        static::assertSame('<p>first</p>', $calls[0]['documentBody'] ?? null);
+        static::assertNull($calls[0]['page'] ?? null);
+        static::assertSame('<p>second</p>', $calls[1]['documentBody'] ?? null);
+        static::assertSame($page, $calls[1]['page'] ?? null);
+    }
+
+    #[Test]
     public function rejectsANodeThatIsNotADocument(): void
     {
         $this->expectException(InvalidArgumentException::class);
