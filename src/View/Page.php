@@ -15,7 +15,6 @@ declare(strict_types=1);
 namespace CommonDoc\View;
 
 use ArrayIterator;
-use IteratorAggregate;
 use Laminas\View\Model\ModelInterface;
 use LogicException;
 use Override;
