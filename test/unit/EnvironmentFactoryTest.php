@@ -16,7 +16,12 @@ namespace CommonDocTest;
 
 use CommonDoc\Container\EnvironmentFactory;
 use CommonDoc\Container\ExtensionPluginManager;
+use CommonDoc\View\DocumentViewRenderer;
+use CommonDoc\View\Page;
+use CommonDoc\View\PageContext;
+use CommonDoc\View\PageContextListener;
 use League\CommonMark\Environment\EnvironmentInterface;
+use League\CommonMark\Event\DocumentPreRenderEvent;
 use League\CommonMark\Extension\Attributes\AttributesExtension;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
@@ -30,6 +35,8 @@ use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
 use League\CommonMark\Extension\Table\TableExtension;
 use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
 use League\CommonMark\Extension\TaskList\TaskListExtension;
+use League\CommonMark\Node\Block\Document;
+use Mezzio\Template\TemplateRendererInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -42,6 +49,11 @@ use function array_map;
 #[CoversMethod(EnvironmentFactory::class, '__invoke')]
 final class EnvironmentFactoryTest extends TestCase
 {
+    private PageContext $context;
+    private PageContextListener $listener;
+    private Page $page;
+    private DocumentViewRenderer $renderer;
+
     /**
      * @return list<class-string<ExtensionInterface>>
      */
@@ -175,6 +187,52 @@ final class EnvironmentFactoryTest extends TestCase
         );
     }
 
+    #[Test]
+    public function registersThePageContextListenerForThePreRenderEvent(): void
+    {
+        $environment = new EnvironmentFactory()(
+            $this->containerWithConfig([]),
+            EnvironmentInterface::class,
+        );
+
+        $document = new Document();
+        $this->context->set($this->page);
+
+        $environment->dispatch(new DocumentPreRenderEvent($document, 'html'));
+
+        static::assertSame($this->page, $document->data->get('commondoc.page', null));
+    }
+
+    #[Test]
+    public function rendersTheDocumentThroughTheDocumentViewRenderer(): void
+    {
+        $environment = new EnvironmentFactory()(
+            $this->containerWithConfig([]),
+            EnvironmentInterface::class,
+        );
+
+        $renderers = [...$environment->getRenderersForClass(Document::class)];
+
+        static::assertNotEmpty($renderers);
+        static::assertSame($this->renderer, $renderers[0]);
+    }
+
+    protected function setUp(): void
+    {
+        $this->page = new Page(
+            label       : 'Install',
+            projectName : 'CommonDoc',
+            projectSlug : 'commondoc',
+            sourcePath  : 'docs/install.md',
+            url         : '/install/',
+            versionLabel: '1.0',
+        );
+
+        $this->context  = new PageContext();
+        $this->listener = new PageContextListener($this->context);
+        $this->renderer = new DocumentViewRenderer($this->createStub(TemplateRendererInterface::class));
+    }
+
     /**
      * @param array<string, mixed> $managerSection
      */
@@ -188,9 +246,11 @@ final class EnvironmentFactoryTest extends TestCase
         $container
             ->method('get')
             ->willReturnCallback(
-                static fn(string $id): mixed => match ($id) {
+                fn(string $id): mixed => match ($id) {
                     'config'                      => $config,
                     ExtensionPluginManager::class => $pluginManager,
+                    DocumentViewRenderer::class   => $this->renderer,
+                    PageContextListener::class    => $this->listener,
                     default                       => null,
                 },
             );

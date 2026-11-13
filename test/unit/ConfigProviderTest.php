@@ -22,18 +22,18 @@ use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
+use CommonDoc\Container\DocumentViewRendererFactory;
 use CommonDoc\Container\EnvironmentFactory;
 use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Container\ExtensionPluginManagerFactory;
-use CommonDoc\Container\LayoutWrappingMiddlewareFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
-use CommonDoc\Middleware\LayoutWrappingMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
+use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use League\CommonMark\ConverterInterface;
@@ -49,6 +49,10 @@ use Webware\MessageBus\ConfigProvider as MessageBusConfigProvider;
 use Webware\MessageBus\Event\Command\CommandPostHandleEvent;
 use Webware\MessageBus\Event\Command\CommandPreHandleEvent;
 use Webware\MessageBus\MessageBusInterface;
+
+use function array_keys;
+use function strlen;
+use function substr;
 
 #[CoversClass(ConfigProvider::class)]
 #[CoversMethod(ConfigProvider::class, '__invoke')]
@@ -68,7 +72,7 @@ final class ConfigProviderTest extends TestCase
         static::assertSame(
             [
                 'dependencies'                => $provider->getDependencies(),
-                'view_manager'                => $provider->getViewConfig(),
+                'templates'                   => $provider->getViewConfig(),
                 ConsoleInterface::class       => $provider->getConsoleConfig(),
                 MessageBusInterface::class    => $provider->getBusConfig(),
                 EventProvider::LISTENER_KEY   => $provider->getListenerConfig(),
@@ -92,6 +96,12 @@ final class ConfigProviderTest extends TestCase
     }
 
     #[Test]
+    public function leavesTheDeadPathStackOutOfTheViewConfig(): void
+    {
+        static::assertArrayNotHasKey('template_path_stack', new ConfigProvider()->getViewConfig());
+    }
+
+    #[Test]
     public function mapsTheBuildSiteCommandToItsHandler(): void
     {
         static::assertSame(
@@ -103,7 +113,7 @@ final class ConfigProviderTest extends TestCase
     }
 
     #[Test]
-    public function pipesTheCustomMiddlewareAtDistinctPriorities(): void
+    public function pipesTheSourceLoadingMiddleware(): void
     {
         $config = new ConfigProvider()->__invoke();
 
@@ -112,10 +122,6 @@ final class ConfigProviderTest extends TestCase
                 [
                     'middleware' => SourceLoadingMiddleware::class,
                     'priority'   => 50,
-                ],
-                [
-                    'middleware' => LayoutWrappingMiddleware::class,
-                    'priority'   => 0,
                 ],
             ],
             $config[MessageBusInterface::class][MessageBusConfigProvider::MIDDLEWARE_PIPELINE_KEY],
@@ -127,12 +133,13 @@ final class ConfigProviderTest extends TestCase
     {
         $config = new ConfigProvider()->getViewConfig();
 
-        static::assertCount(1, $config['template_path_stack']);
+        static::assertSame(['commondoc::document', 'commondoc::layout'], array_keys($config['map']));
+        static::assertSame('commondoc::layout', $config['layout']);
 
-        $root = $config['template_path_stack'][0];
-
-        static::assertDirectoryExists($root);
-        static::assertFileExists("{$root}/commondoc/document.phtml");
+        foreach ($config['map'] as $name => $path) {
+            static::assertStringEndsWith('/commondoc/' . substr($name, strlen('commondoc::')) . '.phtml', $path);
+            static::assertFileExists($path);
+        }
     }
 
     #[Test]
@@ -172,9 +179,9 @@ final class ConfigProviderTest extends TestCase
                 BuildSiteHandler::class          => BuildSiteHandlerFactory::class,
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
+                DocumentViewRenderer::class      => DocumentViewRendererFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
                 ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
-                LayoutWrappingMiddleware::class  => LayoutWrappingMiddlewareFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 PageContext::class               => PageContextFactory::class,
                 PageContextListener::class       => PageContextListenerFactory::class,

@@ -14,21 +14,21 @@ declare(strict_types=1);
 
 namespace CommonDoc\Container;
 
-use CommonDoc\Middleware\LayoutWrappingMiddleware;
+use CommonDoc\View\DocumentViewRenderer;
 use Laminas\ServiceManager\Factory\FactoryInterface;
+use Mezzio\Template\TemplateRendererInterface;
 use Override;
 use Psr\Container\ContainerInterface;
 
 /**
- * Construction seam for the layout wrapping middleware.
+ * Construction seam for the document view renderer.
  *
- * This factory is load bearing: the pipeline factory skips any spec the
- * container cannot resolve, so without it the middleware would vanish from the
- * pipeline without an error.
+ * The template renderer is the framework's, so the layout, the resolver chain
+ * and every view helper come from the host container rather than from here.
  *
  * @internal
  */
-final readonly class LayoutWrappingMiddlewareFactory implements FactoryInterface
+final readonly class DocumentViewRendererFactory implements FactoryInterface
 {
     /**
      * @param ?array<array-key, mixed> $options
@@ -38,7 +38,7 @@ final readonly class LayoutWrappingMiddlewareFactory implements FactoryInterface
         ContainerInterface $container,
         string $requestedName,
         ?array $options = null,
-    ): LayoutWrappingMiddleware {
-        return new LayoutWrappingMiddleware();
+    ): DocumentViewRenderer {
+        return new DocumentViewRenderer($container->get(TemplateRendererInterface::class));
     }
 }
