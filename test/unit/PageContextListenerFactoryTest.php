@@ -58,6 +58,6 @@ final class PageContextListenerFactoryTest extends TestCase
 
         $listener(new DocumentPreRenderEvent($document, 'html'));
 
-        static::assertSame($page, $document->data->get('commondoc.page', null));
+        static::assertSame($page, $document->data->get('commondoc.page', default: null));
     }
 }

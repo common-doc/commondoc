@@ -81,7 +81,7 @@ final readonly class DocumentViewRenderer implements NodeRendererInterface
     private function pageFor(Document $document): ?Page
     {
         /** @var mixed $page */
-        $page = $document->data->get('commondoc.page', null);
+        $page = $document->data->get('commondoc.page', default: null);
 
         return $page instanceof Page ? $page : null;
     }

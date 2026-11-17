@@ -52,7 +52,7 @@ final class PageTest extends TestCase
     public static function mutators(): array
     {
         return [
-            'setVariable'  => [static fn(Page $page): mixed => $page->setVariable('extra', 'value')],
+            'setVariable'  => [static fn(Page $page): mixed => $page->setVariable('extra', value: 'value')],
             'setVariables' => [static fn(Page $page): mixed => $page->setVariables(['extra' => 'value'])],
             'setTemplate'  => [static fn(Page $page): mixed => $page->setTemplate('other::template')],
             'addChild'     => [static fn(Page $page): mixed => $page->addChild(self::leaf())],
@@ -189,7 +189,7 @@ final class PageTest extends TestCase
         $page = self::leaf();
 
         static::assertNull($page->getVariable('missing'));
-        static::assertSame('fallback', $page->getVariable('missing', 'fallback'));
+        static::assertSame('fallback', $page->getVariable('missing', default: 'fallback'));
     }
 
     #[Test]

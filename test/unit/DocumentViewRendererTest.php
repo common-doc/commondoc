@@ -106,7 +106,7 @@ final class DocumentViewRendererTest extends TestCase
     public function passesANullPageWhenTheDocumentEntryIsExplicitlyNull(): void
     {
         $document = self::documentWith([new Paragraph()]);
-        $document->data->set('commondoc.page', null);
+        $document->data->set('commondoc.page', value: null);
 
         $name   = null;
         $params = null;
@@ -122,7 +122,7 @@ final class DocumentViewRendererTest extends TestCase
     public function passesANullPageWhenTheDocumentEntryIsNotAPage(): void
     {
         $document = self::documentWith([new Paragraph()]);
-        $document->data->set('commondoc.page', 'not a page');
+        $document->data->set('commondoc.page', value: 'not a page');
 
         $name   = null;
         $params = null;
