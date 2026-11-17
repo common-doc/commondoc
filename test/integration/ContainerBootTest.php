@@ -23,6 +23,7 @@ use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use Laminas\ServiceManager\ServiceManager;
+use Laminas\View\Resolver\AggregateResolver;
 use League\CommonMark\Environment\EnvironmentInterface;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
@@ -35,6 +36,9 @@ use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
 use League\CommonMark\Extension\Table\TableExtension;
 use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
 use League\CommonMark\Extension\TaskList\TaskListExtension;
+use Mezzio\LaminasView\ConfigProvider as LaminasViewProvider;
+use Phly\EventDispatcher\ConfigProvider as EventDispatcherProvider;
+use Phly\EventDispatcher\EventDispatcher;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -43,6 +47,7 @@ use Psr\EventDispatcher\ListenerProviderInterface;
 use ReflectionProperty;
 use SplQueue;
 use Symfony\Component\Console\Application;
+use Webware\ConfigManager\ConfigAggregator;
 use Webware\MessageBus\Command\CommandResult;
 use Webware\MessageBus\Event\Command\CommandPostHandleEvent;
 use Webware\MessageBus\Event\Command\CommandPreHandleEvent;
@@ -53,6 +58,7 @@ use Webware\MessageBus\MessageStatus;
 use Webware\MessageBus\Middleware\MessageHandlerMiddleware;
 use Webware\MessageBus\MiddlewareInterface;
 use Webware\MessageBus\MiddlewarePipe;
+use Webware\Theme\ConfigProvider as ThemeProvider;
 
 use function array_map;
 
@@ -107,6 +113,56 @@ final class ContainerBootTest extends TestCase
 
         static::assertSame(MessageStatus::Success, $result->getStatus());
         static::assertSame([], $result->getResult());
+    }
+
+    /**
+     * config/config.php documents two provider order constraints, and neither survives a
+     * provider list that the aggregator does not merge in order.
+     *
+     * The theme pair is merged here as a pair because that is the constraint the comment
+     * states: LaminasViewProvider first, ThemeProvider second, both owning
+     * AggregateResolver::class, and the later one winning. The pair is asserted separately
+     * from the container because Laminas\View\ConfigProvider also claims that key later in
+     * the real list, so the container value is not the theme's.
+     */
+    #[Test]
+    public function keepsTheDocumentedProviderOrderConstraints(): void
+    {
+        $laminasView = new LaminasViewProvider()();
+        $theme       = new ThemeProvider()();
+
+        // Both providers own AggregateResolver::class, so an assertion that only checked the
+        // merged value would still pass if they happened to contribute the same factory.
+        static::assertNotSame(
+            $laminasView['dependencies']['factories'][AggregateResolver::class],
+            $theme['dependencies']['factories'][AggregateResolver::class],
+        );
+
+        $merged = new ConfigAggregator([LaminasViewProvider::class, ThemeProvider::class])->getMergedConfig();
+
+        static::assertSame(
+            $theme['dependencies']['factories'][AggregateResolver::class],
+            $merged['dependencies']['factories'][AggregateResolver::class],
+        );
+
+        /** @var array<string, mixed> $config */
+        $config = $this->container()->get('config');
+
+        // webware-event aliases the dispatcher interface and ships no factory for the target;
+        // phly-event-dispatcher supplies that factory, and the alias only resolves while both
+        // contributions are merged.
+        static::assertSame(
+            EventDispatcher::class,
+            $config['dependencies']['aliases'][EventDispatcherInterface::class],
+        );
+        static::assertSame(
+            new EventDispatcherProvider()()['dependencies']['factories'][EventDispatcher::class],
+            $config['dependencies']['factories'][EventDispatcher::class],
+        );
+        static::assertInstanceOf(
+            EventDispatcher::class,
+            $this->container()->get(EventDispatcherInterface::class),
+        );
     }
 
     #[Test]

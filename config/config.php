@@ -13,14 +13,14 @@ declare(strict_types=1);
  */
 
 use CommonDoc\ConfigProvider;
-use Laminas\ConfigAggregator\ArrayProvider;
-use Laminas\ConfigAggregator\ConfigAggregator;
-use Laminas\ConfigAggregator\PhpFileProvider;
 use Laminas\Hydrator\ConfigProvider as HydratorProvider;
 use Laminas\View\ConfigProvider as ViewProvider;
 use Mezzio\Helper\ConfigProvider as HelperProvider;
 use Mezzio\LaminasView\ConfigProvider as LaminasViewProvider;
 use Phly\EventDispatcher\ConfigProvider as EventDispatcherProvider;
+use Webware\ConfigManager\ConfigAggregator;
+use Webware\ConfigManager\Provider\ArrayProvider;
+use Webware\ConfigManager\Provider\PhpFileProvider;
 use Webware\Console\ConfigProvider as ConsoleProvider;
 use Webware\Event\ConfigProvider as EventProvider;
 use Webware\MessageBus\ConfigProvider as BusProvider;

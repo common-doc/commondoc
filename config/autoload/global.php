@@ -12,7 +12,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-use Laminas\ConfigAggregator\ConfigAggregator;
+use Webware\ConfigManager\ConfigAggregator;
 
 return [
     ConfigAggregator::ENABLE_CACHE => true,
