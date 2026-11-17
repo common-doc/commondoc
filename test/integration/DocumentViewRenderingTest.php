@@ -130,7 +130,7 @@ final class DocumentViewRenderingTest extends TestCase
     {
         $output = $this->renderDocument(
             $this->config(),
-            "| a | b |\n| - | - |\n| 1 | 2 |",
+            markdown: "| a | b |\n| - | - |\n| 1 | 2 |",
         );
 
         static::assertStringContainsString('<table>', $output);

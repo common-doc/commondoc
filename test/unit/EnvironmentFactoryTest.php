@@ -200,7 +200,7 @@ final class EnvironmentFactoryTest extends TestCase
 
         $environment->dispatch(new DocumentPreRenderEvent($document, 'html'));
 
-        static::assertSame($this->page, $document->data->get('commondoc.page', null));
+        static::assertSame($this->page, $document->data->get('commondoc.page', default: null));
     }
 
     #[Test]

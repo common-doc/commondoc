@@ -95,7 +95,8 @@ use function dirname;
  * then the names this section declares, so core and the defaults always precede
  * a package's extensions. Within the section the order is the aggregator's, not
  * this file's: `config.php` aggregates the third-party providers before this
- * one, and `ConfigAggregator::mergeArray` keeps first-seen key order while
+ * one, and `Webware\ConfigManager\Merge\ConfigMerger::merge`, which the
+ * aggregator applies to every contribution, keeps first-seen key order while
  * recursing into the shared class-name key.
  *
  * @type CommandMap = array<class-string, class-string>

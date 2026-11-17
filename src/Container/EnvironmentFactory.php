@@ -90,7 +90,7 @@ final readonly class EnvironmentFactory implements FactoryInterface
             $environment->addExtension($extension);
         }
 
-        $environment->addRenderer(Document::class, $container->get(DocumentViewRenderer::class), 10);
+        $environment->addRenderer(Document::class, $container->get(DocumentViewRenderer::class), priority: 10);
         $environment->addEventListener(
             DocumentPreRenderEvent::class,
             $container->get(PageContextListener::class),

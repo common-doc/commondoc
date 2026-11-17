@@ -33,7 +33,7 @@ declare(strict_types=1);
  * - Configuration caching is _disabled_.
  */
 
-use Laminas\ConfigAggregator\ConfigAggregator;
+use Webware\ConfigManager\ConfigAggregator;
 
 return [
     ConfigAggregator::ENABLE_CACHE => false,

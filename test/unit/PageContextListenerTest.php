@@ -50,7 +50,7 @@ final class PageContextListenerTest extends TestCase
 
         new PageContextListener(new PageContext())(new DocumentPreRenderEvent($document, 'html'));
 
-        static::assertSame($page, $document->data->get('commondoc.page', null));
+        static::assertSame($page, $document->data->get('commondoc.page', default: null));
     }
 
     #[Test]
@@ -65,7 +65,7 @@ final class PageContextListenerTest extends TestCase
 
         $listener(new DocumentPreRenderEvent($document, 'html'));
 
-        static::assertSame($page, $document->data->get('commondoc.page', null));
+        static::assertSame($page, $document->data->get('commondoc.page', default: null));
     }
 
     #[Test]
@@ -89,6 +89,6 @@ final class PageContextListenerTest extends TestCase
 
         new PageContextListener($context)(new DocumentPreRenderEvent($document, 'html'));
 
-        static::assertSame($page, $document->data->get('commondoc.page', null));
+        static::assertSame($page, $document->data->get('commondoc.page', default: null));
     }
 }
