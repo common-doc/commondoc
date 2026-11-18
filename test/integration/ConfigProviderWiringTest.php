@@ -16,15 +16,23 @@ namespace CommonDocTestIntegration;
 
 use CommonDoc\ConfigProvider;
 use CommonDoc\Container\DocumentViewRendererFactory;
+use CommonDoc\Container\PageFactoryFactory;
+use CommonDoc\Http\Middleware\NotServedMiddleware;
+use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\DocumentViewRenderer;
+use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use JsonException;
 use Laminas\ServiceManager\ServiceManager;
+use Mezzio\Router\RouteCollector;
+use Mezzio\Router\RouteCollectorInterface;
+use Mezzio\Router\RouterInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Webware\Router\QueryParamRouter;
 
 use function file_get_contents;
 use function json_decode;
@@ -45,6 +53,50 @@ use const JSON_THROW_ON_ERROR;
 #[CoversMethod(ConfigProvider::class, 'getViewConfig')]
 final class ConfigProviderWiringTest extends TestCase
 {
+    #[Test]
+    public function acceptsARouteDuringABuildWithoutADispatchingRequest(): void
+    {
+        $collector = $this->container()->get(RouteCollector::class);
+
+        static::assertInstanceOf(RouteCollector::class, $collector);
+
+        $route = $collector->get(
+            path      : '/guide/setup/',
+            middleware: new NotServedMiddleware(),
+            name      : 'guide/setup.md',
+        );
+        $route->setOptions(['label' => 'Setup']);
+
+        static::assertCount(1, $collector->getRoutes());
+        static::assertSame('guide/setup.md', $route->getName());
+        static::assertSame('/guide/setup/', $route->getPath());
+        static::assertSame(['label' => 'Setup'], $route->getOptions());
+    }
+
+    #[Test]
+    public function buildsAPageThroughTheContainerWithADerivedAddress(): void
+    {
+        $container = $this->container();
+
+        $factory = $container->get(PageFactoryFactory::class);
+
+        static::assertIsCallable($factory);
+
+        $page = $factory(
+            localPath: 'guide/setup.md',
+            label    : 'Setup',
+        );
+
+        static::assertInstanceOf(Page::class, $page);
+        static::assertSame('guide/setup.md', $page->sourcePath);
+        // The address comes from the DocumentRoot the container built, so the
+        // page cannot disagree with the file the write pass will produce.
+        static::assertSame(
+            $container->get(DocumentRoot::class)->published('guide/setup.md'),
+            $page->url,
+        );
+    }
+
     /**
      * @throws JsonException
      */
@@ -96,6 +148,22 @@ final class ConfigProviderWiringTest extends TestCase
 
         static::assertInstanceOf(PageContext::class, $container->get(PageContext::class));
         static::assertInstanceOf(PageContextListener::class, $container->get(PageContextListener::class));
+    }
+
+    #[Test]
+    public function resolvesTheRouterAndTheCollectorItFeeds(): void
+    {
+        $container = $this->container();
+
+        // RouteCollectorFactory refuses to build without a RouterInterface, so
+        // resolving the collector is what proves the alias is wired and not only
+        // declared.
+        static::assertInstanceOf(QueryParamRouter::class, $container->get(RouterInterface::class));
+
+        $collector = $container->get(RouteCollector::class);
+
+        static::assertInstanceOf(RouteCollector::class, $collector);
+        static::assertSame($collector, $container->get(RouteCollectorInterface::class));
     }
 
     private function container(): ServiceManager

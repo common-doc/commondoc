@@ -22,6 +22,7 @@ use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
+use CommonDoc\Container\DocumentRootFactory;
 use CommonDoc\Container\DocumentViewRendererFactory;
 use CommonDoc\Container\EnvironmentFactory;
 use CommonDoc\Container\ExtensionPluginManager;
@@ -29,16 +30,22 @@ use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
+use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
+use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Environment\EnvironmentInterface;
 use League\CommonMark\MarkdownConverter;
+use Mezzio\Router\RouteCollector;
+use Mezzio\Router\RouteCollectorFactory;
+use Mezzio\Router\RouteCollectorInterface;
+use Mezzio\Router\RouterInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -49,6 +56,7 @@ use Webware\MessageBus\ConfigProvider as MessageBusConfigProvider;
 use Webware\MessageBus\Event\Command\CommandPostHandleEvent;
 use Webware\MessageBus\Event\Command\CommandPreHandleEvent;
 use Webware\MessageBus\MessageBusInterface;
+use Webware\Router\QueryParamRouter;
 
 use function array_keys;
 use function strlen;
@@ -168,7 +176,9 @@ final class ConfigProviderTest extends TestCase
 
         static::assertSame(
             [
-                ConverterInterface::class => MarkdownConverter::class,
+                ConverterInterface::class      => MarkdownConverter::class,
+                RouteCollectorInterface::class => RouteCollector::class,
+                RouterInterface::class         => QueryParamRouter::class,
             ],
             $dependencies['aliases'],
         );
@@ -179,15 +189,37 @@ final class ConfigProviderTest extends TestCase
                 BuildSiteHandler::class          => BuildSiteHandlerFactory::class,
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
+                DocumentRoot::class              => DocumentRootFactory::class,
                 DocumentViewRenderer::class      => DocumentViewRendererFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
                 ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 PageContext::class               => PageContextFactory::class,
                 PageContextListener::class       => PageContextListenerFactory::class,
+                PageFactoryFactory::class        => PageFactoryFactory::class,
+                RouteCollector::class            => RouteCollectorFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
             $dependencies['factories'],
         );
+    }
+
+    #[Test]
+    public function resolvesTheCollectorInterfaceToTheCollector(): void
+    {
+        $aliases = new ConfigProvider()->getDependencies()['aliases'];
+
+        static::assertSame(RouteCollector::class, $aliases[RouteCollectorInterface::class]);
+    }
+
+    #[Test]
+    public function resolvesTheRouterTheCollectorDependsOn(): void
+    {
+        // RouteCollectorFactory throws MissingDependencyException without a
+        // RouterInterface, and Webware\Router\ConfigProvider ships that alias
+        // commented out, so this package has to contribute it or nothing resolves.
+        $aliases = new ConfigProvider()->getDependencies()['aliases'];
+
+        static::assertSame(QueryParamRouter::class, $aliases[RouterInterface::class]);
     }
 }

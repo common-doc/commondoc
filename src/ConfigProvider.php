@@ -21,6 +21,7 @@ use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
+use CommonDoc\Container\DocumentRootFactory;
 use CommonDoc\Container\DocumentViewRendererFactory;
 use CommonDoc\Container\EnvironmentFactory;
 use CommonDoc\Container\ExtensionPluginManager;
@@ -28,22 +29,29 @@ use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
+use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
+use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Environment\EnvironmentInterface;
 use League\CommonMark\MarkdownConverter;
+use Mezzio\Router\RouteCollector;
+use Mezzio\Router\RouteCollectorFactory;
+use Mezzio\Router\RouteCollectorInterface;
+use Mezzio\Router\RouterInterface;
 use Webware\Console\ConsoleInterface;
 use Webware\Event\ConfigProvider as EventProvider;
 use Webware\MessageBus\ConfigProvider as MessageBusConfigProvider;
 use Webware\MessageBus\Event\Command\CommandPostHandleEvent;
 use Webware\MessageBus\Event\Command\CommandPreHandleEvent;
 use Webware\MessageBus\MessageBusInterface;
+use Webware\Router\QueryParamRouter;
 
 use function dirname;
 
@@ -68,6 +76,23 @@ use function dirname;
  * ordering contract: 100 pre-handle event, 50 source loading, 1 message handler,
  * -100 post-handle event. `SplPriorityQueue` is not stable, so the one custom
  * middleware carries a priority of its own rather than a shared one.
+ *
+ * The router is wired here in the two halves the build needs. `RouterInterface`
+ * aliases to `QueryParamRouter`, because `Webware\Router\ConfigProvider`
+ * registers that factory but ships its own alias commented out, leaving the
+ * interface unresolved. `RouteCollector` gets `RouteCollectorFactory`, which
+ * needs nothing beyond that alias.
+ *
+ * `Mezzio\Router\ConfigProvider` is deliberately not aggregated. It registers
+ * the same two entries and then four dispatch middleware factories, and those
+ * need `Mezzio\MiddlewareFactoryInterface`, which arrives only with
+ * `mezzio/mezzio`. This package has no HTTP pipeline and never resolves them, so
+ * aggregating it would register services it cannot build in exchange for saving
+ * two lines.
+ *
+ * A build dispatches nothing. Routes exist so navigation and `generateUri()`
+ * render in templates exactly as they would under a request, which is why the
+ * collector has to be resolvable at all.
  *
  * The view configuration is contributed here rather than in an autoload file for
  * the same reason: a host that overrides a local file still aggregates this
@@ -158,19 +183,24 @@ final readonly class ConfigProvider
     {
         return [
             'aliases'   => [
-                ConverterInterface::class => MarkdownConverter::class,
+                ConverterInterface::class      => MarkdownConverter::class,
+                RouteCollectorInterface::class => RouteCollector::class,
+                RouterInterface::class         => QueryParamRouter::class,
             ],
             'factories' => [
                 BuildCommand::class              => BuildCommandFactory::class,
                 BuildSiteHandler::class          => BuildSiteHandlerFactory::class,
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
+                DocumentRoot::class              => DocumentRootFactory::class,
                 DocumentViewRenderer::class      => DocumentViewRendererFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
                 ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 PageContext::class               => PageContextFactory::class,
                 PageContextListener::class       => PageContextListenerFactory::class,
+                PageFactoryFactory::class        => PageFactoryFactory::class,
+                RouteCollector::class            => RouteCollectorFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
         ];

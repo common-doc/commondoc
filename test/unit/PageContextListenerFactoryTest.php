@@ -18,7 +18,7 @@ use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
-use League\CommonMark\Event\DocumentPreRenderEvent;
+use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Node\Block\Document;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
@@ -56,7 +56,7 @@ final class PageContextListenerFactoryTest extends TestCase
 
         $document = new Document();
 
-        $listener(new DocumentPreRenderEvent($document, 'html'));
+        $listener(new DocumentParsedEvent($document));
 
         static::assertSame($page, $document->data->get('commondoc.page', default: null));
     }
