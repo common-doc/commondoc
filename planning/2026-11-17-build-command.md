@@ -514,13 +514,44 @@ convention:
 
 | `Page` field | Source under the router design |
 |---|---|
-| `label` | route option, from front matter, or the first heading |
-| `url` | the published path |
-| `projectName`, `projectSlug`, `versionLabel` | deployment configuration, absent for a single repo build |
+| `label` | the call site, from front matter or the first heading |
+| `url` | `DocumentRoot::published()`, derived rather than accepted |
+| `projectName`, `projectSlug`, `versionLabel` | deployment configuration, read once and captured |
 | `sourcePath` | the local path |
 
-Not yet decided, and not needed for the first PR. Recorded because it means page
-data and navigation share one source instead of two.
+### How it is built: a factory that returns a factory
+
+`PageFactoryFactory` is a Laminas factory whose service is a **callable**, not a
+page object. A page cannot be a container service because there is one per
+document and the container builds a service once; what the container can hold is
+the thing that makes them.
+
+The shape is not invented here. `Webware\Console\Container\PslTerminalFactoryFactory`
+and `Webware\UserManager\Container\UserFactory` both do this for the same reason,
+and the user manager is the closer precedent because it also captures
+configuration.
+
+The call site supplies only what differs per document:
+
+```php
+$page = $pageFactory(localPath: 'guide/setup.md', label: 'Setup');
+```
+
+Everything shared is captured by value: the identity from config, and the
+`DocumentRoot` the address is derived from. That is the resolution of the dryness
+finding: `Page::$url` is no longer an independent parameter anyone can state
+wrongly, because the only thing that constructs a page holds the translation.
+
+The service id is the factory's own class name, matching the console precedent, so
+there is no loose string key. `DocumentRoot` gains a factory in the same change,
+because the callable cannot derive an address without one and nothing else could
+construct it from configuration.
+
+Configuration is keyed by the class it configures, `DocumentRoot::class` and
+`Page::class`, so a deployment overrides either in its own autoload file. Parsing
+uses `Psl\Type` shapes: a section that does not match falls back to defaults rather
+than refusing, because a container that cannot build its own services is worse
+than a page with a blank project name.
 
 ---
 

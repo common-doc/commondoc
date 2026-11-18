@@ -22,6 +22,7 @@ use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
+use CommonDoc\Container\DocumentRootFactory;
 use CommonDoc\Container\DocumentViewRendererFactory;
 use CommonDoc\Container\EnvironmentFactory;
 use CommonDoc\Container\ExtensionPluginManager;
@@ -29,10 +30,12 @@ use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
+use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
+use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
@@ -186,12 +189,14 @@ final class ConfigProviderTest extends TestCase
                 BuildSiteHandler::class          => BuildSiteHandlerFactory::class,
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
+                DocumentRoot::class              => DocumentRootFactory::class,
                 DocumentViewRenderer::class      => DocumentViewRendererFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
                 ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 PageContext::class               => PageContextFactory::class,
                 PageContextListener::class       => PageContextListenerFactory::class,
+                PageFactoryFactory::class        => PageFactoryFactory::class,
                 RouteCollector::class            => RouteCollectorFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],

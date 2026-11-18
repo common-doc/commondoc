@@ -16,8 +16,11 @@ namespace CommonDocTestIntegration;
 
 use CommonDoc\ConfigProvider;
 use CommonDoc\Container\DocumentViewRendererFactory;
+use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
+use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\DocumentViewRenderer;
+use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use JsonException;
@@ -68,6 +71,30 @@ final class ConfigProviderWiringTest extends TestCase
         static::assertSame('guide/setup.md', $route->getName());
         static::assertSame('/guide/setup/', $route->getPath());
         static::assertSame(['label' => 'Setup'], $route->getOptions());
+    }
+
+    #[Test]
+    public function buildsAPageThroughTheContainerWithADerivedAddress(): void
+    {
+        $container = $this->container();
+
+        $factory = $container->get(PageFactoryFactory::class);
+
+        static::assertIsCallable($factory);
+
+        $page = $factory(
+            localPath: 'guide/setup.md',
+            label    : 'Setup',
+        );
+
+        static::assertInstanceOf(Page::class, $page);
+        static::assertSame('guide/setup.md', $page->sourcePath);
+        // The address comes from the DocumentRoot the container built, so the
+        // page cannot disagree with the file the write pass will produce.
+        static::assertSame(
+            $container->get(DocumentRoot::class)->published('guide/setup.md'),
+            $page->url,
+        );
     }
 
     /**
