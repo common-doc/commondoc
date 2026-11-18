@@ -15,9 +15,7 @@ declare(strict_types=1);
 namespace CommonDoc\Input;
 
 use InvalidArgumentException;
-use LogicException;
-
-use function sprintf;
+use Psl\Str;
 
 /**
  * The non-Markdown files beneath a source root.
@@ -27,23 +25,37 @@ use function sprintf;
  * does. Without a list of assets those references have nothing to resolve
  * against, so the translation would either skip them or invent a path.
  *
- * The scan is the Markdown scan with a different filter, which is why these are
- * two types rather than one type with a mode.
+ * Nothing is filtered beyond the Markdown extension. The traversal already
+ * reports regular files only, so a socket or a device node never appears here,
+ * and a file that happens to be unreadable is left in the list on purpose: it
+ * will fail loudly when it is copied, which is more useful than vanishing from
+ * the build with a broken link as the only symptom.
  *
  * @api
  */
 final readonly class Asset
 {
+    private const string DOCUMENT = '.md';
+
     /**
      * Every asset beneath the root, ordered so two builds agree.
      *
-     * @return list<string>
+     * @return list<non-empty-string>
      *
      * @throws InvalidArgumentException When the root is not a readable directory
-     * @throws LogicException           Until the scan is implemented
      */
     public function scan(string $root): array
     {
-        throw new LogicException(sprintf('%s::scan() is not implemented for the root "%s".', self::class, $root));
+        $assets = [];
+
+        foreach (Tree::at($root)->paths() as $path) {
+            if (Str\ends_with_ci($path, suffix: self::DOCUMENT)) {
+                continue;
+            }
+
+            $assets[] = $path;
+        }
+
+        return $assets;
     }
 }

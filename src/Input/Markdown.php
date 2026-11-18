@@ -15,9 +15,7 @@ declare(strict_types=1);
 namespace CommonDoc\Input;
 
 use InvalidArgumentException;
-use LogicException;
-
-use function sprintf;
+use Psl\Str;
 
 /**
  * The Markdown documents beneath a source root.
@@ -33,16 +31,32 @@ use function sprintf;
  */
 final readonly class Markdown
 {
+    private const string EXTENSION = '.md';
+
     /**
      * Every `.md` file beneath the root, ordered so two builds agree.
      *
-     * @return list<string>
+     * The extension is matched without regard to case. A document named `.MD` is
+     * a document, and skipping it silently would publish a site missing a page,
+     * which is worse than the duplicate it might create: two paths that differ
+     * only in extension produce one output file, and that collision is reported
+     * when the routes are registered rather than hidden here.
+     *
+     * @return list<non-empty-string>
      *
      * @throws InvalidArgumentException When the root is not a readable directory
-     * @throws LogicException           Until the scan is implemented
      */
     public function scan(string $root): array
     {
-        throw new LogicException(sprintf('%s::scan() is not implemented for the root "%s".', self::class, $root));
+        $documents = [];
+
+        foreach (Tree::at($root)->paths() as $path) {
+            if (! Str\ends_with_ci($path, suffix: self::EXTENSION)) {
+                continue;
+            }
+
+            $documents[] = $path;
+        }
+        return $documents;
     }
 }

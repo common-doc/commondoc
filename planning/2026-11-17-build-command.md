@@ -520,13 +520,43 @@ Built as skeletons in commit `skeleton: add the build types the design needs`.
 
 | File | State | Tests |
 |---|---|---|
-| `src/Input/Markdown.php` | skeleton | none yet |
-| `src/Input/Asset.php` | skeleton | none yet |
-| `src/Output/Style.php` | complete (enum) | covered by `DocumentRootTest` |
-| `src/Output/DocumentRoot.php` | **implemented** | `DocumentRootTest`, 15 tests, 30 assertions, 100% lines and methods |
+| `src/Input/Tree.php` | **implemented** | `TreeTest`, 9 tests, on `Psl\Filesystem` |
+| `src/Input/Markdown.php` | **implemented** | `MarkdownTest`, 6 tests |
+| `src/Input/Asset.php` | **implemented** | `AssetTest`, 6 tests |
+| `src/Output/AddressStyle.php` | complete (enum) | covered by `DocumentRootTest` |
+| `src/Output/DocumentRoot.php` | **implemented** | `DocumentRootTest`, 15 tests, 100% lines and methods |
 | `src/Output/LinkRewriter.php` | skeleton | none yet |
 | `src/Record/BuildRecord.php` | skeleton | none yet |
 | `src/Router/RouteTable.php` | skeleton | none yet |
+
+### Why the scans are built on PSL
+
+`Psl\Filesystem` is the same library `FileWriter` writes through, so one
+dependency describes both ends of the filesystem work rather than a native
+iterator here and PSL there. The typing is the second reason: `read_directory()`
+returns a `list<non-empty-string>` and throws typed refusals, so the analyzer
+accepted a declared `@throws` list instead of an untyped throw, and a caller
+catching `InvalidArgumentException` still catches all three because PSL's
+exceptions extend it.
+
+`Tree` exists so a document scan and an asset scan cannot disagree about what
+exists or how a path is spelled. Both are then one filter each, which is why the
+two scans are eleven lines between them.
+
+Two decisions worth recording:
+
+- **`finfo` was dropped.** It was in the earlier draft because fileinfo was
+  requested, but `Filesystem\is_file()` already restricts the walk to regular
+  files, so the MIME probe decided nothing that the walk had not decided. An
+  unreadable asset is deliberately left in the list rather than filtered out: it
+  fails loudly when copied, where a silent omission would surface as a broken
+  image with no diagnostic.
+- **Symlinked directories are not followed.** A link cycle would otherwise make
+  a scan run forever, and the guard costs one call. Symlinked files are still
+  published.
+
+The `.md` extension is matched case-insensitively. A `.MD` document is a
+document, and skipping it silently would publish a site missing a page.
 
 ### What `DocumentRoot` settled while being implemented
 
@@ -560,8 +590,9 @@ which is correct for that style, since a file-index address is what it does.
 |---|---|---|---|
 | `src/Input/Markdown.php` | class | `scan(string $root): list<string>` | R |
 | `src/Input/Asset.php` | class | `scan(string $root): list<string>` | ? |
-| `src/Output/Style.php` | enum | `case Directory; case Plain;` | ? |
-| `src/Output/DocumentRoot.php` | readonly class | `published()` and `file()` | ? |
+| `src/Input/Tree.php` | class | `paths(): list<non-empty-string>` | R |
+| `src/Output/AddressStyle.php` | enum | `case Directory; case Plain;` | R |
+| `src/Output/DocumentRoot.php` | readonly class | `published()` and `file()` | R |
 | `src/Output/LinkRewriter.php` | readonly class | CommonMark `DocumentParsedEvent` listener | ? |
 | `src/Record/BuildRecord.php` | readonly class | `input`, `output`, `failed` | R |
 | `src/Router/RouteTable.php` | readonly class | implements `RouteProviderInterface`, `add(string $localPath, string $publishedPath)` | ? |

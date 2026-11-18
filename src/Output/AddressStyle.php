@@ -15,20 +15,20 @@ declare(strict_types=1);
 namespace CommonDoc\Output;
 
 /**
- * How a document path becomes a published path.
+ * How a document path becomes a published address.
  *
- * A published path is what a browser asks for. The style decides whether a
- * document is served from its own URL or from a directory address, and both are
- * legitimate: one mirrors the source tree exactly, the other produces the
+ * A published address is what a browser asks for. The form decides whether a
+ * document is served from its own address or from a directory address, and both
+ * are legitimate: one mirrors the source tree exactly, the other produces the
  * cleaner addresses a static host serves natively.
  *
- * The style is a property of the site rather than of a single write, because
- * every internal link must agree with it. Two styles in one build would produce
+ * The form is a property of the site rather than of a single write, because
+ * every internal link must agree with it. Two forms in one build would produce
  * links that point at addresses nothing serves.
  *
  * @api
  */
-enum Style: string
+enum AddressStyle: string
 {
     /** `guide/setup.md` is published at `/guide/setup/` and served from `index.html`. */
     case Directory = 'directory';
