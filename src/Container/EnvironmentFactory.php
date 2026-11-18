@@ -19,7 +19,7 @@ use CommonDoc\View\PageContextListener;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Environment\EnvironmentInterface;
-use League\CommonMark\Event\DocumentPreRenderEvent;
+use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Exception\AlreadyInitializedException;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\ExtensionInterface;
@@ -47,9 +47,9 @@ use function is_array;
  * as a view rather than as finished HTML. It is the only renderer registered for
  * that node, so no priority is needed and none is passed: a priority would only
  * matter if something else also claimed `Document`, and nothing does. The page
- * context listener is registered on the pre-render event, which is where the
- * page reaches the document's own data. Both collaborators come from the
- * container.
+ * context listener is registered on the parsed event, which is where the page
+ * reaches the document's own data early enough for a listener that resolves a
+ * relative link to read it. Both collaborators come from the container.
  *
  * @internal
  */
@@ -93,8 +93,14 @@ final readonly class EnvironmentFactory implements FactoryInterface
         }
 
         $environment->addRenderer(Document::class, $container->get(DocumentViewRenderer::class));
+        // No priority, for the same reason the renderer takes none: the only
+        // ordering that matters is that the page is written before a listener
+        // that rewrites a link can read it, and every listener the build adds is
+        // added to an environment this factory has already finished. Listeners
+        // of equal priority run in the order they were added, so nothing else
+        // has to be arranged.
         $environment->addEventListener(
-            DocumentPreRenderEvent::class,
+            DocumentParsedEvent::class,
             $container->get(PageContextListener::class),
         );
 

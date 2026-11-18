@@ -152,6 +152,23 @@ final readonly class DocumentRoot
     }
 
     /**
+     * The address an asset is published at, such as `/images/diagram.png`.
+     *
+     * An asset is not translated: it is copied where it sits, so its address is
+     * the base path followed by its own path. That is the whole difference from
+     * a document, whose suffix and index name are implied by the address rather
+     * than spelled in it. Keeping the two answers here means a link to an image
+     * and the file that serves it come from one place, exactly as they do for a
+     * document.
+     *
+     * @param string $localPath A path relative to the root, as the scan produced it
+     */
+    public function asset(string $localPath): string
+    {
+        return $this->basePath . $localPath;
+    }
+
+    /**
      * The file a local path is written to, relative to the output directory.
      *
      * @throws InvalidArgumentException When the local path does not name a document

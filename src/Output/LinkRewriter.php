@@ -14,11 +14,23 @@ declare(strict_types=1);
 
 namespace CommonDoc\Output;
 
+use CommonDoc\View\Page;
+use InvalidArgumentException;
 use League\CommonMark\Event\DocumentParsedEvent;
-use LogicException;
+use League\CommonMark\Extension\CommonMark\Node\Inline\AbstractWebResource;
+use RuntimeException;
 
-use function count;
+use function array_fill_keys;
+use function array_key_exists;
+use function array_pop;
+use function dirname;
+use function explode;
+use function implode;
+use function preg_match;
 use function sprintf;
+use function str_starts_with;
+use function strcspn;
+use function substr;
 
 /**
  * Rewrites document links and image references to published paths.
@@ -32,39 +44,197 @@ use function sprintf;
  * It reads the same translation the write pass uses, so a path in a link and the
  * file that serves it are produced by one code path and cannot disagree.
  *
- * Two collaborators, each answering one question:
+ * Three collaborators, each answering one question:
  *
  * - `DocumentRoot` says what a local path is published at. It is a pure
  *   function, so it needs no table and no cache to be asked once per link.
- * - The document list says whether a target exists. Recomputation can produce a
- *   path for anything; only the discovered set can say the target is real, and a
- *   link to a document that does not exist has to fail the build rather than
- *   publish a dead link.
+ * - The two lists say whether a target exists, and which of the two translations
+ *   applies. Recomputation can produce a path for anything; only the discovered
+ *   sets can say the target is real, and a link to a document that does not
+ *   exist has to fail the build rather than publish a dead link.
+ * - The document being rewritten supplies its own path, because a relative
+ *   target only means something against the document it was written in. That
+ *   path arrives on the document's data, written by `PageContextListener`
+ *   before this listener runs, so nothing here changes between documents and
+ *   the whole type can be exercised with a bare `Document`.
  *
  * @api
  */
 final readonly class LinkRewriter
 {
+    /** The shape of a scheme, which is what makes a target external. */
+    private const string SCHEME = '~^[A-Za-z][A-Za-z0-9+.\-]*:~';
+
+    /** The characters that end the path part of a target. */
+    private const string SUFFIX_START = '#?';
+
+    private const string SEPARATOR = '/';
+
+    private const string CURRENT = '.';
+
+    private const string PARENT = '..';
+
+    /** @var array<non-empty-string, true> */
+    private array $documents;
+
+    /** @var array<non-empty-string, true> */
+    private array $assets;
+
     /**
      * @param list<non-empty-string> $documents Every document the scan discovered
+     * @param list<non-empty-string> $assets    Every path that is not a document
      */
     public function __construct(
         private DocumentRoot $root,
-        private array $documents,
-    ) {}
+        array $documents,
+        array $assets,
+    ) {
+        $this->documents = array_fill_keys(
+            keys : $documents,
+            value: true,
+        );
+        $this->assets = array_fill_keys(
+            keys : $assets,
+            value: true,
+        );
+    }
 
     /**
-     * @throws LogicException Until link rewriting is implemented
+     * The local path a target names, with every `.` and `..` removed.
+     *
+     * An absolute target is relative to the source root, because the published
+     * site begins at the root and that is the only absolute space a reader
+     * knows about. Everything else is relative to the directory holding the
+     * document, which is what makes a source tree renamable: `../images/d.png`
+     * keeps working wherever the document that writes it is moved.
+     *
+     * @throws RuntimeException when the path climbs above the source root
      */
-    // @mago-expect analysis:unused-parameter - the event is the listener contract; the
-    // tree walk arrives in the next commit and the contract must not be reshaped for it.
+    private function candidate(string $path, string $from): string
+    {
+        $base = str_starts_with($path, self::SEPARATOR) ? '' : dirname($from);
+
+        return $this->normalize($base . self::SEPARATOR . $path);
+    }
+
+    /**
+     * The path with empty, current and parent segments resolved.
+     *
+     * A path that leaves the root is refused rather than clamped: it names a
+     * file that cannot be published, and a clamp would silently publish a link
+     * to something else.
+     *
+     * @throws RuntimeException when a parent segment would climb above the root
+     */
+    private function normalize(string $path): string
+    {
+        $segments = [];
+
+        foreach (explode(self::SEPARATOR, $path) as $segment) {
+            if ('' === $segment || self::CURRENT === $segment) {
+                continue;
+            }
+
+            if (self::PARENT !== $segment) {
+                $segments[] = $segment;
+
+                continue;
+            }
+
+            if ([] === $segments) {
+                throw new RuntimeException(sprintf(
+                    'The path "%s" leaves the source root.',
+                    $path,
+                ));
+            }
+
+            array_pop($segments);
+        }
+
+        return implode(self::SEPARATOR, $segments);
+    }
+
+    /**
+     * The address a single target has on the published site.
+     *
+     * @param string $target The destination exactly as the source wrote it
+     * @param string $from   The local path of the document holding the link
+     *
+     * @throws InvalidArgumentException when the translation refuses a path,
+     *         which the membership check above makes unreachable. It is declared
+     *         because the translation declares it, and a caller should not have
+     *         to reason about which of the two calls could raise it.
+     * @throws RuntimeException when the target resolves to nothing that exists
+     */
+    private function rewrite(string $target, string $from): string
+    {
+        if (
+            '' === $target
+            || str_starts_with($target, '//')
+            || preg_match(self::SCHEME, $target) === 1
+        ) {
+            return $target;
+        }
+
+        $position = strcspn($target, self::SUFFIX_START);
+        $path     = substr(
+            string: $target,
+            offset: 0,
+            length: $position,
+        );
+        $suffix = substr($target, $position);
+
+        if ('' === $path) {
+            return $target;
+        }
+
+        $candidate = $this->candidate($path, $from);
+
+        if (array_key_exists($candidate, $this->documents)) {
+            return $this->root->published($candidate) . $suffix;
+        }
+
+        if (array_key_exists($candidate, $this->assets)) {
+            return $this->root->asset($candidate) . $suffix;
+        }
+
+        throw new RuntimeException(sprintf(
+            'The document "%s" links to "%s", which resolves to "%s" and is neither a document nor an asset the scan found.',
+            $from,
+            $target,
+            $candidate,
+        ));
+    }
+
+    /**
+     * Rewrites every link and image in the document that is being built.
+     *
+     * A document with no page is left alone rather than refused: the same
+     * listener serves a preview render and a build, and only a build knows which
+     * document a relative target belongs to.
+     *
+     * @throws InvalidArgumentException when the translation refuses a path, which
+     *         the membership check in `rewrite()` makes unreachable
+     * @throws RuntimeException when a target resolves to nothing the scan found,
+     *         or to a path above the source root
+     */
     public function __invoke(DocumentParsedEvent $event): void
     {
-        throw new LogicException(sprintf(
-            '%s::__invoke() is not implemented; %d documents under "%s" are published with their links unchanged.',
-            self::class,
-            count($this->documents),
-            $this->root->basePath,
-        ));
+        $document = $event->getDocument();
+
+        /** @var mixed $page */
+        $page = $document->data->get('commondoc.page', default: null);
+
+        if (! $page instanceof Page) {
+            return;
+        }
+
+        foreach ($document->iterator() as $node) {
+            if (! $node instanceof AbstractWebResource) {
+                continue;
+            }
+
+            $node->setUrl($this->rewrite($node->getUrl(), $page->sourcePath));
+        }
     }
 }

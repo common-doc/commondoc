@@ -21,7 +21,7 @@ use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use League\CommonMark\Environment\EnvironmentInterface;
-use League\CommonMark\Event\DocumentPreRenderEvent;
+use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\Attributes\AttributesExtension;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
@@ -188,7 +188,7 @@ final class EnvironmentFactoryTest extends TestCase
     }
 
     #[Test]
-    public function registersThePageContextListenerForThePreRenderEvent(): void
+    public function registersThePageContextListenerForTheParsedEvent(): void
     {
         $environment = new EnvironmentFactory()(
             $this->containerWithConfig([]),
@@ -198,7 +198,7 @@ final class EnvironmentFactoryTest extends TestCase
         $document = new Document();
         $this->context->set($this->page);
 
-        $environment->dispatch(new DocumentPreRenderEvent($document, 'html'));
+        $environment->dispatch(new DocumentParsedEvent($document));
 
         static::assertSame($this->page, $document->data->get('commondoc.page', default: null));
     }
@@ -215,6 +215,34 @@ final class EnvironmentFactoryTest extends TestCase
 
         static::assertNotEmpty($renderers);
         static::assertSame($this->renderer, $renderers[0]);
+    }
+
+    #[Test]
+    public function writesThePageBeforeAListenerRegisteredAfterTheFactoryCanReadIt(): void
+    {
+        $environment = new EnvironmentFactory()(
+            $this->containerWithConfig([]),
+            EnvironmentInterface::class,
+        );
+
+        $seen = null;
+
+        // Registered after the factory has already added its own listener, at the
+        // default priority. It still sees the page, which is what a link rewriter
+        // needs: it resolves a relative target against the document's own path.
+        $environment->addEventListener(
+            DocumentParsedEvent::class,
+            static function (DocumentParsedEvent $event) use (&$seen): void {
+                $seen = $event->getDocument()->data->get('commondoc.page', default: null);
+            },
+        );
+
+        $document = new Document();
+        $this->context->set($this->page);
+
+        $environment->dispatch(new DocumentParsedEvent($document));
+
+        static::assertSame($this->page, $seen);
     }
 
     protected function setUp(): void

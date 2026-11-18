@@ -24,6 +24,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversClass(DocumentRoot::class)]
 #[CoversMethod(DocumentRoot::class, '__construct')]
+#[CoversMethod(DocumentRoot::class, 'asset')]
 #[CoversMethod(DocumentRoot::class, 'file')]
 #[CoversMethod(DocumentRoot::class, 'published')]
 final class DocumentRootTest extends TestCase
@@ -64,6 +65,27 @@ final class DocumentRootTest extends TestCase
         // build on a document the scan had already accepted.
         static::assertSame('/guide/setup/', $root->published('guide/setup.MD'));
         static::assertSame('guide/setup/index.html', $root->file('guide/setup.MD'));
+    }
+
+    #[Test]
+    public function publishesAnAssetIdenticallyInEitherPathType(): void
+    {
+        static::assertSame(
+            new DocumentRoot('/', PathType::File)->asset('a/b.css'),
+            new DocumentRoot('/', PathType::Directory)->asset('a/b.css'),
+        );
+    }
+
+    #[Test]
+    public function publishesAnAssetWhereItSits(): void
+    {
+        $root = new DocumentRoot('/repo/');
+
+        // An asset has no suffix to map and no index to imply, so the address is
+        // the base path and the path. Anything else would publish an image at an
+        // address the copy pass does not write it to.
+        static::assertSame('/repo/images/diagram.png', $root->asset('images/diagram.png'));
+        static::assertSame('/repo/diagram.png', $root->asset('diagram.png'));
     }
 
     #[Test]

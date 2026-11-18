@@ -17,7 +17,7 @@ namespace CommonDocTest;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
-use League\CommonMark\Event\DocumentPreRenderEvent;
+use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Node\Block\Document;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
@@ -48,7 +48,7 @@ final class PageContextListenerTest extends TestCase
 
         $document->data->set('commondoc.page', $page);
 
-        new PageContextListener(new PageContext())(new DocumentPreRenderEvent($document, 'html'));
+        new PageContextListener(new PageContext())(new DocumentParsedEvent($document));
 
         static::assertSame($page, $document->data->get('commondoc.page', default: null));
     }
@@ -63,7 +63,7 @@ final class PageContextListenerTest extends TestCase
 
         $context->set($page);
 
-        $listener(new DocumentPreRenderEvent($document, 'html'));
+        $listener(new DocumentParsedEvent($document));
 
         static::assertSame($page, $document->data->get('commondoc.page', default: null));
     }
@@ -73,7 +73,7 @@ final class PageContextListenerTest extends TestCase
     {
         $document = new Document();
 
-        new PageContextListener(new PageContext())(new DocumentPreRenderEvent($document, 'html'));
+        new PageContextListener(new PageContext())(new DocumentParsedEvent($document));
 
         static::assertFalse($document->data->has('commondoc.page'));
     }
@@ -87,7 +87,7 @@ final class PageContextListenerTest extends TestCase
 
         $context->set($page);
 
-        new PageContextListener($context)(new DocumentPreRenderEvent($document, 'html'));
+        new PageContextListener($context)(new DocumentParsedEvent($document));
 
         static::assertSame($page, $document->data->get('commondoc.page', default: null));
     }

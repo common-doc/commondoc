@@ -3,9 +3,9 @@
 **Date**: 2026-11-17
 **Component**: `common-doc/commondoc`
 **Branch**: `tyrsson-build-command` (off `6c9b626`)
-**Status**: design accepted. The input scans, the translation, the record and the
-route table are implemented and tested. The render pass, the link rewriter and the
-handler wiring remain.
+**Status**: design accepted. The input scans, the translation, the record, the
+link rewriter and the render seam are implemented and tested. The handler wiring
+remains, including registering the rewriter on the environment it needs.
 
 This record exists because the proposals were delivered in chat and chat is not
 durable. It is the reference the implementation is reviewed against.
@@ -378,6 +378,89 @@ rewrites targets through the translation. Chosen over a post-render string
 replace because it operates on parsed nodes with a known target, so it cannot
 corrupt prose or attribute values.
 
+#### The current document's own path
+
+A relative target only means something against the document it was written in,
+and at first the listener had no way to reach that path. The order was measured
+rather than assumed:
+
+| Event | Dispatched from |
+|---|---|
+| `DocumentParsedEvent` | `MarkdownParser::parse()`, line 108 |
+| `DocumentPreRenderEvent` | `HtmlRenderer::renderDocument()`, line 40 |
+
+`PageContextListener` wrote the page on the pre-render event, so at parse time
+`commondoc.page` did not exist yet. Three ways to close that were weighed: the
+rewriter takes `PageContext` as a collaborator, the rewriter listens on
+pre-render, or the path is on the document before the rewrite runs.
+
+The third was chosen by the owner, and it landed as a move rather than as new
+state. `PageContextListener` now writes on the parsed event. The caller already
+sets the page before `convert()`, so the page is available at parse time, and
+document data survives into rendering, so `DocumentViewRenderer` reads the same
+value one event later than it used to. Nothing new is carried and nothing has to
+be kept in step.
+
+The listener is registered with no priority, because a priority would be a claim
+nothing can test. An arbitrary number is indistinguishable from its neighbours
+unless a test depends on one of them, and the only listener that could is the
+rewriter, which the build registers later than this factory runs.
+`PrioritizedList`, which the dispatcher iterates, runs listeners of equal
+priority in the order they were added, and every listener the build adds is
+added to an environment the factory has already finished, so the page is written
+first without a number saying so. The first version carried `priority: 10`, and
+Infection reported it as two unobservable mutants, which is the same finding
+that removed the renderer's priority earlier in this session.
+
+`LinkRewriter` therefore takes the translation and the two lists, and reads the
+source path from the document it was handed. Nothing it holds changes between
+documents, which is what lets a test drive it with a bare `Document`.
+
+#### What a target may be
+
+| Target | Result |
+|---|---|
+| `intro.md` | resolved against the directory of the current document |
+| `./intro.md` | the same, because `.` segments are dropped |
+| `../errors.md` | resolved against that directory, then checked against the root |
+| `/guide/intro.md` | resolved against the root, which is the only absolute space a reader has |
+| `intro.md#install` | the path is mapped, the fragment is carried through |
+| `intro.md?tab=2` | the path is mapped, the query is carried through |
+| `#install` | untouched: there is no path to map |
+| `https://`, `mailto:`, `//cdn` | untouched: a scheme or a leading double slash names another origin |
+| a document or asset the scan found | published through the translation |
+| anything else | the build fails, naming the document, the target and what it resolved to |
+| a path that climbs above the root | the build fails rather than clamping to the root |
+
+Both translations are asked, not just the document one. A link to an image has
+the same problem a link to a document has, and `DocumentRoot::asset()` is the
+second answer: an asset is copied where it sits, so its address is the base path
+followed by its own path. Keeping that in `DocumentRoot` means a link to an image
+and the file that serves it are produced by one type, exactly as for a document.
+
+#### What it does not do
+
+Three cases are absent deliberately rather than forgotten:
+
+- **A target naming a directory** (`../guide/`) is not resolved, even though
+  `guide/index.md` publishes at that address. Resolving it means guessing which
+  index document the author meant, and the guess is wrong for any directory that
+  has none.
+- **A percent-encoded target** (`my%20file.md`) is looked up as written, so it
+  does not match the path the scan reports. Nothing decodes it yet.
+- **Target casing must match the scan.** Both lookups are exact, so a link
+  written in a different case than the file on disk fails even on a
+  case-insensitive filesystem.
+
+#### Registration is not wired yet
+
+`EnvironmentFactory` does not register the rewriter, and that is deliberate. It
+needs the document and asset lists, which come from the traversal the coordinator
+performs at build time, and no coordinator exists yet. Registering it now would
+mean either a second traversal inside the container or an empty list that fails
+every internal link. It belongs to the orchestration work, which is where the
+lists are produced.
+
 ---
 
 ## 9. Proposal C: reporting
@@ -610,8 +693,8 @@ Built as skeletons in commit `skeleton: add the build types the design needs`.
 | `src/Input/Markdown.php` | **implemented**, pure filter over a path list | `MarkdownTest`, 7 tests |
 | `src/Input/Asset.php` | **implemented**, difference against the documents | `AssetTest`, 6 tests |
 | `src/Output/PathType.php` | complete (enum) | covered by `DocumentRootTest` |
-| `src/Output/DocumentRoot.php` | **implemented** | `DocumentRootTest`, 15 tests, 100% lines and methods |
-| `src/Output/LinkRewriter.php` | skeleton | none yet |
+| `src/Output/DocumentRoot.php` | **implemented** | `DocumentRootTest`, 18 tests, 100% lines and methods |
+| `src/Output/LinkRewriter.php` | **implemented**, listener over parsed links and images | `LinkRewriterTest`, 13 tests, 100% lines and methods |
 | `src/Record/BuildRecord.php` | **implemented** | `BuildRecordTest`, 11 tests |
 | `src/Http/Middleware/NotServedMiddleware.php` | **implemented** | `NotServedMiddlewareTest`, 2 tests |
 
@@ -780,7 +863,7 @@ starts accepting requests has stopped being a documentation builder.
 | `src/Input/Tree.php` | class | `paths(): list<non-empty-string>` | R |
 | `src/Output/PathType.php` | enum | `case Directory; case File;` | R |
 | `src/Output/DocumentRoot.php` | readonly class | `published()` and `file()` | R |
-| `src/Output/LinkRewriter.php` | readonly class | CommonMark `DocumentParsedEvent` listener | ? |
+| `src/Output/LinkRewriter.php` | readonly class | CommonMark `DocumentParsedEvent` listener | R |
 | `src/Record/BuildRecord.php` | readonly class | `input`, `output`, `failed` | R |
 | `src/Router/RouteTable.php` | **deleted** | duplicated the Mezzio collector; see "Why `RouteTable` was deleted" | n/a |
 | `src/Http/Middleware/NotServedMiddleware.php` | readonly class | PSR-15 `process()` that refuses; the only middleware a build route can carry | R |
@@ -793,6 +876,8 @@ starts accepting requests has stopped being a documentation builder.
 | `src/Container/BuildSiteHandlerFactory.php` | inject the converter, the scan, the translation, the route table |
 | `src/Console/BuildCommand.php` | narrow `result` to `BuildRecord` and print written and failed |
 | `src/ConfigProvider.php` | register `StreamHandlerFactory`; register the new services |
+| `src/Container/EnvironmentFactory.php` | **done**: registers the page listener on the parsed event |
+| `src/View/PageContextListener.php` | **done**: writes on the parsed event, so the path a link resolves against is on the document before a rewrite |
 | `config/config.php` | aggregate `Webware\Log\ConfigProvider` |
 | `composer.json` | add `webware/webware-filewriter` to `require` |
 
@@ -860,6 +945,27 @@ final readonly class DocumentRoot
 
     /** 'guide/setup/index.html' or 'guide/setup.html' */
     public function file(string $localPath): string;
+
+    /** '/images/diagram.png', the same in either path type */
+    public function asset(string $localPath): string;
+}
+
+namespace CommonDoc\Output;
+
+final readonly class LinkRewriter
+{
+    /**
+     * @param list<non-empty-string> $documents
+     * @param list<non-empty-string> $assets
+     */
+    public function __construct(
+        DocumentRoot $root,
+        array $documents,
+        array $assets,
+    ) {}
+
+    /** @throws RuntimeException when a target names nothing the scan found */
+    public function __invoke(DocumentParsedEvent $event): void;
 }
 
 namespace CommonDoc\Record;
@@ -903,3 +1009,6 @@ as one commit rather than filling each class in turn.
 5. Whether `planning/` is tracked, and on which branch.
 6. Whether `logFile` should be left at the webware-log default
    (`data/log/{channel}.log`) or stated explicitly in commondoc's config.
+7. Whether a link target naming a directory (`../guide/`) should resolve to that
+   directory's index document. It is refused today because the guess is wrong for
+   any directory without one.
