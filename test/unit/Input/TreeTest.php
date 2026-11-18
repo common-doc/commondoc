@@ -19,7 +19,10 @@ use CommonDocTest\Support\AbstractTemporaryTree;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
+use PHPUnit\Framework\Attributes\RequiresOperatingSystemFamily;
 use PHPUnit\Framework\Attributes\Test;
+
+use function chmod;
 
 #[CoversClass(Tree::class)]
 #[CoversMethod(Tree::class, 'at')]
@@ -71,6 +74,26 @@ final class TreeTest extends AbstractTemporaryTree
         $this->expectExceptionMessage('is not a directory');
 
         Tree::at('');
+    }
+
+    /**
+     * Windows has no mode bit to clear, so the refusal cannot be provoked there.
+     */
+    #[Test]
+    #[RequiresOperatingSystemFamily('Linux')]
+    public function refusesARootThatCannotBeRead(): void
+    {
+        $this->makeTree();
+        chmod($this->tree, permissions: 0o000);
+
+        try {
+            $this->expectException(InvalidArgumentException::class);
+            $this->expectExceptionMessage('is not readable');
+
+            Tree::at($this->tree);
+        } finally {
+            chmod($this->tree, permissions: 0o755);
+        }
     }
 
     #[Test]
