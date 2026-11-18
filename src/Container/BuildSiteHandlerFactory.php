@@ -14,12 +14,12 @@ declare(strict_types=1);
 
 namespace CommonDoc\Container;
 
-use Closure;
 use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\PageContext;
 use Laminas\ServiceManager\Factory\FactoryInterface;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 use Mezzio\Router\RouteCollectorInterface;
 use Override;
 use Psl\Type;
@@ -30,12 +30,12 @@ use Psr\Container\NotFoundExceptionInterface;
 /**
  * Construction seam for the build site handler.
  *
- * Every collaborator is fetched and coerced here, so the handler receives types
- * it can rely on and never reaches for a container. The two closures are
- * services in their own right: `ConverterFactoryFactory` makes the per-build
- * converter, and `PageFactoryFactory` makes the per-document page. Both are
- * coerced because a handler without either cannot build anything, so a wrong
- * service should fail here with a typed message instead of at the first document.
+ * Every injected collaborator is fetched and coerced here, so the handler
+ * receives types it can rely on and never reaches for a container to resolve
+ * one. The locator it does receive is not for resolving services: a converter
+ * and a page are built per build and per document, so they cannot be injected
+ * as instances, and `build()` on this locator is how the handler asks for one
+ * without the service manager caching it.
  *
  * @internal
  */
@@ -63,10 +63,8 @@ final readonly class BuildSiteHandlerFactory implements FactoryInterface
                 ->coerce($container->get(PageContext::class)),
             middleware: Type\instance_of(NotServedMiddleware::class)
                 ->coerce($container->get(NotServedMiddleware::class)),
-            converter : Type\instance_of(Closure::class)
-                ->coerce($container->get(ConverterFactoryFactory::class)),
-            page      : Type\instance_of(Closure::class)
-                ->coerce($container->get(PageFactoryFactory::class)),
+            services  : Type\instance_of(ServiceLocatorInterface::class)
+                ->coerce($container),
         );
     }
 }

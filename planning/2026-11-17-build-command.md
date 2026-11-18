@@ -1024,28 +1024,53 @@ their own pull request, which is the split the owner asked for.
 
 The owner's decision, stated twice: "I would expect an Environment and converter
 per build honestly." The reason it matters here rather than being tidiness is
-that `Environment` is a singleton service and `addEventListener` has no freeze
-guard, so a build that registered its link rewriter on the container's
-environment would stack a listener per build, each bound to a stale document
-list. That is also what would make running each repository's build in its own
-process a correctness requirement rather than an option.
+that `Environment` is a shared service and `addEventListener` has no freeze
+guard, so a build that registered its link rewriter on the shared environment
+would stack a listener per build, each bound to a stale document list. That is
+also what would make running each repository's build in its own process a
+correctness requirement rather than an option.
 
-`ConverterFactoryFactory` returns the callable, mirroring `PageFactoryFactory`,
-so the container holds the thing that makes converters rather than a converter.
-Each call builds a fresh environment, registers a `LinkRewriter` bound to that
-call's two lists, and wraps the result in a `MarkdownConverter`.
+The mechanism is `build()`, not a callable factory. `ServiceManager::build()`
+never caches, so a fresh environment and a fresh page each time are one method
+call apart, and `MarkdownConverterFactory` needs no second type to own the
+difference. It was a `ConverterFactoryFactory` returning a callable first, and
+that was removed: a factory factory is justified only when the instance must be
+constructed at a call site that cannot reach the container. Here the call site
+can, so the callable was a type earning nothing.
 
-It composes `EnvironmentFactory` directly instead of fetching it. The container
-entry is a service that *returns an environment*, which is exactly the shared
-object being avoided; invoking the factory object itself yields a new one each
-time. `EnvironmentFactory` therefore stays as it is, and no construction logic is
-duplicated.
+`MarkdownConverterFactory` therefore has two modes, told apart by its options:
 
-For the same reason, `EnvironmentFactory` is **not** registered under its own
-class name. Attempting it produced a coercion failure in the first run of the
-integration suite: `$container->get(EnvironmentFactory::class)` returns a
-`League\CommonMark\Environment\Environment`, because the service map invokes the
-factory rather than returning it.
+| Request | Result |
+|---|---|
+| no options, or options that are not a scan | a converter over the shared environment |
+| `['documents' => ..., 'assets' => ...]` | a converter over a freshly built environment carrying a `LinkRewriter` bound to those lists |
+
+The fresh environment comes from `$locator->build(EnvironmentInterface::class)`,
+so the extension list and the page listener are exactly what the shared one has.
+Only the rewriter differs.
+
+`Page` works the same way. It is one per document, so it cannot be a shared
+service, and the caller supplies only what differs per document:
+
+```php
+$services->build(Page::class, ['localPath' => $document, 'label' => $label]);
+```
+
+`PageFactory` reads that section of config and derives the address, so there is
+still exactly one translation. What is gone is `PageFactoryFactory` and the
+callable it returned.
+
+`BuildSiteHandler` therefore receives a `ServiceLocatorInterface` and uses it
+only for `build()`. Every fixed collaborator is still injected as an instance,
+and the locator is not used to resolve one.
+
+### Why `EnvironmentFactory` is not registered under its own name
+
+It was tried, and the integration suite refused it: `$container->get(
+EnvironmentFactory::class)` returns a `League\CommonMark\Environment\Environment`,
+because the service map invokes the factory rather than returning it. So the
+typed refusal was correct, and the entry was removed. Nothing needs it: the
+handler builds `EnvironmentInterface`, which is registered.
 
 ### What the handler does
 
@@ -1111,10 +1136,10 @@ handler bug that reported success beside a failure would still exit non-zero.
 | Gate | Result |
 |---|---|
 | `mago format`, `lint`, `analyze`, `guard` | 0 |
-| unit | 181 tests, 311 assertions, 1 skipped |
-| integration | 23 tests, 136 assertions |
-| Infection | 324 mutants, 0 escaped, MSI 100% |
-| coverage | `BuildSiteHandler` 59/59 lines, `ConverterFactoryFactory` 15/15 |
+| unit | 180 tests, 317 assertions, 1 skipped |
+| integration | 23 tests, 135 assertions |
+| Infection | 341 mutants, 0 escaped, MSI 100% |
+| coverage | `BuildSiteHandler` 67/67 lines, `PageFactory` 35/35, `MarkdownConverterFactory` 19/19 |
 
 The integration suite dispatches the real command through the container's own
 bus into the handler and asserts a file exists at the translated path, so the

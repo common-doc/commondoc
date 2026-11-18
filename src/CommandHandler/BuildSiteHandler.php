@@ -14,7 +14,6 @@ declare(strict_types=1);
 
 namespace CommonDoc\CommandHandler;
 
-use Closure;
 use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Input\Asset;
@@ -25,12 +24,14 @@ use CommonDoc\Record\BuildRecord;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use InvalidArgumentException;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 use League\CommonMark\ConverterInterface;
 use Mezzio\Router\Exception\DuplicateRouteException;
 use Mezzio\Router\RouteCollectorInterface;
 use Psl\Exception\ExceptionInterface as PslExceptionInterface;
 use Psl\File;
 use Psl\Type;
+use Psr\Container\ContainerExceptionInterface;
 use Throwable;
 use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
 use Webware\FileWriter\FileWriter;
@@ -57,9 +58,12 @@ use function substr;
  * its result, so adding a type costs a pass over an array rather than another
  * pass over the disk.
  *
- * One converter per build. The callable this handler is given builds a fresh
- * environment with a link rewriter bound to this build's own document list, so
- * two builds in one process cannot see each other's listeners.
+ * One converter per build. Both per-build objects are asked for with `build()`
+ * rather than `get()`, because neither can be shared: the converter carries a
+ * link rewriter bound to this build's own document list, and a page belongs to
+ * one document. The service manager never caches what it builds, so a second
+ * build in one process cannot see the first build's listener, and each document
+ * gets its own page.
  *
  * Two failure policies, and the difference is deliberate. A document that cannot
  * be rendered or written is recorded and the build continues, because the
@@ -75,18 +79,16 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     private const string SEPARATOR = '/';
 
     /**
-     * @param Closure $converter Builds the converter for one build, bound to
-     *        that build's document and asset lists
-     * @param Closure $page Builds the page for one document
+     * @param ServiceLocatorInterface $services Where the per-build objects come from.
+     *        A converter and a page are built per build and per document, so they
+     *        cannot be injected as instances; this is the seam that builds them.
      */
-    // @mago-expect lint:excessive-parameter-list - a coordinator names each collaborator it drives.
     public function __construct(
         private DocumentRoot $root,
         private RouteCollectorInterface $collector,
         private PageContext $context,
         private NotServedMiddleware $middleware,
-        private Closure $converter,
-        private Closure $page,
+        private ServiceLocatorInterface $services,
     ) {}
 
     /**
@@ -144,6 +146,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      *
      * @throws InvalidArgumentException When the source root is not a readable directory
      * @throws DuplicateRouteException When two documents publish at one path
+     * @throws ContainerExceptionInterface When a per-build object cannot be built
      * @throws FileWriterException When an asset cannot be copied into the output
      * @throws PslExceptionInterface When an asset cannot be read from the source
      */
@@ -161,11 +164,15 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
 
         $this->seed($documents);
 
-        // Coerced because a closure carries no signature at the call site: both
-        // factories are asked for a `Closure`, so this is where the result is
-        // narrowed back to the type the build actually needs.
+        // Built rather than fetched: the converter carries a link rewriter bound
+        // to these two lists, and a shared one would carry the previous build's.
         $converter = Type\instance_of(ConverterInterface::class)
-            ->coerce(($this->converter)($documents, $assets));
+            ->coerce(
+                $this->services->build(ConverterInterface::class, [
+                    'documents' => $documents,
+                    'assets'    => $assets,
+                ]),
+            );
 
         $written = [];
         $failed  = [];
@@ -262,7 +269,10 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     ): void {
         $this->context->set(Type\instance_of(Page::class)
             ->coerce(
-                ($this->page)($document, self::labelFor($document)),
+                $this->services->build(Page::class, [
+                    'localPath' => $document,
+                    'label'     => self::labelFor($document),
+                ]),
             ));
 
         try {

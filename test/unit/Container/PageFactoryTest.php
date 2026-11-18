@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDocTest\Container;
 
-use CommonDoc\Container\PageFactoryFactory;
+use CommonDoc\Container\PageFactory;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\Page;
 use InvalidArgumentException;
@@ -25,9 +25,17 @@ use PHPUnit\Framework\TestCase;
 use Psl\Type\Exception\CoercionException;
 use Psr\Container\ContainerInterface;
 
-#[CoversClass(PageFactoryFactory::class)]
-#[CoversMethod(PageFactoryFactory::class, '__invoke')]
-final class PageFactoryFactoryTest extends TestCase
+/**
+ * One page per document, built from options rather than from a captured callable.
+ *
+ * The caller is what varies per document, so the caller supplies the local path
+ * and the label. Everything a deployment shares comes from config, and the
+ * address is derived, because a page that carried its own URL could disagree
+ * with the file the write pass produces for the same document.
+ */
+#[CoversClass(PageFactory::class)]
+#[CoversMethod(PageFactory::class, '__invoke')]
+final class PageFactoryTest extends TestCase
 {
     /**
      * @param array<array-key, mixed> $config
@@ -49,29 +57,35 @@ final class PageFactoryFactoryTest extends TestCase
     }
 
     /**
+     * Build one page the way a caller does, through the factory's options.
+     *
      * @param array<array-key, mixed> $config
+     * @param array<array-key, mixed> $options
      */
-    private static function factory(array $config = [], ?DocumentRoot $root = null): callable
-    {
-        return new PageFactoryFactory()(
+    private static function page(
+        array $options,
+        array $config = [],
+        ?DocumentRoot $root = null,
+    ): Page {
+        $subject = new PageFactory()(
             self::container($config, $root ?? new DocumentRoot('/repo/')),
             Page::class,
+            $options,
         );
+
+        static::assertInstanceOf(Page::class, $subject);
+
+        return $subject;
     }
 
     #[Test]
     public function acceptsChildrenWhenTheyArePages(): void
     {
-        $factory = self::factory();
-
-        $child = $factory(
-            localPath: 'guide/setup.md',
-            label    : 'Setup',
+        $child = self::page(
+            ['localPath' => 'guide/setup.md', 'label' => 'Setup'],
         );
-        $parent = $factory(
-            localPath: 'guide/index.md',
-            label    : 'Guide',
-            children : [$child],
+        $parent = self::page(
+            ['localPath' => 'guide/index.md', 'label' => 'Guide', 'children' => [$child]],
         );
 
         static::assertSame([$child], $parent->getChildren());
@@ -79,24 +93,18 @@ final class PageFactoryFactoryTest extends TestCase
     }
 
     #[Test]
-    public function capturesTheDeploymentIdentityOnceForEveryPage(): void
+    public function capturesTheDeploymentIdentityForEveryPage(): void
     {
-        $factory = self::factory([
+        $config = [
             Page::class => [
                 'projectName'  => 'CommonDoc',
                 'projectSlug'  => 'commondoc',
                 'versionLabel' => '1.0',
             ],
-        ]);
+        ];
 
-        $first = $factory(
-            localPath: 'index.md',
-            label    : 'Home',
-        );
-        $second = $factory(
-            localPath: 'guide/setup.md',
-            label    : 'Setup',
-        );
+        $first  = self::page(['localPath' => 'index.md', 'label' => 'Home'], $config);
+        $second = self::page(['localPath' => 'guide/setup.md', 'label' => 'Setup'], $config);
 
         static::assertSame('CommonDoc', $first->projectName);
         static::assertSame('commondoc', $first->projectSlug);
@@ -112,10 +120,7 @@ final class PageFactoryFactoryTest extends TestCase
     #[Test]
     public function derivesTheAddressRatherThanAcceptingOne(): void
     {
-        $page = self::factory()(
-            localPath: 'guide/setup.md',
-            label    : 'Setup',
-        );
+        $page = self::page(['localPath' => 'guide/setup.md', 'label' => 'Setup']);
 
         static::assertSame('guide/setup.md', $page->sourcePath);
         static::assertSame('/repo/guide/setup/', $page->url);
@@ -124,10 +129,7 @@ final class PageFactoryFactoryTest extends TestCase
     #[Test]
     public function leavesTheIdentityBlankWhenNoSectionIsConfigured(): void
     {
-        $page = self::factory()(
-            localPath: 'index.md',
-            label    : 'Home',
-        );
+        $page = self::page(['localPath' => 'index.md', 'label' => 'Home']);
 
         static::assertSame('', $page->projectName);
         static::assertSame('', $page->projectSlug);
@@ -137,8 +139,8 @@ final class PageFactoryFactoryTest extends TestCase
     #[Test]
     public function leavesTheIdentityBlankWhenTheConfigServiceIsMissing(): void
     {
-        // A container without 'config' still yields a usable factory: a page with
-        // no project name is cosmetic, a build that cannot start is not.
+        // A container without 'config' still yields a usable page: a page with no
+        // project name is cosmetic, a build that cannot start is not.
         $container = self::createStub(ContainerInterface::class);
         $container
             ->method('get')
@@ -146,12 +148,10 @@ final class PageFactoryFactoryTest extends TestCase
                 static fn(string $id): mixed => DocumentRoot::class === $id ? new DocumentRoot('/') : null,
             );
 
-        $factory = new PageFactoryFactory()($container, Page::class);
-
-        $page = $factory(
-            localPath: 'index.md',
-            label    : 'Home',
-        );
+        $page = new PageFactory()($container, Page::class, [
+            'localPath' => 'index.md',
+            'label'     => 'Home',
+        ]);
 
         static::assertSame('', $page->projectName);
         static::assertSame('/', $page->url);
@@ -162,11 +162,11 @@ final class PageFactoryFactoryTest extends TestCase
     {
         $this->expectException(CoercionException::class);
 
-        self::factory()(
-            localPath: 'guide/index.md',
-            label    : 'Guide',
-            children : ['not a page'],
-        );
+        self::page([
+            'localPath' => 'guide/index.md',
+            'label'     => 'Guide',
+            'children'  => ['not a page'],
+        ]);
     }
 
     #[Test]
@@ -174,9 +174,17 @@ final class PageFactoryFactoryTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        self::factory()(
-            localPath: 'guide/setup.html',
-            label    : 'Setup',
-        );
+        self::page(['localPath' => 'guide/setup.html', 'label' => 'Setup']);
+    }
+
+    #[Test]
+    public function refusesOptionsThatDoNotNameADocument(): void
+    {
+        // Without a local path there is no address to derive, so this is a
+        // construction failure with a message rather than a page with an empty
+        // source path that the write pass would then refuse.
+        $this->expectException(InvalidArgumentException::class);
+
+        self::page(['label' => 'Setup']);
     }
 }

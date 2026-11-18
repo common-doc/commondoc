@@ -16,7 +16,6 @@ namespace CommonDocTestIntegration;
 
 use CommonDoc\ConfigProvider;
 use CommonDoc\Container\DocumentViewRendererFactory;
-use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\DocumentViewRenderer;
@@ -78,14 +77,10 @@ final class ConfigProviderWiringTest extends TestCase
     {
         $container = $this->container();
 
-        $factory = $container->get(PageFactoryFactory::class);
-
-        static::assertIsCallable($factory);
-
-        $page = $factory(
-            localPath: 'guide/setup.md',
-            label    : 'Setup',
-        );
+        $page = $container->build(Page::class, [
+            'localPath' => 'guide/setup.md',
+            'label'     => 'Setup',
+        ]);
 
         static::assertInstanceOf(Page::class, $page);
         static::assertSame('guide/setup.md', $page->sourcePath);

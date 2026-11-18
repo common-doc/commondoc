@@ -23,6 +23,7 @@ use CommonDoc\Record\BuildRecord;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDocTest\Support\AbstractTemporaryTree;
+use Laminas\ServiceManager\ServiceLocatorInterface;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Node\Block\Document;
 use League\CommonMark\Output\RenderedContentInterface;
@@ -294,34 +295,63 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         ?PageContext $context = null,
         ?Closure $onPage = null,
     ): BuildSiteHandler {
-        $root    = new DocumentRoot('/');
-        $context ??= new PageContext();
+        $root = new DocumentRoot('/');
 
         if (null === $converter) {
             $converter = $this->createStub(ConverterInterface::class);
             $converter->method('convert')->willReturn(self::render('<p>body</p>'));
         }
 
-        $pageFactory = static function (string $path, string $label) use ($root, $onPage): Page {
-            $onPage?->__invoke($path, $label);
-
-            return new Page(
-                label       : $label,
-                projectName : 'CommonDoc',
-                projectSlug : 'commondoc',
-                sourcePath  : $path,
-                url         : $root->published($path),
-                versionLabel: '1.0',
-            );
-        };
-
         return new BuildSiteHandler(
             root      : $root,
             collector : $collector ?? $this->collector(),
-            context   : $context,
+            context   : $context ?? new PageContext(),
             middleware: new NotServedMiddleware(),
-            converter : static fn(array $documents, array $assets): ConverterInterface => $converter,
-            page      : $pageFactory,
+            services  : $this->locator($root, $converter, $onPage),
         );
+    }
+
+    /**
+     * A locator that answers the two `build()` calls the handler makes.
+     *
+     * `build()` rather than `get()` is the contract under test, so this stub
+     * answers only that method: a handler that fell back to `get()` would get
+     * null and fail rather than quietly pass.
+     *
+     * @param ?Closure(string, string): void $onPage Observes the label each page was built with
+     */
+    private function locator(
+        DocumentRoot $root,
+        ConverterInterface $converter,
+        ?Closure $onPage = null,
+    ): ServiceLocatorInterface {
+        $locator = $this->createStub(ServiceLocatorInterface::class);
+        $locator
+            ->method('build')
+            ->willReturnCallback(static function (string $id, ?array $options = null) use (
+                $root,
+                $converter,
+                $onPage,
+            ): mixed {
+                if (ConverterInterface::class === $id) {
+                    return $converter;
+                }
+
+                /** @var array{localPath: string, label: string} $options */
+                $options ??= [];
+
+                $onPage?->__invoke($options['localPath'], $options['label']);
+
+                return new Page(
+                    label       : $options['label'],
+                    projectName : 'CommonDoc',
+                    projectSlug : 'commondoc',
+                    sourcePath  : $options['localPath'],
+                    url         : $root->published($options['localPath']),
+                    versionLabel: '1.0',
+                );
+            });
+
+        return $locator;
     }
 }
