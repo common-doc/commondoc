@@ -131,8 +131,8 @@ replace.
 
 ### Route name is the local path
 
-The route name, the table key, and what a markdown link already contains are all
-the local path. This collapses two key spaces into one:
+The route name, the document list's key, and what a markdown link already
+contains are all the local path. This collapses two key spaces into one:
 
 - Name-keyed access: `generateUri('guide/setup.md')`, navigation, breadcrumbs.
 - Path-keyed access: a markdown link's `href`.
@@ -223,17 +223,22 @@ anything subtle.
 ### What the build does, in order
 
 1. **Read configuration**: source, output, base path, optional host.
-2. **Scan**: every markdown document and every asset beneath the source root.
-3. **Translate**: local path to published path for each, detecting collisions.
-4. **Seed**: add one route per document to the collector, named by local path.
-5. **Render**: convert each document, with the translation available to link and
+2. **Scan**: one `Tree` walk, then `Markdown` and `Asset` filter the result.
+3. **Translate and seed**: for each document, ask `DocumentRoot` for its
+   published path and its output file, then add one route to the collector named
+   by local path. Collisions are refused by the collector.
+4. **Render**: convert each document, with the translation available to link and
    image resolution.
-6. **Write**: output file per document and per asset.
-7. **Report**: what was written and what failed.
+5. **Write**: output file per document and per asset.
+6. **Report**: what was written and what failed.
+
+Translate and seed are one pass because they are one act: the published path is
+the route path, so computing it and registering it are the same step. Splitting
+them would mean computing the path twice or storing it between passes.
 
 Collision detection is not new work. Two local paths mapping to one published
-path is a duplicate route, and `query-param-router` already ships a duplicate
-route detector.
+path is a duplicate route, and `Mezzio\Router\DuplicateRouteDetector` already
+detects that. The collector owns it; nothing in this package re-implements it.
 
 ### Costs, stated honestly
 
@@ -322,8 +327,8 @@ the type belongs to the translation and not to the writer.
 collaborators through `BuildSiteHandlerFactory`.
 
 The single-pass loop in the earlier draft is **withdrawn**: a link to
-`guide/setup.md` may point at a document not yet visited, so the table must exist
-before the first render.
+`guide/setup.md` may point at a document not yet visited, so every route must be
+registered before the first render.
 
 Conversion stays through `ConverterInterface` from the container, so extensions,
 the document node seam, the layout wrap and theme resolution all apply with no
@@ -493,6 +498,7 @@ data and navigation share one source instead of two.
 | `Output\HtmlPath::for()`, pure suffix swap | Cannot express a base path or a URL style, so it cannot be the single translation. |
 | Post-render string replacement for links | Operates on finished HTML, so it can corrupt prose or attribute values. |
 | Two key spaces, a route name plus a separate path table | Exactly the desynchronised-identifier defect that produced the code being replaced. |
+| A `RouteTable` beside `Mezzio\Router\RouteCollector` | The collector already accumulates and already refuses duplicate names and paths. A table added a third copy of that rule and cached a value `DocumentRoot` computes for free. Built, then deleted; see "Why `RouteTable` was deleted". |
 | Seeding the router from a file written by the previous build | Works on the next run, fails on the current one. |
 | A wrapper around `FileWriter` for stubbability | Tests already use real temp directories; the wrapper would exist only to be mocked. |
 | `file_put_contents` instead of `FileWriter` | Loses atomicity and parent-directory creation. |
@@ -539,8 +545,10 @@ Built as skeletons in commit `skeleton: add the build types the design needs`.
 | `src/Output/DocumentRoot.php` | **implemented** | `DocumentRootTest`, 15 tests, 100% lines and methods |
 | `src/Output/LinkRewriter.php` | skeleton | none yet |
 | `src/Record/BuildRecord.php` | **implemented** | `BuildRecordTest`, 11 tests |
-| `src/Router/RouteTable.php` | **implemented** | `RouteTableTest`, 11 tests |
-| `src/Http/Middleware/NotServedMiddleware.php` | **implemented** | `RouteTableTest` covers `process()` |
+| `src/Http/Middleware/NotServedMiddleware.php` | **implemented** | `NotServedMiddlewareTest`, 2 tests |
+
+`src/Router/RouteTable.php` was here and has been **deleted**; see "Why
+`RouteTable` was deleted".
 
 ### Why the scans are built on PSL
 
@@ -639,27 +647,46 @@ branch cannot execute is a code defect, not a missing test.
 The file path type also gives `guide/index.md` the path `/guide/index.html`,
 which is correct for that type, since a file path is what it produces.
 
-### What `RouteTable` settled while being implemented
+### Why `RouteTable` was deleted
 
-The table is **not** readonly, and that is deliberate rather than an oversight.
-It is filled during the scan pass and read during the render pass, so it
-accumulates by design. The mutable surface is one method wide (`add()`), and
-every other method is a lookup, so the alternative (a frozen table built in a
-second pass) would only move the accumulation somewhere less obvious.
+`RouteTable` is gone, along with its test, and the reason matters more than the
+deletion.
 
-`add()` refuses three things, and each refusal is a defect that would otherwise
-publish a wrong site silently:
+It duplicated `Mezzio\Router\RouteCollector`. Read side by side, the collector
+already accumulates (`$this->routes[] = $route`, then `$this->router->addRoute()`)
+and its `DuplicateRouteDetector` refuses both a duplicate name and a duplicate
+path, raising `DuplicateRouteException`. That is the whole of `RouteTable`'s
+storage and collision logic, built and tested upstream.
 
-| Refusal | What it prevents |
-|---|---|
-| An empty local or published path | a route that can never be addressed |
-| A published path not starting with `/` | an address that renders as a relative link |
-| A published path already claimed by another document | one document overwriting another at write time |
+It was also the **third** copy of that rule in the fleet, after
+`DuplicateRouteDetector` and `webware/query-param-router`'s
+`QueryParamDuplicateRouteDetector`.
 
-Re-adding the **same** local path at the **same** address updates its options
-instead of refusing. That is what lets the scan register a route and a later pass
-enrich it with navigation data, and it is the only case where a second `add()`
-for one key is legal.
+The one capability the collector lacks is O(1) name-to-path lookup, and that was
+not justification either: `DocumentRoot::published()` is a pure function of the
+local path, so a table would cache a value cheaper to compute than to maintain.
+The only question recomputation cannot answer is whether a link target exists,
+and `Markdown::scan()` already answers it.
+
+Why the mistake happened is worth recording. The plan said the container holds a
+collector rather than a frozen route set, which is correct; the code then
+contradicted it, because the collector's `route()` was never read before the
+table was designed. The lesson is the same one the audit was hunting for: read
+the dependency's implementation before adding a type beside it.
+
+Two consequences:
+
+- **`RouteProviderInterface` is no longer used.** It exists so a config-driven
+  provider can hand routes to a collector, and a build is not one. The translate
+  pass calls `$collector->get(path: ..., middleware: ..., name: ...)` directly.
+- **Collisions now raise `DuplicateRouteException`,** not the
+  `InvalidArgumentException` the table used. One vocabulary rather than two, and
+  the upstream one now actually fires: previously the table's check ran first and
+  pre-empted it.
+
+`NotServedMiddleware` survives and gains its own test, because a route still
+cannot exist without middleware and a test file that covered it as a side effect
+of covering the table is not the same thing.
 
 ### Why `NotServedMiddleware` lives under `Http`
 
@@ -687,7 +714,7 @@ starts accepting requests has stopped being a documentation builder.
 | `src/Output/DocumentRoot.php` | readonly class | `published()` and `file()` | R |
 | `src/Output/LinkRewriter.php` | readonly class | CommonMark `DocumentParsedEvent` listener | ? |
 | `src/Record/BuildRecord.php` | readonly class | `input`, `output`, `failed` | R |
-| `src/Router/RouteTable.php` | class | implements `RouteProviderInterface`, `add(string $localPath, string $publishedPath)` | ? |
+| `src/Router/RouteTable.php` | **deleted** | duplicated the Mezzio collector; see "Why `RouteTable` was deleted" | n/a |
 | `src/Http/Middleware/NotServedMiddleware.php` | readonly class | PSR-15 `process()` that refuses; the only middleware a build route can carry | R |
 
 ### Modify
@@ -707,7 +734,8 @@ Mirrors `src/`. One class per subject, `#\(CoversClass\)` plus `#\(CoversMethod\
 
 `test/unit/Input/MarkdownTest.php`, `test/unit/Input/AssetTest.php`,
 `test/unit/Output/DocumentRootTest.php`, `test/unit/Output/LinkRewriterTest.php`,
-`test/unit/Record/BuildRecordTest.php`, `test/unit/Router/RouteTableTest.php`,
+`test/unit/Record/BuildRecordTest.php`,
+`test/unit/Http/Middleware/NotServedMiddlewareTest.php`,
 `test/unit/CommandHandler/BuildSiteHandlerTest.php`,
 `test/unit/Console/BuildCommandTest.php`.
 

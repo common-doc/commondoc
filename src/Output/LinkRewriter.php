@@ -17,10 +17,11 @@ namespace CommonDoc\Output;
 use League\CommonMark\Event\DocumentParsedEvent;
 use LogicException;
 
+use function count;
 use function sprintf;
 
 /**
- * Rewrites document links and image references to published addresses.
+ * Rewrites document links and image references to published paths.
  *
  * A Markdown source refers to its neighbours the way a file system does, so a
  * link that is correct in the repository is wrong on a published site. This runs
@@ -28,15 +29,28 @@ use function sprintf;
  * known target while a string replacement would also rewrite prose that happens
  * to look like a path, and attribute values it was never meant to touch.
  *
- * It reads the same translation the write pass uses, so an address in a link and
- * the file that serves it are produced by one code path and cannot disagree.
+ * It reads the same translation the write pass uses, so a path in a link and the
+ * file that serves it are produced by one code path and cannot disagree.
+ *
+ * Two collaborators, each answering one question:
+ *
+ * - `DocumentRoot` says what a local path is published at. It is a pure
+ *   function, so it needs no table and no cache to be asked once per link.
+ * - The document list says whether a target exists. Recomputation can produce a
+ *   path for anything; only the discovered set can say the target is real, and a
+ *   link to a document that does not exist has to fail the build rather than
+ *   publish a dead link.
  *
  * @api
  */
 final readonly class LinkRewriter
 {
+    /**
+     * @param list<non-empty-string> $documents Every document the scan discovered
+     */
     public function __construct(
         private DocumentRoot $root,
+        private array $documents,
     ) {}
 
     /**
@@ -47,8 +61,9 @@ final readonly class LinkRewriter
     public function __invoke(DocumentParsedEvent $event): void
     {
         throw new LogicException(sprintf(
-            '%s::__invoke() is not implemented; links under "%s" are published unchanged.',
+            '%s::__invoke() is not implemented; %d documents under "%s" are published with their links unchanged.',
             self::class,
+            count($this->documents),
             $this->root->basePath,
         ));
     }
