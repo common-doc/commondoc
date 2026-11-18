@@ -15,10 +15,9 @@ declare(strict_types=1);
 namespace CommonDocTest;
 
 use CommonDoc\Command\BuildSiteCommand;
-use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\Console\BuildCommand;
+use CommonDoc\Record\BuildRecord;
 use InvalidArgumentException;
-use League\CommonMark\ConverterInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -30,6 +29,13 @@ use Webware\MessageBus\MessageBusInterface;
 use Webware\MessageBus\MessageStatus;
 use Webware\MessageBus\ResultInterface;
 
+/**
+ * What the command prints and what it exits with.
+ *
+ * The record is the only reporting channel, so the non-record case is a test of
+ * its own: printing nothing for an unrecognised result is exactly what let the
+ * previous version report a silent no-op as a successful build.
+ */
 #[CoversClass(BuildCommand::class)]
 #[CoversMethod(BuildCommand::class, '__construct')]
 #[CoversMethod(BuildCommand::class, 'configure')]
@@ -45,6 +51,31 @@ final class BuildCommandTest extends TestCase
         static::assertTrue($definition->getArgument('source')->isRequired());
         static::assertTrue($definition->hasOption('output'));
         static::assertSame('build', $definition->getOption('output')->getDefault());
+    }
+
+    #[Test]
+    public function exitsZeroAndPrintsNothingForAnEmptySuccessfulBuild(): void
+    {
+        $tester = $this->runWith(new BuildRecord(
+            input : [],
+            output: [],
+            failed: [],
+        ));
+
+        static::assertSame(Command::SUCCESS, $tester->getStatusCode());
+        static::assertSame('', $tester->getDisplay());
+    }
+
+    #[Test]
+    public function refusesAResultThatIsNotARecord(): void
+    {
+        $tester = $this->runWith(['out/index.html']);
+
+        // Silent success is the failure mode this replaces, so an unexpected
+        // result is said out loud rather than filtered away.
+        static::assertSame(Command::FAILURE, $tester->getStatusCode());
+        static::assertStringContainsString('nothing can be reported', $tester->getDisplay());
+        static::assertStringContainsString('BuildRecord', $tester->getDisplay());
     }
 
     #[Test]
@@ -66,66 +97,52 @@ final class BuildCommandTest extends TestCase
     }
 
     #[Test]
-    public function reportsEveryWrittenPathOnSuccess(): void
+    public function reportsEveryDocumentThatWasNotWritten(): void
     {
-        $command = new BuildSiteCommand(
-            source: 'docs',
-            output: 'out',
-        );
-        $bus = $this->stubBus(
-            new CommandResult(
-                command: $command,
-                status : MessageStatus::Success,
-                result : ['out/index.html', 'out/about.html'],
-            ),
-        );
-
-        $tester = new CommandTester(new BuildCommand($bus));
-        $tester->execute(['source' => 'docs', '--output' => 'out']);
-
-        static::assertSame(Command::SUCCESS, $tester->getStatusCode());
-        static::assertStringContainsString('Wrote out/index.html', $tester->getDisplay());
-        static::assertStringContainsString('Wrote out/about.html', $tester->getDisplay());
-    }
-
-    #[Test]
-    public function reportsOnlyStringEntriesAsErrorsOnFailure(): void
-    {
-        $command = new BuildSiteCommand(
-            source: 'docs',
-            output: 'out',
-        );
-        $bus = $this->stubBus(
-            new CommandResult(
-                command: $command,
-                status : MessageStatus::Failure,
-                result : ['the source directory is missing', 42],
-            ),
-        );
-
-        $tester = new CommandTester(new BuildCommand($bus));
-        $tester->execute(['source' => 'docs', '--output' => 'out']);
+        $tester = $this->runWith(new BuildRecord(
+            input : ['guide/setup.md', 'index.md'],
+            output: ['index.md'],
+            failed: ['guide/setup.md' => 'The link target does not exist.'],
+        ));
 
         static::assertSame(Command::FAILURE, $tester->getStatusCode());
-        static::assertStringContainsString('the source directory is missing', $tester->getDisplay());
-        static::assertStringNotContainsString('42', $tester->getDisplay());
+        static::assertStringContainsString(
+            'Failed guide/setup.md: The link target does not exist.',
+            $tester->getDisplay(),
+        );
+        static::assertStringContainsString('Wrote index.md', $tester->getDisplay());
     }
 
     #[Test]
-    public function succeedsAndPrintsNothingWhenTheResultIsEmpty(): void
+    public function reportsEveryDocumentThatWasWritten(): void
+    {
+        $tester = $this->runWith(new BuildRecord(
+            input : ['guide/setup.md', 'index.md'],
+            output: ['guide/setup.md', 'index.md'],
+            failed: [],
+        ));
+
+        static::assertSame(Command::SUCCESS, $tester->getStatusCode());
+        static::assertStringContainsString('Wrote guide/setup.md', $tester->getDisplay());
+        static::assertStringContainsString('Wrote index.md', $tester->getDisplay());
+    }
+
+    private function runWith(mixed $result): CommandTester
     {
         $command = new BuildSiteCommand(
             source: 'docs',
             output: 'out',
         );
-        $handler = new BuildSiteHandler($this->createStub(ConverterInterface::class));
-        $bus     = $this->stubBus($handler->handle($command));
+        $bus = $this->stubBus(new CommandResult(
+            command: $command,
+            status : MessageStatus::Success,
+            result : $result,
+        ));
 
         $tester = new CommandTester(new BuildCommand($bus));
         $tester->execute(['source' => 'docs', '--output' => 'out']);
 
-        static::assertSame(Command::SUCCESS, $tester->getStatusCode());
-        static::assertSame('', $tester->getDisplay());
+        return $tester;
     }
 
     private function stubBus(?ResultInterface $result = null): MessageBusInterface

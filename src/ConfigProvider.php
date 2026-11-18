@@ -21,6 +21,7 @@ use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
+use CommonDoc\Container\ConverterFactoryFactory;
 use CommonDoc\Container\DocumentRootFactory;
 use CommonDoc\Container\DocumentViewRendererFactory;
 use CommonDoc\Container\EnvironmentFactory;
@@ -31,6 +32,7 @@ use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
+use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
@@ -137,6 +139,7 @@ use function dirname;
  * @type Dependencies = array{
  *   aliases: array<interface-string, class-string>,
  *   factories: array<class-string, class-string>,
+ *   invokables: array<class-string, class-string>,
  * }
  * @type TemplateMap = array<non-empty-string, non-empty-string>
  * @type ViewConfig = array{map: TemplateMap, layout: non-empty-string}
@@ -182,16 +185,17 @@ final readonly class ConfigProvider
     public function getDependencies(): array
     {
         return [
-            'aliases'   => [
+            'aliases'    => [
                 ConverterInterface::class      => MarkdownConverter::class,
                 RouteCollectorInterface::class => RouteCollector::class,
                 RouterInterface::class         => QueryParamRouter::class,
             ],
-            'factories' => [
+            'factories'  => [
                 BuildCommand::class              => BuildCommandFactory::class,
                 BuildSiteHandler::class          => BuildSiteHandlerFactory::class,
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
+                ConverterFactoryFactory::class   => ConverterFactoryFactory::class,
                 DocumentRoot::class              => DocumentRootFactory::class,
                 DocumentViewRenderer::class      => DocumentViewRendererFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
@@ -202,6 +206,11 @@ final readonly class ConfigProvider
                 PageFactoryFactory::class        => PageFactoryFactory::class,
                 RouteCollector::class            => RouteCollectorFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
+            ],
+            'invokables' => [
+                // A build route needs middleware to exist and is never served,
+                // so the only honest implementation takes nothing to build.
+                NotServedMiddleware::class => NotServedMiddleware::class,
             ],
         ];
     }

@@ -22,6 +22,7 @@ use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
+use CommonDoc\Container\ConverterFactoryFactory;
 use CommonDoc\Container\DocumentRootFactory;
 use CommonDoc\Container\DocumentViewRendererFactory;
 use CommonDoc\Container\EnvironmentFactory;
@@ -32,6 +33,7 @@ use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
+use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
@@ -189,6 +191,7 @@ final class ConfigProviderTest extends TestCase
                 BuildSiteHandler::class          => BuildSiteHandlerFactory::class,
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
+                ConverterFactoryFactory::class   => ConverterFactoryFactory::class,
                 DocumentRoot::class              => DocumentRootFactory::class,
                 DocumentViewRenderer::class      => DocumentViewRendererFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
@@ -201,6 +204,18 @@ final class ConfigProviderTest extends TestCase
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
             $dependencies['factories'],
+        );
+    }
+
+    #[Test]
+    public function registersTheMiddlewareABuildRouteCarries(): void
+    {
+        // A route cannot be registered without middleware, and this one has
+        // nothing to inject, so it is declared as an invokable rather than
+        // through a factory that would only return `new`.
+        static::assertSame(
+            [NotServedMiddleware::class => NotServedMiddleware::class],
+            new ConfigProvider()->getDependencies()['invokables'],
         );
     }
 

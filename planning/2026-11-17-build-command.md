@@ -1012,3 +1012,110 @@ as one commit rather than filling each class in turn.
 7. Whether a link target naming a directory (`../guide/`) should resolve to that
    directory's index document. It is refused today because the guess is wrong for
    any directory without one.
+
+---
+
+## 16. Orchestration, as implemented
+
+The coordinator and the console narrowing landed after the link rewriter, in
+their own pull request, which is the split the owner asked for.
+
+### One environment and one converter per build
+
+The owner's decision, stated twice: "I would expect an Environment and converter
+per build honestly." The reason it matters here rather than being tidiness is
+that `Environment` is a singleton service and `addEventListener` has no freeze
+guard, so a build that registered its link rewriter on the container's
+environment would stack a listener per build, each bound to a stale document
+list. That is also what would make running each repository's build in its own
+process a correctness requirement rather than an option.
+
+`ConverterFactoryFactory` returns the callable, mirroring `PageFactoryFactory`,
+so the container holds the thing that makes converters rather than a converter.
+Each call builds a fresh environment, registers a `LinkRewriter` bound to that
+call's two lists, and wraps the result in a `MarkdownConverter`.
+
+It composes `EnvironmentFactory` directly instead of fetching it. The container
+entry is a service that *returns an environment*, which is exactly the shared
+object being avoided; invoking the factory object itself yields a new one each
+time. `EnvironmentFactory` therefore stays as it is, and no construction logic is
+duplicated.
+
+For the same reason, `EnvironmentFactory` is **not** registered under its own
+class name. Attempting it produced a coercion failure in the first run of the
+integration suite: `$container->get(EnvironmentFactory::class)` returns a
+`League\CommonMark\Environment\Environment`, because the service map invokes the
+factory rather than returning it.
+
+### What the handler does
+
+| Pass | Behaviour |
+|---|---|
+| scan | `Tree::at()->paths()`, then `Markdown::scan()` and `Asset::scan()` |
+| seed | one `RouteCollector::get()` per document: name is the local path, path is the published path |
+| render and write | per document: set the page, convert, clear the page in a `finally`, write through `FileWriter::writeTree()` |
+| copy | per asset: read and write at its own local path |
+| report | one `BuildRecord`, and a status read from `record->complete()` |
+
+Seeding runs to completion before the first document is rendered, because a link
+may target a document the loop has not reached. Collision detection is
+`DuplicateRouteDetector`'s, exercised by a test with `guide/setup.md` and
+`guide/setup/index.md`, which both publish at `/guide/setup/`.
+
+### Two failure policies, stated rather than implied
+
+A document that fails is recorded and the build continues: the operator wants the
+whole list rather than the first problem, and `BuildRecord` is exactly the shape
+for that.
+
+An asset that fails to copy throws, because `BuildRecord` describes documents and
+has an invariant tying its three lists to them. Recording an asset alongside them
+would break that invariant, and inventing a second list would change a merged
+type. **This is the one place the design is incomplete**: a site with one
+unreadable asset fails without saying which asset, and the answer is either to
+extend `BuildRecord` or to accept the abort. It is recorded as an open question
+rather than papered over.
+
+### The page label is derived, and that is temporary
+
+`PageFactoryFactory` takes a label, and nothing in the build produces one. The
+label is the file name without its document suffix, with no special case for
+`index`, so `guide/setup.md` is `setup` and `index.md` is `index`. Deriving
+something mechanical was chosen over inventing navigation vocabulary in the
+coordinator; a real label needs a source this build does not have, which is the
+document's first heading or a front-matter field.
+
+### `NotServedMiddleware` is an invokable
+
+A route cannot exist without middleware and this one has nothing to inject, so it
+is declared under `invokables` rather than behind a factory that would only
+return `new`. `Dependencies` in the provider's type aliases gained the key.
+
+`webware/webware-filewriter` moved from a transitive dependency to a direct
+requirement, because `src/` now names `FileWriter`.
+
+### What the console prints now
+
+`BuildCommand` narrows the result to a `BuildRecord` and prints each written
+document and each failure reason. A result that is not a record is **said out
+loud** and exits non-zero, which is the specific defect this replaces: the old
+version filtered the result for strings, so an empty result printed nothing and
+a silent no-op was indistinguishable from a successful build.
+
+The exit code follows the record rather than the status. The handler derives the
+status from the record, so the two agree; following the record means a future
+handler bug that reported success beside a failure would still exit non-zero.
+
+### Verified
+
+| Gate | Result |
+|---|---|
+| `mago format`, `lint`, `analyze`, `guard` | 0 |
+| unit | 181 tests, 311 assertions, 1 skipped |
+| integration | 23 tests, 136 assertions |
+| Infection | 324 mutants, 0 escaped, MSI 100% |
+| coverage | `BuildSiteHandler` 59/59 lines, `ConverterFactoryFactory` 15/15 |
+
+The integration suite dispatches the real command through the container's own
+bus into the handler and asserts a file exists at the translated path, so the
+wiring is tested end to end rather than by type assertions.

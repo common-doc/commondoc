@@ -161,7 +161,13 @@ final readonly class DocumentRoot
      * and the file that serves it come from one place, exactly as they do for a
      * document.
      *
+     * The output file is deliberately not derived here. An asset is written at
+     * its own local path, relative to the output directory, so there is nothing
+     * to translate and a second method would be a no-op with a name.
+     *
      * @param string $localPath A path relative to the root, as the scan produced it
+     *
+     * @return non-empty-string
      */
     public function asset(string $localPath): string
     {
@@ -170,6 +176,8 @@ final readonly class DocumentRoot
 
     /**
      * The file a local path is written to, relative to the output directory.
+     *
+     * @return non-empty-string
      *
      * @throws InvalidArgumentException When the local path does not name a document
      */
@@ -188,6 +196,8 @@ final readonly class DocumentRoot
 
     /**
      * The address a local path is published at, such as `/guide/setup/`.
+     *
+     * @return non-empty-string
      *
      * @throws InvalidArgumentException When the local path does not name a document
      */

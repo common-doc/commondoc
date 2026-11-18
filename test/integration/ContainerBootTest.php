@@ -22,6 +22,8 @@ use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
+use CommonDoc\Record\BuildRecord;
+use FilesystemIterator;
 use Laminas\ServiceManager\ServiceManager;
 use Laminas\View\Resolver\AggregateResolver;
 use League\CommonMark\Environment\EnvironmentInterface;
@@ -44,7 +46,10 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use ReflectionProperty;
+use SplFileInfo;
 use SplQueue;
 use Symfony\Component\Console\Application;
 use Webware\ConfigManager\ConfigAggregator;
@@ -61,6 +66,16 @@ use Webware\MessageBus\MiddlewarePipe;
 use Webware\Theme\ConfigProvider as ThemeProvider;
 
 use function array_map;
+use function bin2hex;
+use function file_put_contents;
+use function is_dir;
+use function mkdir;
+use function random_bytes;
+use function rmdir;
+use function sys_get_temp_dir;
+use function unlink;
+
+use const DIRECTORY_SEPARATOR;
 
 /**
  * Boots the real container from config/container.php and asserts that every
@@ -103,16 +118,33 @@ final class ContainerBootTest extends TestCase
     #[Test]
     public function dispatchesTheBuildSiteCommandToItsHandler(): void
     {
-        /** @var MessageBusInterface $bus */
-        $bus = $this->container()->get(MessageBusInterface::class);
+        $tree = $this->temporaryTree();
 
-        $result = $bus->handle(new BuildSiteCommand(
-            source: 'docs',
-            output: 'build',
-        ));
+        file_put_contents(
+            filename: "{$tree}/source/index.md",
+            data    : "# Home\n",
+        );
 
-        static::assertSame(MessageStatus::Success, $result->getStatus());
-        static::assertSame([], $result->getResult());
+        try {
+            /** @var MessageBusInterface $bus */
+            $bus = $this->container()->get(MessageBusInterface::class);
+
+            $result = $bus->handle(new BuildSiteCommand(
+                source: "{$tree}/source",
+                output: "{$tree}/build",
+            ));
+
+            static::assertSame(MessageStatus::Success, $result->getStatus());
+
+            /** @var mixed $raw */
+            $raw = $result->getResult();
+
+            static::assertInstanceOf(BuildRecord::class, $raw);
+            static::assertSame(['index.md'], $raw->output);
+            static::assertFileExists("{$tree}/build/index.html");
+        } finally {
+            $this->removeDirectory($tree);
+        }
     }
 
     /**
@@ -254,5 +286,45 @@ final class ContainerBootTest extends TestCase
     private function container(): ServiceManager
     {
         return require __DIR__ . '/../../config/container.php';
+    }
+
+    private function removeDirectory(string $directory): void
+    {
+        if (! is_dir($directory)) {
+            return;
+        }
+
+        $entries = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST,
+        );
+
+        /** @var SplFileInfo $entry */
+        foreach ($entries as $entry) {
+            if ($entry->isDir()) {
+                rmdir($entry->getPathname());
+
+                continue;
+            }
+
+            unlink($entry->getPathname());
+        }
+
+        rmdir($directory);
+    }
+
+    /**
+     * A throwaway directory with a source tree inside it.
+     *
+     * One parent holds both the source and the output, so removing it removes
+     * everything the build wrote without a second path to keep in step.
+     */
+    private function temporaryTree(): string
+    {
+        $tree = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'commondoc-boot-' . bin2hex(random_bytes(8));
+
+        mkdir("{$tree}/source", recursive: true);
+
+        return $tree;
     }
 }

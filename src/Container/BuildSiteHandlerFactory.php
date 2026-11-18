@@ -14,17 +14,28 @@ declare(strict_types=1);
 
 namespace CommonDoc\Container;
 
+use Closure;
 use CommonDoc\CommandHandler\BuildSiteHandler;
+use CommonDoc\Http\Middleware\NotServedMiddleware;
+use CommonDoc\Output\DocumentRoot;
+use CommonDoc\View\PageContext;
 use Laminas\ServiceManager\Factory\FactoryInterface;
+use Mezzio\Router\RouteCollectorInterface;
 use Override;
+use Psl\Type;
+use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 
 /**
  * Construction seam for the build site handler.
  *
- * The handler takes no collaborators yet. This factory is the single place the
- * pipeline collaborators get injected once they exist, so adding the converter
- * here changes nothing else.
+ * Every collaborator is fetched and coerced here, so the handler receives types
+ * it can rely on and never reaches for a container. The two closures are
+ * services in their own right: `ConverterFactoryFactory` makes the per-build
+ * converter, and `PageFactoryFactory` makes the per-document page. Both are
+ * coerced because a handler without either cannot build anything, so a wrong
+ * service should fail here with a typed message instead of at the first document.
  *
  * @internal
  */
@@ -32,6 +43,10 @@ final readonly class BuildSiteHandlerFactory implements FactoryInterface
 {
     /**
      * @param ?array<array-key, mixed> $options
+     *
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws Type\Exception\ExceptionInterface When a collaborator is the wrong type
      */
     #[Override]
     public function __invoke(
@@ -39,6 +54,19 @@ final readonly class BuildSiteHandlerFactory implements FactoryInterface
         string $requestedName,
         ?array $options = null,
     ): BuildSiteHandler {
-        return new BuildSiteHandler();
+        return new BuildSiteHandler(
+            root      : Type\instance_of(DocumentRoot::class)
+                ->coerce($container->get(DocumentRoot::class)),
+            collector : Type\instance_of(RouteCollectorInterface::class)
+                ->coerce($container->get(RouteCollectorInterface::class)),
+            context   : Type\instance_of(PageContext::class)
+                ->coerce($container->get(PageContext::class)),
+            middleware: Type\instance_of(NotServedMiddleware::class)
+                ->coerce($container->get(NotServedMiddleware::class)),
+            converter : Type\instance_of(Closure::class)
+                ->coerce($container->get(ConverterFactoryFactory::class)),
+            page      : Type\instance_of(Closure::class)
+                ->coerce($container->get(PageFactoryFactory::class)),
+        );
     }
 }
