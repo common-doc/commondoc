@@ -43,11 +43,13 @@ use function is_array;
  * constructed with the const defaults already merged into the application's
  * section, so this class never re-reads the section and cannot load a name twice.
  *
- * The document node is then pointed at the view renderer at priority 10, so it
- * outranks the core HTML renderer for the same class and the whole document is
- * rendered as a view rather than as finished HTML. The page context listener is
- * registered on the pre-render event, which is where the page reaches the
- * document's own data. Both collaborators come from the container.
+ * The document node is then pointed at the view renderer, so a document renders
+ * as a view rather than as finished HTML. It is the only renderer registered for
+ * that node, so no priority is needed and none is passed: a priority would only
+ * matter if something else also claimed `Document`, and nothing does. The page
+ * context listener is registered on the pre-render event, which is where the
+ * page reaches the document's own data. Both collaborators come from the
+ * container.
  *
  * @internal
  */
