@@ -111,7 +111,7 @@ Three values describe one document:
 | Output file | `guide/setup/index.html` | the translation |
 
 `published path = basePath + (local path, suffix mapped)`. The output file is the
-published path with a leading slash dropped, and the same style applied.
+published path with a leading slash dropped, and the same path type applied.
 
 ### One translation, two call sites
 
@@ -274,7 +274,7 @@ final readonly class DocumentRoot
 {
     public function __construct(
         public string $basePath,   // '/' or '/repositoryname/'
-        public Style $style,       // Directory or Plain
+        public PathType $pathType, // Directory or File
     ) {}
 
     public function published(string $localPath): string;  // '/guide/setup/'
@@ -285,14 +285,21 @@ final readonly class DocumentRoot
 `DocumentRoot` is taken from the owner's own analogy and names what it is: a
 local root mounted at a URL prefix. The alternative is `Deployment`.
 
-### URL style
+`PathType` was settled by the owner after two rejected names. `Style` was
+rejected because it reads as CSS. `AddressStyle` was rejected because in a
+program where `address` also means a memory location, the word pulls the wrong
+way. Both cases are paths and they differ only in whether the path names a
+directory or a file, so the type says exactly that, and `File` replaces `Plain`
+because a positive definition beats "not a directory".
 
-| Style | `guide/setup.md` gives | File |
+### Path type
+
+| `PathType` | `guide/setup.md` gives | File |
 |---|---|---|
-| Directory | `/guide/setup/` | `guide/setup/index.html` |
-| Plain | `/guide/setup.html` | `guide/setup.html` |
+| `Directory` | `/guide/setup/` | `guide/setup/index.html` |
+| `File` | `/guide/setup.html` | `guide/setup.html` |
 
-Recommendation: **directory style**, for three reasons. Pages serves it
+Recommendation: **`Directory`**, for three reasons. Pages serves it
 natively. It survives a later move to a different host. And it keeps the mapping
 independent of the file extension, so `.md` is the only suffix rule needed.
 
@@ -300,8 +307,8 @@ One hazard: `guide/setup.md` and `guide/setup/index.md` both map to
 `guide/setup/index.html`, so one silently overwrites the other. That must be a
 pre-render error.
 
-Whichever style is chosen, **every internal link must match it**, which is why
-the style belongs to the translation and not to the writer.
+Whichever type is chosen, **every internal link must match it**, which is why
+the type belongs to the translation and not to the writer.
 
 ---
 
@@ -525,7 +532,7 @@ Built as skeletons in commit `skeleton: add the build types the design needs`.
 | `src/Input/Tree.php` | **implemented** | `TreeTest`, 9 tests, on `Psl\Filesystem` |
 | `src/Input/Markdown.php` | **implemented** | `MarkdownTest`, 6 tests |
 | `src/Input/Asset.php` | **implemented** | `AssetTest`, 6 tests |
-| `src/Output/AddressStyle.php` | complete (enum) | covered by `DocumentRootTest` |
+| `src/Output/PathType.php` | complete (enum) | covered by `DocumentRootTest` |
 | `src/Output/DocumentRoot.php` | **implemented** | `DocumentRootTest`, 15 tests, 100% lines and methods |
 | `src/Output/LinkRewriter.php` | skeleton | none yet |
 | `src/Record/BuildRecord.php` | **implemented** | `BuildRecordTest`, 11 tests |
@@ -571,21 +578,21 @@ hidden that, and a file that carries the prefix writes into the wrong directory.
 A document named `index` is the index of its own directory. `guide/index.md`
 publishes at `/guide/` and is served by `guide/index.html`, not
 `/guide/index/`. That one rule is what keeps an address and the file serving it
-in agreement, and it is the same rule in both styles.
+in agreement, and it is the same rule for both path types.
 
 `index.md` at the root publishes at the base path itself, which is why a
 repository subpath still produces something at `/repo/`.
 
 Infection caught a real defect here that the tests did not. The first version
-guarded the plain style with `'' === $relative`, which is unreachable:
+guarded the file path type with `'' === $relative`, which is unreachable:
 `relativeOf('index.md')` yields `index`, never an empty string. Nine mutants
 survived in that branch because no input could reach it, and the fix was to
 delete the dead ternary rather than to add a test for it. That is worth
 remembering when the other types are filled in: a mutant that survives because a
 branch cannot execute is a code defect, not a missing test.
 
-The plain style also gives `guide/index.md` the address `/guide/index.html`,
-which is correct for that style, since a file-index address is what it does.
+The file path type also gives `guide/index.md` the path `/guide/index.html`,
+which is correct for that type, since a file path is what it produces.
 
 ### What `RouteTable` settled while being implemented
 
@@ -631,7 +638,7 @@ starts accepting requests has stopped being a documentation builder.
 | `src/Input/Markdown.php` | class | `scan(string $root): list<string>` | R |
 | `src/Input/Asset.php` | class | `scan(string $root): list<string>` | ? |
 | `src/Input/Tree.php` | class | `paths(): list<non-empty-string>` | R |
-| `src/Output/AddressStyle.php` | enum | `case Directory; case Plain;` | R |
+| `src/Output/PathType.php` | enum | `case Directory; case File;` | R |
 | `src/Output/DocumentRoot.php` | readonly class | `published()` and `file()` | R |
 | `src/Output/LinkRewriter.php` | readonly class | CommonMark `DocumentParsedEvent` listener | ? |
 | `src/Record/BuildRecord.php` | readonly class | `input`, `output`, `failed` | R |
@@ -654,11 +661,14 @@ starts accepting requests has stopped being a documentation builder.
 Mirrors `src/`. One class per subject, `#\(CoversClass\)` plus `#\(CoversMethod\)`.
 
 `test/unit/Input/MarkdownTest.php`, `test/unit/Input/AssetTest.php`,
-`test/unit/Output/StyleTest.php`, `test/unit/Output/DocumentRootTest.php`,
-`test/unit/Output/LinkRewriterTest.php`, `test/unit/Record/BuildRecordTest.php`,
-`test/unit/Router/RouteTableTest.php`,
+`test/unit/Output/DocumentRootTest.php`, `test/unit/Output/LinkRewriterTest.php`,
+`test/unit/Record/BuildRecordTest.php`, `test/unit/Router/RouteTableTest.php`,
 `test/unit/CommandHandler/BuildSiteHandlerTest.php`,
 `test/unit/Console/BuildCommandTest.php`.
+
+`PathType` has no test file of its own: it is a closed set with no behaviour, so
+`DocumentRootTest` covers it through the two constructor values rather than
+restating the cases.
 
 Plus one integration test over a real temp tree, which is where the whole design
 is actually proven: `test/integration/BuildTest.php`.
@@ -684,10 +694,10 @@ final readonly class Asset
 
 namespace CommonDoc\Output;
 
-enum Style: string
+enum PathType: string
 {
     case Directory = 'directory';
-    case Plain     = 'plain';
+    case File      = 'file';
 }
 
 namespace CommonDoc\Output;
@@ -696,7 +706,7 @@ final readonly class DocumentRoot
 {
     public function __construct(
         public string $basePath,
-        public Style $style = Style::Directory,
+        public PathType $pathType = PathType::Directory,
     ) {}
 
     /** '/guide/setup/' or '/guide/setup.html' */
@@ -740,7 +750,7 @@ as one commit rather than filling each class in turn.
 ## 15. Open questions for the owner
 
 1. The translation type name: `DocumentRoot`, `Deployment`, or something else.
-2. Directory style versus plain style, per section 7.
+2. Directory path type versus file path type, per section 7.
 3. Name for the asset scan, alongside `Input\Markdown`.
 4. Where the deployment configuration lives: `config/autoload`, command options,
    or the site config file.

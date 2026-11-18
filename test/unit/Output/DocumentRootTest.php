@@ -14,8 +14,8 @@ declare(strict_types=1);
 
 namespace CommonDocTest\Output;
 
-use CommonDoc\Output\AddressStyle;
 use CommonDoc\Output\DocumentRoot;
+use CommonDoc\Output\PathType;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
@@ -55,18 +55,18 @@ final class DocumentRootTest extends TestCase
     }
 
     #[Test]
-    public function publishesAPlainNestedIndexWithItsSuffix(): void
+    public function publishesANestedIndexAsAFilePath(): void
     {
-        $root = new DocumentRoot('/', AddressStyle::Plain);
+        $root = new DocumentRoot('/', PathType::File);
 
         static::assertSame('/guide/index.html', $root->published('guide/index.md'));
         static::assertSame('guide/index.html', $root->file('guide/index.md'));
     }
 
     #[Test]
-    public function publishesPlainAddressesWithTheSuffixInPlace(): void
+    public function publishesDocumentsAsFilePathsWithTheSuffixInPlace(): void
     {
-        $root = new DocumentRoot('/', AddressStyle::Plain);
+        $root = new DocumentRoot('/', PathType::File);
 
         static::assertSame('/guide/setup.html', $root->published('guide/setup.md'));
         static::assertSame('guide/setup.html', $root->file('guide/setup.md'));

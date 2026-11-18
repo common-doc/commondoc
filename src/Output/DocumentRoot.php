@@ -50,7 +50,7 @@ final readonly class DocumentRoot
      */
     public function __construct(
         string $basePath,
-        public AddressStyle $addressStyle = AddressStyle::Directory,
+        public PathType $pathType = PathType::Directory,
     ) {
         $this->basePath = self::prefix($basePath);
     }
@@ -145,7 +145,7 @@ final readonly class DocumentRoot
     {
         $relative = self::relativeOf($localPath);
 
-        if (AddressStyle::Plain === $this->addressStyle) {
+        if (PathType::File === $this->pathType) {
             return "{$relative}.html";
         }
 
@@ -163,7 +163,7 @@ final readonly class DocumentRoot
     {
         $relative = self::relativeOf($localPath);
 
-        if (AddressStyle::Plain === $this->addressStyle) {
+        if (PathType::File === $this->pathType) {
             return $this->basePath . "{$relative}.html";
         }
 
