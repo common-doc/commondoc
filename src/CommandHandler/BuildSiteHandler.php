@@ -23,16 +23,20 @@ use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
+use Exception;
 use InvalidArgumentException;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use League\CommonMark\ConverterInterface;
+use League\CommonMark\Exception\CommonMarkException;
+use League\Config\Exception\ConfigurationExceptionInterface;
+use LogicException;
 use Mezzio\Router\Exception\DuplicateRouteException;
 use Mezzio\Router\RouteCollectorInterface;
 use Psl\Exception\ExceptionInterface as PslExceptionInterface;
 use Psl\File;
 use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
-use Throwable;
+use RuntimeException;
 use Webware\FileWriter\Exception\InvalidArgumentException as FileWriterInvalidArgumentException;
 use Webware\FileWriter\Exception\RuntimeException as FileWriterRuntimeException;
 use Webware\FileWriter\FileWriter;
@@ -129,10 +133,15 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      * described by its own class rather than by an empty string that would read
      * as though nothing went wrong.
      *
+     * The parameter repeats the caught union rather than naming `Throwable`,
+     * because that union is the set the build records. `Error`, `TypeError` and
+     * every other engine failure stay outside it.
+     *
      * @return non-empty-string
      */
-    private static function reason(Throwable $failure): string
-    {
+    private static function reason(
+        CommonMarkException|ConfigurationExceptionInterface|Exception|PslExceptionInterface $failure,
+    ): string {
         $message = $failure->getMessage();
 
         if ('' === $message) {
@@ -185,7 +194,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
             try {
                 $this->write($converter, $source, $document, $target);
                 $written[] = $document;
-            } catch (Throwable $failure) {
+            } catch (Exception|CommonMarkException|ConfigurationExceptionInterface|PslExceptionInterface $failure) {
                 $failed[$document] = self::reason($failure);
             }
         }
@@ -194,7 +203,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
             try {
                 $this->copy($source, $asset, $target);
                 $written[] = $asset;
-            } catch (Throwable $failure) {
+            } catch (Exception|PslExceptionInterface $failure) {
                 $failed[$asset] = self::reason($failure);
             }
         }
@@ -266,11 +275,20 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      * one. The rewriter reads that page during parsing, which is how a relative
      * link is resolved against the document it was written in.
      *
-     * Any failure is declared rather than enumerated: this is the boundary where
-     * one document must not abort the build, so the contract is that anything may
-     * fail here and the caller records it.
+     * The throws below are what the caller is prepared to record. Anything else,
+     * an engine error or an exception from a collaborator this code does not
+     * understand, propagates: it is not a problem with the document, and
+     * recording it as one would hide a bug behind a content failure. That is why
+     * the loops catch a named union rather than `Throwable`, and why `Error` is
+     * absent from it.
      *
-     * @throws Throwable
+     * @throws CommonMarkException When the document cannot be parsed or rendered
+     * @throws ConfigurationExceptionInterface When a converter option is invalid
+     * @throws PslExceptionInterface When the source cannot be read
+     * @throws InvalidArgumentException When the page or the output path is refused
+     * @throws LogicException When a collaborator has already been initialised
+     * @throws RuntimeException When a link target cannot be resolved
+     * @throws ContainerExceptionInterface When the page cannot be built
      */
     private function write(
         ConverterInterface $converter,

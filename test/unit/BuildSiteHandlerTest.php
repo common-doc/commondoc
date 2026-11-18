@@ -36,6 +36,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
+use TypeError;
 use Webware\MessageBus\MessageStatus;
 
 use function file_get_contents;
@@ -144,6 +145,26 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         $this->handler(context: $context)->handle($this->command());
 
         static::assertNull($context->current());
+    }
+
+    #[Test]
+    public function letsAnEngineErrorPropagateRatherThanRecordingIt(): void
+    {
+        // A TypeError is a bug in this program, not a problem with a document.
+        // Recording it as a per-file failure would report a broken build and
+        // blame the content, so it must escape the per-document boundary.
+        $this->writeFile('source/index.md', contents: "# Home\n");
+
+        $converter = $this->createStub(ConverterInterface::class);
+        $converter
+            ->method('convert')
+            ->willThrowException(
+                new TypeError('a defect, not a content problem'),
+            );
+
+        $this->expectException(TypeError::class);
+
+        $this->handler(converter: $converter)->handle($this->command());
     }
 
     #[Test]

@@ -1120,6 +1120,41 @@ The console needed no change: it already printed "Wrote" per `output` entry and
 "Failed" per `failed` entry, so an asset now reads `Wrote site.css` or
 `Failed site.css: ...` with no special case.
 
+### What is caught, and what is deliberately not
+
+Nothing catches `Throwable`. The owner's rule, and it is a correctness rule
+rather than a style one: `Throwable` also admits `TypeError`, `Error` and every
+other engine failure, so a broad catch would record a bug in this program as a
+problem with a document. The operator would then be told to fix a file that is
+fine.
+
+Each per-file pass catches a **named union**:
+
+```php
+catch (Exception|CommonMarkException|ConfigurationExceptionInterface|PslExceptionInterface $failure)
+```
+
+Every member is a failure of the file being processed. `Error` and its children
+are outside the union, so they propagate and abort the build with a stack trace,
+which is the honest outcome for a defect in the builder.
+
+The vendor interfaces are named alongside `Exception` for a reason worth
+recording, because it is counter-intuitive. `CommonMarkException`,
+`ConfigurationExceptionInterface` and `Psl\Exception\ExceptionInterface` all
+extend `Throwable` rather than `Exception`. A class could therefore implement one
+without being an `Exception`, so `catch (Exception)` does not provably cover
+them, and the analyzer is right to say so. Listing three interfaces is the honest
+way to say "these plus every ordinary exception, and no engine errors".
+
+Removing the broad catch immediately paid for itself. Under `Throwable`, two
+thrown types were invisible because everything was swallowed:
+`League\Config\Exception\ConfigurationExceptionInterface`, which the converter can
+raise from an invalid option, and the distinction between the document and asset
+passes, which do not throw the same set. Both are now declared and covered.
+
+The rule is pinned by a test rather than left as prose: a converter stubbed to
+throw `TypeError` must escape `handle()` rather than appear in the record.
+
 ### The page label is derived, and that is temporary
 
 `PageFactory` takes a label among its options, and nothing in the build produces
@@ -1155,9 +1190,9 @@ handler bug that reported success beside a failure would still exit non-zero.
 | Gate | Result |
 |---|---|
 | `mago format`, `lint`, `analyze`, `guard` | 0 |
-| unit | 186 tests, 338 assertions, 1 skipped |
+| unit | 187 tests, 339 assertions, 1 skipped |
 | integration | 23 tests, 135 assertions |
-| Infection | 360 mutants, 0 escaped, MSI 100% |
+| Infection | 366 mutants, 0 escaped, MSI 100% |
 | coverage | `BuildSiteHandler` 71/71 lines, `BuildRecord` 46/46, `PageFactory` 35/35, `MarkdownConverterFactory` 19/19 |
 
 The integration suite dispatches the real command through the container's own
