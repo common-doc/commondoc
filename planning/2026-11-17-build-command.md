@@ -220,6 +220,43 @@ pass adds routes; the render pass reads them. Because there is no performance
 budget (decision 10), this is simply "do the passes in order" rather than
 anything subtle.
 
+### The collector was not resolvable until it was wired
+
+Reading the source rather than assuming exposed a gap: neither the collector nor
+a router was registered anywhere in this package. `RouteCollectorFactory` refuses
+to build without `RouterInterface`, and `Webware\Router\ConfigProvider` registers
+`QueryParamRouter` as a factory but ships its own `RouterInterface` alias
+**commented out**, so the interface resolved to nothing.
+
+Two entries fix it, both in this package's `ConfigProvider`:
+
+| Entry | Why it is ours |
+|---|---|
+| `RouterInterface::class => QueryParamRouter::class` | upstream registers the factory but not the alias |
+| `RouteCollector::class => RouteCollectorFactory::class` | nothing in the aggregated set declares it |
+
+`RouteCollectorInterface::class => RouteCollector::class` comes with it, because
+Mezzio's own code requests the interface.
+
+`Mezzio\Router\ConfigProvider` was considered instead of restating those entries.
+It declares the same two and then four dispatch middleware factories, and those
+need `Mezzio\MiddlewareFactoryInterface`, which arrives only with
+`mezzio/mezzio`. That package is not installed and this build has no HTTP
+pipeline, so aggregating the provider would register four services the container
+cannot build in exchange for saving two lines. Two declarative lines naming
+upstream's own factory class are not the same defect as a table re-implementing
+upstream's logic.
+
+`mezzio/mezzio-router` is now a direct requirement, because `src/` names its
+classes. It was previously transitive, through `query-param-router` and
+`mezzio-laminasviewrenderer`.
+
+One thing that is not ours: `RouteCollectorFactory` reads
+`config['router']['detect_duplicates']` while `QueryParamRouterFactory` reads
+`config[QueryParamRouter::class]['detect_duplicates']`. Same concept, two keys,
+and setting one does not set the other. Both default to true, which is what the
+build wants.
+
 ### What the build does, in order
 
 1. **Read configuration**: source, output, base path, optional host.
