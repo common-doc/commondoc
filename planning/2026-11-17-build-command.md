@@ -1087,25 +1087,44 @@ may target a document the loop has not reached. Collision detection is
 `DuplicateRouteDetector`'s, exercised by a test with `guide/setup.md` and
 `guide/setup/index.md`, which both publish at `/guide/setup/`.
 
-### Two failure policies, stated rather than implied
+### One failure policy, for both kinds of file
 
-A document that fails is recorded and the build continues: the operator wants the
-whole list rather than the first problem, and `BuildRecord` is exactly the shape
-for that.
+Both documents and assets are recorded and the build continues: the operator
+wants the whole list rather than the first problem, and `BuildRecord` is exactly
+the shape for that.
 
-An asset that fails to copy throws, because `BuildRecord` describes documents and
-has an invariant tying its three lists to them. Recording an asset alongside them
-would break that invariant, and inventing a second list would change a merged
-type. **This is the one place the design is incomplete**: a site with one
-unreadable asset fails without saying which asset, and the answer is either to
-extend `BuildRecord` or to accept the abort. It is recorded as an open question
-rather than papered over.
+The first version did not do this. An asset that failed to copy threw, on the
+reasoning that `BuildRecord` was built for documents and an asset key would break
+its invariant. The owner rejected it in one sentence: "If the build fails without
+the named cause how is the user supposed to fix it? Root cause has to be known."
+That is correct and it was the decisive argument, because a build that stops at
+an unreadable stylesheet without naming it leaves an operator with a broken site
+and nothing to act on.
+
+So the record carries four lists over one key space:
+
+| List | Holds |
+|---|---|
+| `input` | documents discovered |
+| `asset` | assets discovered |
+| `output` | paths written, of either kind |
+| `failed` | local path to the reason it was not written, of either kind |
+
+The invariant is that `output` and `failed` together are exactly `input` and
+`asset` together, that nothing is in both outcomes, and that no path is in both
+discovered lists. A copied asset therefore appears in `output` as well as in
+`asset`, which is what makes "every discovered path is accounted for" checkable
+in one comparison instead of two.
+
+The console needed no change: it already printed "Wrote" per `output` entry and
+"Failed" per `failed` entry, so an asset now reads `Wrote site.css` or
+`Failed site.css: ...` with no special case.
 
 ### The page label is derived, and that is temporary
 
-`PageFactoryFactory` takes a label, and nothing in the build produces one. The
-label is the file name without its document suffix, with no special case for
-`index`, so `guide/setup.md` is `setup` and `index.md` is `index`. Deriving
+`PageFactory` takes a label among its options, and nothing in the build produces
+one. The label is the file name without its document suffix, with no special case
+for `index`, so `guide/setup.md` is `setup` and `index.md` is `index`. Deriving
 something mechanical was chosen over inventing navigation vocabulary in the
 coordinator; a real label needs a source this build does not have, which is the
 document's first heading or a front-matter field.
@@ -1136,10 +1155,10 @@ handler bug that reported success beside a failure would still exit non-zero.
 | Gate | Result |
 |---|---|
 | `mago format`, `lint`, `analyze`, `guard` | 0 |
-| unit | 180 tests, 317 assertions, 1 skipped |
+| unit | 186 tests, 338 assertions, 1 skipped |
 | integration | 23 tests, 135 assertions |
-| Infection | 341 mutants, 0 escaped, MSI 100% |
-| coverage | `BuildSiteHandler` 67/67 lines, `PageFactory` 35/35, `MarkdownConverterFactory` 19/19 |
+| Infection | 360 mutants, 0 escaped, MSI 100% |
+| coverage | `BuildSiteHandler` 71/71 lines, `BuildRecord` 46/46, `PageFactory` 35/35, `MarkdownConverterFactory` 19/19 |
 
 The integration suite dispatches the real command through the container's own
 bus into the handler and asserts a file exists at the translated path, so the

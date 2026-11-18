@@ -33,7 +33,8 @@ use Psl\File;
 use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
 use Throwable;
-use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
+use Webware\FileWriter\Exception\InvalidArgumentException as FileWriterInvalidArgumentException;
+use Webware\FileWriter\Exception\RuntimeException as FileWriterRuntimeException;
 use Webware\FileWriter\FileWriter;
 use Webware\MessageBus\Command\CommandResult;
 use Webware\MessageBus\Command\CommandResultInterface;
@@ -122,11 +123,11 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     }
 
     /**
-     * The reason a document was not written, never empty.
+     * The reason a path was not written, never empty.
      *
-     * `BuildRecord` requires a non-empty reason, so an exception with no message
-     * is described by its own class rather than by an empty string that would
-     * read as though nothing went wrong.
+     * `BuildRecord` requires a non-empty reason, so a failure with no message is
+     * described by its own class rather than by an empty string that would read
+     * as though nothing went wrong.
      *
      * @return non-empty-string
      */
@@ -144,11 +145,14 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     /**
      * Build the site and report what was written and what failed.
      *
+     * Both kinds of file fail the same way and are reported the same way. A
+     * build that stopped at the first unreadable asset would name nothing, and an
+     * operator cannot fix a path they were not told about.
+     *
      * @throws InvalidArgumentException When the source root is not a readable directory
      * @throws DuplicateRouteException When two documents publish at one path
      * @throws ContainerExceptionInterface When a per-build object cannot be built
-     * @throws FileWriterException When an asset cannot be copied into the output
-     * @throws PslExceptionInterface When an asset cannot be read from the source
+     * @throws Type\Exception\ExceptionInterface When a built object is the wrong type
      */
     public function handle(BuildSiteCommand $command): CommandResultInterface
     {
@@ -187,11 +191,17 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
         }
 
         foreach ($assets as $asset) {
-            $this->copy($source, $asset, $target);
+            try {
+                $this->copy($source, $asset, $target);
+                $written[] = $asset;
+            } catch (Throwable $failure) {
+                $failed[$asset] = self::reason($failure);
+            }
         }
 
         $record = new BuildRecord(
             input : $documents,
+            asset : $assets,
             output: $written,
             failed: $failed,
         );
@@ -211,7 +221,8 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      * a link renders, not for the file. The write goes through `FileWriter` so
      * the copy is atomic, exactly as a document's is.
      *
-     * @throws FileWriterException When the asset cannot be written
+     * @throws FileWriterInvalidArgumentException When the asset name is empty
+     * @throws FileWriterRuntimeException When the asset cannot be read or written
      * @throws PslExceptionInterface When the asset cannot be read
      */
     private function copy(string $source, string $asset, string $target): void

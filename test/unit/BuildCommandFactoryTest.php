@@ -47,6 +47,7 @@ final class BuildCommandFactoryTest extends TestCase
                 status : MessageStatus::Success,
                 result : new BuildRecord(
                     input : [],
+                    asset : [],
                     output: [],
                     failed: [],
                 ),

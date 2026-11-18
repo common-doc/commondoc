@@ -58,6 +58,7 @@ final class BuildCommandTest extends TestCase
     {
         $tester = $this->runWith(new BuildRecord(
             input : [],
+            asset : [],
             output: [],
             failed: [],
         ));
@@ -97,10 +98,28 @@ final class BuildCommandTest extends TestCase
     }
 
     #[Test]
+    public function reportsAFailedAssetTheSameWayAsAFailedDocument(): void
+    {
+        // Both kinds go through one list, so the operator reads one report and
+        // does not have to know which kind of file failed to act on it.
+        $tester = $this->runWith(new BuildRecord(
+            input : ['index.md'],
+            asset : ['site.css'],
+            output: ['index.md'],
+            failed: ['site.css' => 'unable to replace the file'],
+        ));
+
+        static::assertSame(Command::FAILURE, $tester->getStatusCode());
+        static::assertStringContainsString('Failed site.css: unable to replace the file', $tester->getDisplay());
+        static::assertStringContainsString('Wrote index.md', $tester->getDisplay());
+    }
+
+    #[Test]
     public function reportsEveryDocumentThatWasNotWritten(): void
     {
         $tester = $this->runWith(new BuildRecord(
             input : ['guide/setup.md', 'index.md'],
+            asset : [],
             output: ['index.md'],
             failed: ['guide/setup.md' => 'The link target does not exist.'],
         ));
@@ -118,6 +137,7 @@ final class BuildCommandTest extends TestCase
     {
         $tester = $this->runWith(new BuildRecord(
             input : ['guide/setup.md', 'index.md'],
+            asset : [],
             output: ['guide/setup.md', 'index.md'],
             failed: [],
         ));

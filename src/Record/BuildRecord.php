@@ -31,10 +31,16 @@ use const SORT_STRING;
 /**
  * What one build discovered, wrote and failed to write.
  *
- * All three lists are keyed by the local path, which is the same key the route
- * table uses and the same string a markdown link contains. One key space means
- * the three lists can be checked against each other: a document that was found
- * either appears as written or appears as failed, and never as both.
+ * Every list is keyed by the local path, which is the same key a route name uses
+ * and the same string a markdown link contains. One key space means the lists
+ * can be checked against each other: a path that was found either appears as
+ * written or appears as failed, and never as both.
+ *
+ * Assets share that key space and share both outcomes. A build publishes both
+ * kinds of file, so a failure that named only documents would leave an operator
+ * with a broken site and no way to find the file that caused it. The two are
+ * still distinguishable, because `input` holds documents and `asset` holds
+ * everything else; `output` and `failed` hold either kind.
  *
  * An output file is deliberately not recorded here. The file a document is
  * written to is derived from its local path, so storing it would be a second
@@ -52,6 +58,9 @@ final readonly class BuildRecord
     public array $input;
 
     /** @var list<non-empty-string> */
+    public array $asset;
+
+    /** @var list<non-empty-string> */
     public array $output;
 
     /** @var array<non-empty-string, non-empty-string> */
@@ -59,21 +68,24 @@ final readonly class BuildRecord
 
     /**
      * @param list<non-empty-string>                    $input  Documents that were found
-     * @param list<non-empty-string>                    $output Documents that were written
+     * @param list<non-empty-string>                    $asset  Assets that were found
+     * @param list<non-empty-string>                    $output Paths that were written, of either kind
      * @param array<non-empty-string, non-empty-string> $failed Local path to the reason it was not written
      *
      * @throws InvalidArgumentException When the lists disagree with each other
      */
     public function __construct(
         array $input,
+        array $asset,
         array $output,
         array $failed,
     ) {
         $this->input  = self::ordered($input);
+        $this->asset  = self::ordered($asset);
         $this->output = self::ordered($output);
         $this->failed = self::sortedByPath($failed);
 
-        $this->requireEveryDiscoveredDocumentToBeAccountedFor();
+        $this->requireEveryDiscoveredPathToBeAccountedFor();
     }
 
     /**
@@ -105,7 +117,7 @@ final readonly class BuildRecord
     }
 
     /**
-     * Whether the build wrote every document it found.
+     * Whether the build wrote every path it discovered.
      */
     public function complete(): bool
     {
@@ -123,7 +135,7 @@ final readonly class BuildRecord
     }
 
     /**
-     * The reason a document was not written, when it was not.
+     * The reason a path was not written, when it was not.
      */
     public function reasonFor(string $localPath): ?string
     {
@@ -131,7 +143,7 @@ final readonly class BuildRecord
     }
 
     /**
-     * The number of documents that were written.
+     * The number of paths that were written, of either kind.
      *
      * @return non-negative-int
      */
@@ -141,40 +153,67 @@ final readonly class BuildRecord
     }
 
     /**
-     * Everything discovered is either written or failed, and nothing is both.
+     * Every discovered path is either written or failed, and nothing is both.
      *
      * This is the invariant that makes the record trustworthy. A record that
-     * silently dropped a document would report success for a site missing a
-     * document, which is worse than reporting nothing at all.
+     * silently dropped a path would report success for a site missing a file,
+     * which is worse than reporting nothing at all.
      *
-     * @throws InvalidArgumentException When the three lists do not reconcile
+     * An asset cannot be written as a document and a document cannot be written
+     * as an asset, so the two discovered lists must also be disjoint. Without
+     * that check a path in both would be counted twice and would hide a
+     * partition that had stopped partitioning.
+     *
+     * @throws InvalidArgumentException When the lists do not reconcile
      */
-    private function requireEveryDiscoveredDocumentToBeAccountedFor(): void
+    private function requireEveryDiscoveredPathToBeAccountedFor(): void
     {
         $both = array_intersect_key($this->failed, array_flip($this->output));
 
         if ([] !== $both) {
             throw new InvalidArgumentException(sprintf(
-                'The documents "%s" are recorded as both written and failed.',
+                'The paths "%s" are recorded as both written and failed.',
                 implode('", "', array_keys($both)),
             ));
         }
 
-        $accounted = [...$this->output, ...array_keys($this->failed)];
+        $overlap = array_intersect_key(array_flip($this->input), array_flip($this->asset));
 
+        if ([] !== $overlap) {
+            throw new InvalidArgumentException(sprintf(
+                'The paths "%s" are recorded as both a document and an asset.',
+                implode('", "', array_keys($overlap)),
+            ));
+        }
+
+        $discovered = [...$this->input, ...$this->asset];
+        $accounted  = [...$this->output, ...array_keys($this->failed)];
+
+        sort($discovered, SORT_STRING);
         sort($accounted, SORT_STRING);
 
-        if ($accounted === $this->input) {
+        if ($accounted === $discovered) {
             return;
         }
 
-        $unaccounted = array_diff_key(array_flip($this->input), array_flip($accounted));
+        $unaccounted = array_keys(array_diff_key(array_flip($discovered), array_flip($accounted)));
+
+        if ([] !== $unaccounted) {
+            throw new InvalidArgumentException(sprintf(
+                'The record accounts for %d paths while %d were discovered; "%s" is unaccounted for.',
+                count($accounted),
+                count($discovered),
+                implode('", "', $unaccounted),
+            ));
+        }
+
+        $extra = array_keys(array_diff_key(array_flip($accounted), array_flip($discovered)));
 
         throw new InvalidArgumentException(sprintf(
-            'The record accounts for %d documents while %d were discovered; "%s" is unaccounted for.',
+            'The record accounts for %d paths while %d were discovered; "%s" was never discovered.',
             count($accounted),
-            count($this->input),
-            implode('", "', array_keys($unaccounted)),
+            count($discovered),
+            implode('", "', $extra),
         ));
     }
 }

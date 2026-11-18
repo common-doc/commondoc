@@ -147,6 +147,33 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
     }
 
     #[Test]
+    public function namesAnAssetThatCouldNotBeCopied(): void
+    {
+        $this->writeFile('source/index.md', contents: "# Home\n");
+        $this->writeFile('source/site.css', contents: 'body{}');
+
+        // A directory where the file belongs, so the copy cannot land. The point
+        // of the test is not the reason but the fact that the asset is named at
+        // all: a build that stopped without a path would leave an operator with
+        // a broken site and nothing to fix.
+        mkdir("{$this->output}/site.css", recursive: true);
+
+        $result = $this->handler()->handle($this->command());
+
+        /** @var mixed $raw */
+        $raw = $result->getResult();
+
+        static::assertInstanceOf(BuildRecord::class, $raw);
+        static::assertSame(MessageStatus::Failure, $result->getStatus());
+        static::assertSame(['site.css'], $raw->failedPath());
+        static::assertNotNull($raw->reasonFor('site.css'));
+        static::assertNotSame('', $raw->reasonFor('site.css'));
+        // The documents still went out; one bad asset does not cost the build.
+        static::assertSame(['index.md'], $raw->output);
+        static::assertTrue(is_file("{$this->output}/index.html"));
+    }
+
+    #[Test]
     public function recordsADocumentThatFailedAndWritesTheRest(): void
     {
         $this->writeFile('source/index.md', contents: "# Home\n");
@@ -205,10 +232,32 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
     }
 
     #[Test]
+    public function reportsADocumentFailureAndAnAssetFailureInOneRecord(): void
+    {
+        $this->writeFile('source/index.md', contents: "# Home\n");
+        $this->writeFile('source/guide/setup.md', contents: 'see [gone](missing.md)');
+        $this->writeFile('source/site.css', contents: 'body{}');
+
+        mkdir("{$this->output}/site.css", recursive: true);
+
+        $result = $this->handler(converter: $this->failingConverter('missing.md'))
+            ->handle($this->command());
+
+        /** @var mixed $raw */
+        $raw = $result->getResult();
+
+        static::assertInstanceOf(BuildRecord::class, $raw);
+        // Both kinds in one list, ordered by path, because an operator reads one
+        // report and should not have to know which kind of file failed.
+        static::assertSame(['guide/setup.md', 'site.css'], $raw->failedPath());
+    }
+
+    #[Test]
     public function reportsTheRecordItProduced(): void
     {
         $this->writeFile('source/index.md', contents: "# Home\n");
         $this->writeFile('source/guide/setup.md', contents: "# Setup\n");
+        $this->writeFile('source/images/d.png', contents: 'PNG');
 
         $result = $this->handler()->handle($this->command());
 
@@ -218,7 +267,8 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         static::assertInstanceOf(BuildRecord::class, $raw);
         static::assertSame(MessageStatus::Success, $result->getStatus());
         static::assertSame(['guide/setup.md', 'index.md'], $raw->input);
-        static::assertSame(['guide/setup.md', 'index.md'], $raw->output);
+        static::assertSame(['images/d.png'], $raw->asset);
+        static::assertSame(['guide/setup.md', 'images/d.png', 'index.md'], $raw->output);
         static::assertSame([], $raw->failed);
         static::assertTrue($raw->complete());
     }
