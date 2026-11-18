@@ -23,6 +23,7 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 
 use function iterator_count;
 
@@ -93,6 +94,18 @@ final class PageTest extends TestCase
         static::assertSame($children, $page->getChildren());
         static::assertSame(2, $page->count());
         static::assertSame($page->count(), iterator_count($page->getIterator()));
+    }
+
+    #[Test]
+    public function keepsTheDefaultTheModelInterfaceDeclares(): void
+    {
+        $declared    = new ReflectionMethod(ModelInterface::class, 'setVariables');
+        $implemented = new ReflectionMethod(Page::class, 'setVariables');
+
+        static::assertSame(
+            $declared->getParameters()[1]->getDefaultValue(),
+            $implemented->getParameters()[1]->getDefaultValue(),
+        );
     }
 
     #[Test]

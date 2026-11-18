@@ -3,7 +3,9 @@
 **Date**: 2026-11-17
 **Component**: `common-doc/commondoc`
 **Branch**: `tyrsson-build-command` (off `6c9b626`)
-**Status**: design under review. No code written.
+**Status**: design accepted. The input scans, the translation, the record and the
+route table are implemented and tested. The render pass, the link rewriter and the
+handler wiring remain.
 
 This record exists because the proposals were delivered in chat and chat is not
 durable. It is the reference the implementation is reviewed against.
@@ -526,8 +528,9 @@ Built as skeletons in commit `skeleton: add the build types the design needs`.
 | `src/Output/AddressStyle.php` | complete (enum) | covered by `DocumentRootTest` |
 | `src/Output/DocumentRoot.php` | **implemented** | `DocumentRootTest`, 15 tests, 100% lines and methods |
 | `src/Output/LinkRewriter.php` | skeleton | none yet |
-| `src/Record/BuildRecord.php` | skeleton | none yet |
-| `src/Router/RouteTable.php` | skeleton | none yet |
+| `src/Record/BuildRecord.php` | **implemented** | `BuildRecordTest`, 11 tests |
+| `src/Router/RouteTable.php` | **implemented** | `RouteTableTest`, 11 tests |
+| `src/Http/Middleware/NotServedMiddleware.php` | **implemented** | `RouteTableTest` covers `process()` |
 
 ### Why the scans are built on PSL
 
@@ -584,6 +587,43 @@ branch cannot execute is a code defect, not a missing test.
 The plain style also gives `guide/index.md` the address `/guide/index.html`,
 which is correct for that style, since a file-index address is what it does.
 
+### What `RouteTable` settled while being implemented
+
+The table is **not** readonly, and that is deliberate rather than an oversight.
+It is filled during the scan pass and read during the render pass, so it
+accumulates by design. The mutable surface is one method wide (`add()`), and
+every other method is a lookup, so the alternative (a frozen table built in a
+second pass) would only move the accumulation somewhere less obvious.
+
+`add()` refuses three things, and each refusal is a defect that would otherwise
+publish a wrong site silently:
+
+| Refusal | What it prevents |
+|---|---|
+| An empty local or published path | a route that can never be addressed |
+| A published path not starting with `/` | an address that renders as a relative link |
+| A published path already claimed by another document | one document overwriting another at write time |
+
+Re-adding the **same** local path at the **same** address updates its options
+instead of refusing. That is what lets the scan register a route and a later pass
+enrich it with navigation data, and it is the only case where a second `add()`
+for one key is legal.
+
+### Why `NotServedMiddleware` lives under `Http`
+
+A Mezzio route cannot exist without middleware, and a build never dispatches one,
+so the route carries a type whose only honest behaviour is to refuse. It throws
+rather than returning a response, because reaching it means a build route was
+mounted somewhere that serves requests, and a silent success would hide that.
+
+The first version lived in `CommonDoc\Router\` and failed `mago guard`:
+PSR-15 is permitted only under `**\Http\**` (plus the async and router
+exceptions), and the class also had to be named `*Middleware`. Moving the file
+satisfies the boundary instead of widening it, which is the correct direction:
+weakening a fleet rule to admit one class would weaken it for every package. The
+boundary is also saying something true here, because a documentation builder that
+starts accepting requests has stopped being a documentation builder.
+
 ### Create
 
 | File | Type | Signature or role | Name |
@@ -595,7 +635,8 @@ which is correct for that style, since a file-index address is what it does.
 | `src/Output/DocumentRoot.php` | readonly class | `published()` and `file()` | R |
 | `src/Output/LinkRewriter.php` | readonly class | CommonMark `DocumentParsedEvent` listener | ? |
 | `src/Record/BuildRecord.php` | readonly class | `input`, `output`, `failed` | R |
-| `src/Router/RouteTable.php` | readonly class | implements `RouteProviderInterface`, `add(string $localPath, string $publishedPath)` | ? |
+| `src/Router/RouteTable.php` | class | implements `RouteProviderInterface`, `add(string $localPath, string $publishedPath)` | ? |
+| `src/Http/Middleware/NotServedMiddleware.php` | readonly class | PSR-15 `process()` that refuses; the only middleware a build route can carry | R |
 
 ### Modify
 

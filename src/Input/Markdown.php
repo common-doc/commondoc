@@ -37,10 +37,10 @@ final readonly class Markdown
      * Every `.md` file beneath the root, ordered so two builds agree.
      *
      * The extension is matched without regard to case. A document named `.MD` is
-     * a document, and skipping it silently would publish a site missing a page,
-     * which is worse than the duplicate it might create: two paths that differ
-     * only in extension produce one output file, and that collision is reported
-     * when the routes are registered rather than hidden here.
+     * a document, and skipping it silently would publish a site missing a
+     * document, which is worse than the duplicate it might create: two paths
+     * that differ only in extension produce one output file, and that collision
+     * is reported when the routes are registered rather than hidden here.
      *
      * @return list<non-empty-string>
      *
