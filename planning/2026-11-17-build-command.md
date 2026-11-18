@@ -515,31 +515,33 @@ one of the open questions.
 
 ### Status
 
-Built as skeletons in commit `skeleton: add the build types the design needs`:
+Built as skeletons in commit `skeleton: add the build types the design needs`.
+`DocumentRoot` is implemented and tested.
 
-| File | Autoloads | Gates |
+| File | State | Tests |
 |---|---|---|
-| `src/Input/Markdown.php` | yes | pass |
-| `src/Input/Asset.php` | yes | pass |
-| `src/Output/Style.php` | yes | pass |
-| `src/Output/DocumentRoot.php` | yes | pass |
-| `src/Output/LinkRewriter.php` | yes | pass |
-| `src/Record/BuildRecord.php` | yes | pass |
-| `src/Router/RouteTable.php` | yes | pass |
+| `src/Input/Markdown.php` | skeleton | none yet |
+| `src/Input/Asset.php` | skeleton | none yet |
+| `src/Output/Style.php` | complete (enum) | covered by `DocumentRootTest` |
+| `src/Output/DocumentRoot.php` | **implemented** | `DocumentRootTest`, 13 tests, 100% lines and methods |
+| `src/Output/LinkRewriter.php` | skeleton | none yet |
+| `src/Record/BuildRecord.php` | skeleton | none yet |
+| `src/Router/RouteTable.php` | skeleton | none yet |
 
-`mago format`, `lint`, `analyze` and `guard` all exit 0 across `src/`, and the
-unit suite is unchanged at 84 tests and 145 assertions. No test was written yet,
-because a test of a method that throws `LogicException` asserts nothing.
+### What `DocumentRoot` settled while being implemented
 
-Two decisions made while building them:
+The two answers are asymmetric on purpose. `published()` carries the base path
+and `file()` does not, because the output directory is mounted *at* the base
+path rather than containing it. A single method returning a pair would have
+hidden that, and a file that carries the prefix writes into the wrong directory.
 
-- **Bodies throw, naming their inputs.** Each throw message quotes the argument it
-  was given, which uses the parameters and is honest about what is missing. This
-  avoids blanket `@mago-expect analysis:unused-parameter` suppressions, which
-  would rot the moment the bodies are filled in.
-- **One suppression, in `LinkRewriter::__invoke()`.** The `$event` parameter is
-  the listener contract and the body does not yet walk the tree, so it is
-  genuinely unused. Suppressed with a reason rather than reshaped.
+A document named `index` is the index of its own directory. `guide/index.md`
+publishes at `/guide/` and is served by `guide/index.html`, not
+`/guide/index/`. That one rule is what keeps an address and the file serving it
+in agreement, and it is the same rule in both styles.
+
+`index.md` at the root publishes at the base path itself, which is why a
+repository subpath still produces something at `/repo/`.
 
 ### Create
 

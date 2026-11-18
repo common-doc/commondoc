@@ -2,22 +2,17 @@
 
 declare(strict_types=1);
 
-/**
- * This file is part of the commondoc package.
- *
- * Copyright (c) 2026 Joey Smith <jsmith@webinertia.net>
- * and contributors.
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace CommonDoc\Output;
 
 use InvalidArgumentException;
-use LogicException;
 
+use function explode;
+use function in_array;
+use function preg_match;
 use function sprintf;
+use function str_ends_with;
+use function str_starts_with;
+use function substr;
 
 /**
  * A local source root mounted at a URL prefix.
@@ -32,54 +27,148 @@ use function sprintf;
  * goes, and the render pass asks it what address a link target has. Asking one
  * type twice is what keeps a file and its address from drifting apart.
  *
- * A local root is never named only by its own path: a site published beneath a
- * prefix, such as a repository subpath, has an empty local root relative to the
- * prefix it is mounted at. The prefix is configuration, not a constant.
+ * The two answers are not symmetric, and that asymmetry is the point: the
+ * published address carries the base path, because that is how the site is
+ * reached, while the file is relative to the output directory, because that
+ * directory is mounted at the base path rather than containing it.
  *
  * @api
  */
 final readonly class DocumentRoot
 {
+    private const string DOCUMENT_PATTERN = '~^[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\.md$~';
+
+    private const string INDEX = 'index';
+
+    /** @var non-empty-string */
+    public string $basePath;
+
     /**
-     * @param non-empty-string $basePath The prefix this root is mounted at, such as `/` or `/repo/`
+     * @param string $basePath The prefix this root is mounted at, such as `/` or `/repo`
      *
      * @throws InvalidArgumentException When the base path cannot prefix an address
-     * @throws LogicException           Until construction is implemented
      */
     public function __construct(
-        public string $basePath,
+        string $basePath,
         public Style $style = Style::Directory,
     ) {
-        throw new LogicException(sprintf('%s::__construct() is not implemented.', self::class));
+        $this->basePath = self::prefix($basePath);
+    }
+
+    /**
+     * The directory a document is served from, relative to the root.
+     *
+     * A document named `index` is the index of its own directory rather than a
+     * directory of its own, so `guide/index.md` becomes `guide` and not
+     * `guide/index`. That single rule is what keeps an address and the file
+     * serving it in agreement.
+     */
+    private static function directoryOf(string $relative): string
+    {
+        if ('' === $relative || self::INDEX === $relative) {
+            return '';
+        }
+
+        return str_ends_with($relative, '/' . self::INDEX)
+            ? substr(
+                string: $relative,
+                offset: 0,
+                length: -6,
+            )
+            : $relative;
+    }
+
+    /**
+     * The base path with exactly one trailing slash, so a concatenation cannot
+     * produce a doubled or missing separator.
+     *
+     * @return non-empty-string
+     *
+     * @throws InvalidArgumentException When the value cannot prefix an address
+     */
+    private static function prefix(string $basePath): string
+    {
+        if ('' === $basePath || ! str_starts_with($basePath, '/')) {
+            throw new InvalidArgumentException(sprintf(
+                'The base path "%s" must start with a slash.',
+                $basePath,
+            ));
+        }
+
+        if (str_ends_with($basePath, '//')) {
+            throw new InvalidArgumentException(sprintf(
+                'The base path "%s" carries more than one trailing slash.',
+                $basePath,
+            ));
+        }
+
+        return str_ends_with($basePath, '/') ? $basePath : "{$basePath}/";
+    }
+
+    /**
+     * The local path with its markdown suffix removed.
+     *
+     * The suffix is removed once, here, so the address and the file cannot map a
+     * document differently.
+     *
+     * @throws InvalidArgumentException When the path is not a relative markdown path
+     */
+    private static function relativeOf(string $localPath): string
+    {
+        if (preg_match(self::DOCUMENT_PATTERN, $localPath) !== 1) {
+            throw new InvalidArgumentException(sprintf(
+                'The local path "%s" is not a relative markdown path.',
+                $localPath,
+            ));
+        }
+
+        if (in_array('..', explode('/', $localPath), strict: true)) {
+            throw new InvalidArgumentException(sprintf(
+                'The local path "%s" leaves the document root.',
+                $localPath,
+            ));
+        }
+
+        return substr(
+            string: $localPath,
+            offset: 0,
+            length: -3,
+        );
     }
 
     /**
      * The file a local path is written to, relative to the output directory.
      *
      * @throws InvalidArgumentException When the local path does not name a document
-     * @throws LogicException           Until the translation is implemented
      */
     public function file(string $localPath): string
     {
-        throw new LogicException(sprintf(
-            '%s::file() is not implemented for "%s".',
-            self::class,
-            $localPath,
-        ));
+        $relative = self::relativeOf($localPath);
+
+        if (Style::Plain === $this->style) {
+            return '' === $relative ? self::INDEX . '.html' : "{$relative}.html";
+        }
+
+        $directory = self::directoryOf($relative);
+
+        return '' === $directory ? self::INDEX . '.html' : "{$directory}/" . self::INDEX . '.html';
     }
 
     /**
      * The address a local path is published at, such as `/guide/setup/`.
      *
      * @throws InvalidArgumentException When the local path does not name a document
-     * @throws LogicException           Until the translation is implemented
      */
     public function published(string $localPath): string
     {
-        throw new LogicException(sprintf(
-            '%s::published() is not implemented for "%s".',
-            self::class,
-            $localPath,
-        ));
+        $relative = self::relativeOf($localPath);
+
+        if (Style::Plain === $this->style) {
+            return $this->basePath . ('' === $relative ? self::INDEX . '.html' : "{$relative}.html");
+        }
+
+        $directory = self::directoryOf($relative);
+
+        return '' === $directory ? $this->basePath : "{$this->basePath}{$directory}/";
     }
 }
