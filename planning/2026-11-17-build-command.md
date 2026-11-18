@@ -523,7 +523,7 @@ Built as skeletons in commit `skeleton: add the build types the design needs`.
 | `src/Input/Markdown.php` | skeleton | none yet |
 | `src/Input/Asset.php` | skeleton | none yet |
 | `src/Output/Style.php` | complete (enum) | covered by `DocumentRootTest` |
-| `src/Output/DocumentRoot.php` | **implemented** | `DocumentRootTest`, 13 tests, 100% lines and methods |
+| `src/Output/DocumentRoot.php` | **implemented** | `DocumentRootTest`, 15 tests, 30 assertions, 100% lines and methods |
 | `src/Output/LinkRewriter.php` | skeleton | none yet |
 | `src/Record/BuildRecord.php` | skeleton | none yet |
 | `src/Router/RouteTable.php` | skeleton | none yet |
@@ -542,6 +542,17 @@ in agreement, and it is the same rule in both styles.
 
 `index.md` at the root publishes at the base path itself, which is why a
 repository subpath still produces something at `/repo/`.
+
+Infection caught a real defect here that the tests did not. The first version
+guarded the plain style with `'' === $relative`, which is unreachable:
+`relativeOf('index.md')` yields `index`, never an empty string. Nine mutants
+survived in that branch because no input could reach it, and the fix was to
+delete the dead ternary rather than to add a test for it. That is worth
+remembering when the other types are filled in: a mutant that survives because a
+branch cannot execute is a code defect, not a missing test.
+
+The plain style also gives `guide/index.md` the address `/guide/index.html`,
+which is correct for that style, since a file-index address is what it does.
 
 ### Create
 

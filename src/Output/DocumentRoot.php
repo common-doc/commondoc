@@ -65,7 +65,7 @@ final readonly class DocumentRoot
      */
     private static function directoryOf(string $relative): string
     {
-        if ('' === $relative || self::INDEX === $relative) {
+        if (self::INDEX === $relative) {
             return '';
         }
 
@@ -146,7 +146,7 @@ final readonly class DocumentRoot
         $relative = self::relativeOf($localPath);
 
         if (Style::Plain === $this->style) {
-            return '' === $relative ? self::INDEX . '.html' : "{$relative}.html";
+            return "{$relative}.html";
         }
 
         $directory = self::directoryOf($relative);
@@ -164,7 +164,7 @@ final readonly class DocumentRoot
         $relative = self::relativeOf($localPath);
 
         if (Style::Plain === $this->style) {
-            return $this->basePath . ('' === $relative ? self::INDEX . '.html' : "{$relative}.html");
+            return $this->basePath . "{$relative}.html";
         }
 
         $directory = self::directoryOf($relative);

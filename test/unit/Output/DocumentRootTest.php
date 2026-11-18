@@ -55,6 +55,15 @@ final class DocumentRootTest extends TestCase
     }
 
     #[Test]
+    public function publishesAPlainNestedIndexWithItsSuffix(): void
+    {
+        $root = new DocumentRoot('/', Style::Plain);
+
+        static::assertSame('/guide/index.html', $root->published('guide/index.md'));
+        static::assertSame('guide/index.html', $root->file('guide/index.md'));
+    }
+
+    #[Test]
     public function publishesPlainAddressesWithTheSuffixInPlace(): void
     {
         $root = new DocumentRoot('/', Style::Plain);
@@ -142,5 +151,15 @@ final class DocumentRootTest extends TestCase
 
         static::assertSame('/guide/', $root->published('guide/index.md'));
         static::assertSame('guide/index.html', $root->file('guide/index.md'));
+    }
+
+    #[Test]
+    public function treatsOnlyAnExactIndexSegmentAsADirectoryIndex(): void
+    {
+        $root = new DocumentRoot('/');
+
+        static::assertSame('/myindex/', $root->published('myindex.md'));
+        static::assertSame('myindex/index.html', $root->file('myindex.md'));
+        static::assertSame('/a/indexer/', $root->published('a/indexer.md'));
     }
 }
