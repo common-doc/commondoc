@@ -251,15 +251,18 @@ route detector.
 ### `CommonDoc\Input\Markdown`
 
 ```php
-public function scan(string $root): list<string>
+public function scan(array $paths): list<string>
 ```
 
-Recursive scan of `$root` for `*.md`. Sorted ascending. Paths relative to
-`$root`, `/` separated. Throws when `$root` is not a readable directory.
+Selects `*.md` from a path list. Order inherited from the list. Paths relative to
+the root, `/` separated, as `Tree::paths()` produces them.
 
-An asset counterpart is needed on the same terms, since images are published too.
-Name and suffix set are open; the scan is the same operation with a different
-filter.
+Superseded signature: this was `scan(string $root): list<string>`, walking the
+tree itself. See "One traversal, then partition" for why the walk moved out.
+
+An asset counterpart is on the same terms, since images are published too. It is
+a difference against the documents rather than a second suffix rule, so the two
+lists are total and disjoint by construction.
 
 ### The translation type
 
@@ -530,8 +533,8 @@ Built as skeletons in commit `skeleton: add the build types the design needs`.
 | File | State | Tests |
 |---|---|---|
 | `src/Input/Tree.php` | **implemented** | `TreeTest`, 9 tests, on `Psl\Filesystem` |
-| `src/Input/Markdown.php` | **implemented** | `MarkdownTest`, 6 tests |
-| `src/Input/Asset.php` | **implemented** | `AssetTest`, 6 tests |
+| `src/Input/Markdown.php` | **implemented**, pure filter over a path list | `MarkdownTest`, 7 tests |
+| `src/Input/Asset.php` | **implemented**, difference against the documents | `AssetTest`, 6 tests |
 | `src/Output/PathType.php` | complete (enum) | covered by `DocumentRootTest` |
 | `src/Output/DocumentRoot.php` | **implemented** | `DocumentRootTest`, 15 tests, 100% lines and methods |
 | `src/Output/LinkRewriter.php` | skeleton | none yet |
@@ -550,8 +553,50 @@ catching `InvalidArgumentException` still catches all three because PSL's
 exceptions extend it.
 
 `Tree` exists so a document scan and an asset scan cannot disagree about what
-exists or how a path is spelled. Both are then one filter each, which is why the
-two scans are eleven lines between them.
+exists or how a path is spelled. Both are then one filter each over the list it
+returns.
+
+### One traversal, then partition
+
+The filters take the path list rather than a root, and that is the correction
+that came out of reviewing the first version.
+
+The first version had `Markdown::scan(string $root)` and
+`Asset::scan(string $root)`, each calling `Tree::at($root)` itself. That walked
+the tree once per type, so a build using both walked it twice. Expressing `Asset`
+as a difference against `Markdown::scan($root)` made it three walks, which is
+worse in the name of less duplication.
+
+Traversal is the expensive part: one `read_directory()` per directory regardless
+of file count. A suffix test is a string comparison. So the count of filters is
+irrelevant and the count of traversals is everything, and the fix is for the
+caller to walk once:
+
+```php
+$paths     = Tree::at($root)->paths();
+$documents = (new Markdown())->scan($paths);
+$assets    = (new Asset())->scan(paths: $paths, documents: $documents);
+```
+
+Three things follow. The filters become pure functions of a list, so they need no
+directory, no refusals and no temporary tree to test. Root validation lives in
+`Tree::at()` only, instead of being restated by every type. And adding a type
+costs one pass over an array rather than another pass over the filesystem.
+
+**Globbing was considered and rejected for this job.** A single `glob()` per
+directory does return every match, and it sorts by default. But it returns
+directories that match the pattern, it is case-sensitive even on a
+case-insensitive filesystem, and it is `opendir`/`readdir` internally, so it does
+not reduce traversal when the complete entry list is still needed for assets.
+Glob becomes the right tool only if assets stop requiring a walk.
+
+**Generators were rejected.** `Tree::paths()` sorts by byte value so two builds
+agree, and a sort needs the whole set before the first element can be emitted. A
+generator would add a type and lose the ordering guarantee at the same time.
+
+**`scan` is the wrong verb for these two methods.** Scanning is the walking, and
+the walking now lives in `Tree`. What remains is selecting from a list. The name
+is unchanged because it is the owner's decision, not mine.
 
 Two decisions worth recording:
 
@@ -635,8 +680,8 @@ starts accepting requests has stopped being a documentation builder.
 
 | File | Type | Signature or role | Name |
 |---|---|---|---|
-| `src/Input/Markdown.php` | class | `scan(string $root): list<string>` | R |
-| `src/Input/Asset.php` | class | `scan(string $root): list<string>` | ? |
+| `src/Input/Markdown.php` | class | `scan(array $paths): list<string>` | R |
+| `src/Input/Asset.php` | class | `scan(array $paths, array $documents): list<string>` | R |
 | `src/Input/Tree.php` | class | `paths(): list<non-empty-string>` | R |
 | `src/Output/PathType.php` | enum | `case Directory; case File;` | R |
 | `src/Output/DocumentRoot.php` | readonly class | `published()` and `file()` | R |
@@ -673,23 +718,28 @@ restating the cases.
 Plus one integration test over a real temp tree, which is where the whole design
 is actually proven: `test/integration/BuildTest.php`.
 
-### Shapes, as proposed
+### Shapes, as implemented
 
 ```php
 namespace CommonDoc\Input;
 
 final readonly class Markdown
 {
-    /** @return list<string> */
-    public function scan(string $root): array;
+    public const string EXTENSION = '.md';
+
+    /** @param list<non-empty-string> $paths */
+    public function scan(array $paths): array;
 }
 
 namespace CommonDoc\Input;
 
 final readonly class Asset
 {
-    /** @return list<string> */
-    public function scan(string $root): array;
+    /**
+     * @param list<non-empty-string> $paths
+     * @param list<non-empty-string> $documents
+     */
+    public function scan(array $paths, array $documents): array;
 }
 
 namespace CommonDoc\Output;

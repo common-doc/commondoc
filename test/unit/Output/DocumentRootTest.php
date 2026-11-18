@@ -55,6 +55,18 @@ final class DocumentRootTest extends TestCase
     }
 
     #[Test]
+    public function publishesADocumentWhoseSuffixIsUppercase(): void
+    {
+        $root = new DocumentRoot('/');
+
+        // Markdown::scan matches its suffix without regard to case, so a document
+        // it reports must be translatable. Refusing upper case here would fail a
+        // build on a document the scan had already accepted.
+        static::assertSame('/guide/setup/', $root->published('guide/setup.MD'));
+        static::assertSame('guide/setup/index.html', $root->file('guide/setup.MD'));
+    }
+
+    #[Test]
     public function publishesANestedIndexAsAFilePath(): void
     {
         $root = new DocumentRoot('/', PathType::File);

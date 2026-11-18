@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace CommonDoc\Output;
 
+use CommonDoc\Input\Markdown;
 use InvalidArgumentException;
+use Psl\Str;
 
 use function explode;
 use function in_array;
@@ -12,6 +14,7 @@ use function preg_match;
 use function sprintf;
 use function str_ends_with;
 use function str_starts_with;
+use function strlen;
 use function substr;
 
 /**
@@ -36,9 +39,12 @@ use function substr;
  */
 final readonly class DocumentRoot
 {
-    private const string DOCUMENT_PATTERN = '~^[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\.md$~';
+    private const string DOCUMENT_PATTERN = '~^[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$~';
 
     private const string INDEX = 'index';
+
+    /** The segment `directoryOf()` strips, spelled once so no offset is counted by hand. */
+    private const string NESTED_INDEX = '/index';
 
     /** @var non-empty-string */
     public string $basePath;
@@ -69,11 +75,11 @@ final readonly class DocumentRoot
             return '';
         }
 
-        return str_ends_with($relative, '/' . self::INDEX)
+        return str_ends_with($relative, self::NESTED_INDEX)
             ? substr(
                 string: $relative,
                 offset: 0,
-                length: -6,
+                length: -strlen(self::NESTED_INDEX),
             )
             : $relative;
     }
@@ -106,16 +112,25 @@ final readonly class DocumentRoot
     }
 
     /**
-     * The local path with its markdown suffix removed.
+     * The local path with its document suffix removed.
      *
-     * The suffix is removed once, here, so the address and the file cannot map a
-     * document differently.
+     * The suffix is asked of `Markdown`, which is the only type that decides what
+     * a document is, so the translation and the scan cannot disagree. The strip
+     * length comes from that same constant rather than a counted literal, which
+     * would be a third copy of the rule hiding in an offset.
+     *
+     * The pattern deliberately does not mention the suffix. It bounds the
+     * characters a path may contain, and the suffix is a separate question with
+     * a separate owner.
      *
      * @throws InvalidArgumentException When the path is not a relative markdown path
      */
     private static function relativeOf(string $localPath): string
     {
-        if (preg_match(self::DOCUMENT_PATTERN, $localPath) !== 1) {
+        if (
+            ! Str\ends_with_ci($localPath, Markdown::EXTENSION)
+            || preg_match(self::DOCUMENT_PATTERN, $localPath) !== 1
+        ) {
             throw new InvalidArgumentException(sprintf(
                 'The local path "%s" is not a relative markdown path.',
                 $localPath,
@@ -132,7 +147,7 @@ final readonly class DocumentRoot
         return substr(
             string: $localPath,
             offset: 0,
-            length: -3,
+            length: -strlen(Markdown::EXTENSION),
         );
     }
 

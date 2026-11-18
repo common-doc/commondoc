@@ -15,86 +15,80 @@ declare(strict_types=1);
 namespace CommonDocTest\Input;
 
 use CommonDoc\Input\Markdown;
-use CommonDocTest\Support\AbstractTemporaryTree;
-use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
 
+/**
+ * The filter is a pure function of a path list, so these run on arrays. The
+ * traversal and its root refusals belong to `Tree`, which has its own test.
+ */
 #[CoversClass(Markdown::class)]
 #[CoversMethod(Markdown::class, 'scan')]
-final class MarkdownTest extends AbstractTemporaryTree
+final class MarkdownTest extends TestCase
 {
     #[Test]
-    public function excludesEverythingThatIsNotMarkdown(): void
+    public function excludesAPathThatMerelyContainsTheExtension(): void
     {
-        $this->makeTree();
-        $this->writeFile('index.md', contents: '# Home');
-        $this->writeFile('style.css', contents: 'body{}');
-        $this->writeFile('notes.txt', contents: 'notes');
-        $this->writeFile('image.png', contents: 'png');
-
-        static::assertSame(['index.md'], new Markdown()->scan($this->tree));
-    }
-
-    #[Test]
-    public function findsDocumentsAtTheRootAndNested(): void
-    {
-        $this->makeTree();
-        $this->writeFile('index.md', contents: '# Home');
-        $this->writeFile('guide/setup.md', contents: '# Setup');
-
         static::assertSame(
-            ['guide/setup.md', 'index.md'],
-            new Markdown()->scan($this->tree),
+            [],
+            new Markdown()->scan(['notes.md.bak', 'markdown.md.txt', 'md']),
         );
     }
 
     #[Test]
-    public function ignoresHiddenDocumentsAndDirectories(): void
+    public function excludesEverythingThatIsNotMarkdown(): void
     {
-        $this->makeTree();
-        $this->writeFile('.hidden.md', contents: '# Hidden');
-        $this->writeFile('.github/notes.md', contents: '# Notes');
-        $this->writeFile('visible.md', contents: '# Visible');
+        static::assertSame(
+            ['index.md'],
+            new Markdown()->scan(['index.md', 'style.css', 'notes.txt', 'image.png']),
+        );
+    }
 
-        static::assertSame(['visible.md'], new Markdown()->scan($this->tree));
+    #[Test]
+    public function findsDocumentsThatFollowSomethingElse(): void
+    {
+        // A file that is not a document must not end the pass. The traversal
+        // order is byte value, so an asset can sort before every document.
+        static::assertSame(
+            ['b.md', 'z.md'],
+            new Markdown()->scan(['a.png', 'b.md', 'c.css', 'z.md']),
+        );
+    }
+
+    #[Test]
+    public function keepsTheDocumentsAtTheRootAndNested(): void
+    {
+        static::assertSame(
+            ['guide/setup.md', 'index.md'],
+            new Markdown()->scan(['guide/setup.md', 'index.md']),
+        );
+    }
+
+    #[Test]
+    public function keepsTheOrderItIsGiven(): void
+    {
+        // The traversal sorts; sorting again here would be work that changes
+        // nothing, and reordering would silently disagree with the walk.
+        static::assertSame(
+            ['B.md', 'a.md', 'z.md'],
+            new Markdown()->scan(['B.md', 'a.md', 'z.md']),
+        );
     }
 
     #[Test]
     public function matchesTheExtensionWithoutRegardToCase(): void
     {
-        $this->makeTree();
-        $this->writeFile('upper/MD.MD', contents: '# Upper');
-        $this->writeFile('mixed/Mixed.Md', contents: '# Mixed');
-
         static::assertSame(
             ['mixed/Mixed.Md', 'upper/MD.MD'],
-            new Markdown()->scan($this->tree),
+            new Markdown()->scan(['mixed/Mixed.Md', 'upper/MD.MD', 'plain.txt']),
         );
     }
 
     #[Test]
-    public function refusesARootThatIsNotADirectory(): void
+    public function returnsNothingForAnEmptyList(): void
     {
-        $this->makeTree();
-        $this->writeFile('index.md', contents: '# Home');
-
-        $this->expectException(InvalidArgumentException::class);
-
-        new Markdown()->scan("{$this->tree}/index.md");
-    }
-
-    #[Test]
-    public function returnsNothingForAnEmptyRoot(): void
-    {
-        $this->makeTree();
-
-        static::assertSame([], new Markdown()->scan($this->tree));
-    }
-
-    protected function tearDown(): void
-    {
-        $this->removeTree();
+        static::assertSame([], new Markdown()->scan([]));
     }
 }

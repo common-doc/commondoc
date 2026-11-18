@@ -15,82 +15,98 @@ declare(strict_types=1);
 namespace CommonDocTest\Input;
 
 use CommonDoc\Input\Asset;
-use CommonDocTest\Support\AbstractTemporaryTree;
-use InvalidArgumentException;
+use CommonDoc\Input\Markdown;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+use function array_intersect;
+use function sort;
+
+use const SORT_STRING;
 
 #[CoversClass(Asset::class)]
 #[CoversMethod(Asset::class, 'scan')]
-final class AssetTest extends AbstractTemporaryTree
+final class AssetTest extends TestCase
 {
     #[Test]
-    public function excludesMarkdownRegardlessOfCase(): void
+    public function findsFilesThatAreNotDocuments(): void
     {
-        $this->makeTree();
-        $this->writeFile('a.md', contents: '# A');
-        $this->writeFile('b.MD', contents: '# B');
-        $this->writeFile('keep.txt', contents: 'keep');
-
-        static::assertSame(['keep.txt'], new Asset()->scan($this->tree));
-    }
-
-    #[Test]
-    public function findsFilesThatAreNotMarkdown(): void
-    {
-        $this->makeTree();
-        $this->writeFile('index.md', contents: '# Home');
-        $this->writeFile('images/logo.png', contents: 'png');
-        $this->writeFile('style.css', contents: 'body{}');
-
         static::assertSame(
             ['images/logo.png', 'style.css'],
-            new Asset()->scan($this->tree),
+            new Asset()->scan(
+                paths    : ['images/logo.png', 'index.md', 'style.css'],
+                documents: ['index.md'],
+            ),
         );
     }
 
     #[Test]
-    public function ignoresHiddenFilesAndDirectories(): void
+    public function keepsTheOrderItIsGiven(): void
     {
-        $this->makeTree();
-        $this->writeFile('.env', contents: 'secret');
-        $this->writeFile('.git/hooks/pre-commit', contents: '#!/bin/sh');
-        $this->writeFile('logo.svg', contents: '<svg/>');
+        static::assertSame(
+            ['b.png', 'c.css'],
+            new Asset()->scan(
+                paths    : ['b.png', 'c.css', 'a.md'],
+                documents: ['a.md'],
+            ),
+        );
+    }
 
-        static::assertSame(['logo.svg'], new Asset()->scan($this->tree));
+    /**
+     * The property the difference exists to guarantee: the two lists together
+     * account for every file, and no file appears in both.
+     */
+    #[Test]
+    public function partitionsThePathsIntoDocumentsAndAssets(): void
+    {
+        // Sorted by byte value, which is the order the traversal produces.
+        $paths = ['guide/logo.png', 'guide/setup.md', 'index.md', 'style.css'];
+
+        $documents = new Markdown()->scan($paths);
+        $assets    = new Asset()->scan(
+            paths    : $paths,
+            documents: $documents,
+        );
+
+        $recombined = [...$documents, ...$assets];
+        sort($recombined, SORT_STRING);
+
+        static::assertSame($paths, $recombined);
+        static::assertSame([], array_intersect($documents, $assets));
     }
 
     #[Test]
-    public function refusesARootThatIsNotADirectory(): void
+    public function returnsEveryPathWhenNoneIsADocument(): void
     {
-        $this->makeTree();
-        $this->writeFile('logo.png', contents: 'png');
-
-        $this->expectException(InvalidArgumentException::class);
-
-        new Asset()->scan("{$this->tree}/logo.png");
+        static::assertSame(
+            ['a.png', 'b.css'],
+            new Asset()->scan(
+                paths    : ['a.png', 'b.css'],
+                documents: [],
+            ),
+        );
     }
 
     #[Test]
-    public function reportsAnEmptyFileBecauseItIsReadable(): void
+    public function returnsNothingForAnEmptyList(): void
     {
-        $this->makeTree();
-        $this->writeFile('empty.txt', contents: '');
-
-        static::assertSame(['empty.txt'], new Asset()->scan($this->tree));
+        static::assertSame([], new Asset()->scan(
+            paths    : [],
+            documents: [],
+        ));
     }
 
     #[Test]
-    public function returnsNothingForAnEmptyRoot(): void
+    public function returnsNothingWhenEveryPathIsADocument(): void
     {
-        $this->makeTree();
-
-        static::assertSame([], new Asset()->scan($this->tree));
-    }
-
-    protected function tearDown(): void
-    {
-        $this->removeTree();
+        static::assertSame(
+            [],
+            new Asset()->scan(
+                paths    : ['a.md', 'b.md'],
+                documents: ['a.md', 'b.md'],
+            ),
+        );
     }
 }
