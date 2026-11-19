@@ -14,10 +14,11 @@ declare(strict_types=1);
 
 namespace CommonDoc\Container;
 
+use CommonDoc\Exception\InvalidArgumentException;
+use CommonDoc\Input\Root;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\PathType;
 use CommonDoc\SiteConfig;
-use InvalidArgumentException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Override;
 use Psr\Container\ContainerExceptionInterface;
@@ -34,18 +35,22 @@ use function is_string;
  * environment is keyed by `EnvironmentInterface::class`, so a deployment states
  * its own values in its own autoload file without touching this package.
  *
- * Reading is separated from validating. A key that is absent or of the wrong type
- * is replaced with its default rather than refusing the build, because a
- * deployment with one typo should still build, and it costs one setting instead of
- * all of them. The refusal that matters is `DocumentRoot` rejecting a base path it
- * cannot prefix with, which is a statement about the value rather than about where
- * it came from, so it is left to the type that owns it.
+ * Reading is separated from validating. A value that is absent or of the wrong type
+ * is replaced with its default rather than refusing the build, because a deployment
+ * with one typo should still build, and it costs one setting instead of all of them.
+ * The refusals that matter are left to the types that own them: `DocumentRoot`
+ * rejects a base path it cannot prefix with, `Root` rejects a mount it cannot prefix
+ * with, and `SiteConfig` rejects two roots that would publish at one address.
+ * Reading the roots is `RootReader`'s job, because reading a list is a different
+ * job from reading a scalar.
  *
  * @internal
  */
 final readonly class SiteConfigFactory implements FactoryInterface
 {
     private const string DEFAULT_BASE_PATH = '/';
+
+    private const string DEFAULT_OUTPUT = 'build';
 
     /**
      * The output layout, or the directory layout when the configured value is not
@@ -70,7 +75,9 @@ final readonly class SiteConfigFactory implements FactoryInterface
      * when it has the right type and replaced with its default when it does not,
      * so a single typo costs one setting instead of all of them.
      *
-     * @return array{basePath: string, pathType: PathType, projectName: string, projectSlug: string, versionLabel: string}
+     * @return array{roots: list<Root>, basePath: string, pathType: PathType, output: string, projectName: string, projectSlug: string, versionLabel: string}
+     *
+     * @throws InvalidArgumentException When a configured mount cannot prefix an address
      */
     private static function section(mixed $config): array
     {
@@ -83,6 +90,12 @@ final readonly class SiteConfigFactory implements FactoryInterface
                 default: self::DEFAULT_BASE_PATH,
             ),
             'pathType'     => self::pathType(section: $section),
+            'output'       => self::text(
+                section: $section,
+                key    : 'output',
+                default: self::DEFAULT_OUTPUT,
+            ),
+            'roots'        => new RootReader()->read($section['roots'] ?? null),
             'projectName'  => self::text(
                 section: $section,
                 key    : 'projectName',
@@ -142,7 +155,9 @@ final readonly class SiteConfigFactory implements FactoryInterface
      * @param ?array<array-key, mixed> $options
      *
      * @throws ContainerExceptionInterface When the config service cannot be fetched
-     * @throws InvalidArgumentException When the configured base path cannot prefix a path
+     * @throws InvalidArgumentException When the configured base path cannot prefix a path,
+     *         when a configured mount cannot prefix an address, or when two configured
+     *         roots would publish at one address
      * @throws NotFoundExceptionInterface When the config service is not registered
      */
     #[Override]
@@ -154,10 +169,12 @@ final readonly class SiteConfigFactory implements FactoryInterface
         $section = self::section($container->get('config'));
 
         return new SiteConfig(
-            root        : new DocumentRoot(
+            documentRoot: new DocumentRoot(
                 basePath: $section['basePath'],
                 pathType: $section['pathType'],
             ),
+            roots       : $section['roots'],
+            output      : $section['output'],
             projectName : $section['projectName'],
             projectSlug : $section['projectSlug'],
             versionLabel: $section['versionLabel'],

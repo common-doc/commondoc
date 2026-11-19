@@ -44,7 +44,7 @@ final class PageFactoryTest extends TestCase
     private static function container(array $identity, DocumentRoot $root): ContainerInterface
     {
         $siteConfig = new SiteConfig(
-            root        : $root,
+            documentRoot: $root,
             projectName : $identity['projectName'] ?? '',
             projectSlug : $identity['projectSlug'] ?? '',
             versionLabel: $identity['versionLabel'] ?? '',

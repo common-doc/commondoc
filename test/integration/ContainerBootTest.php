@@ -19,6 +19,7 @@ use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\ConfigProvider;
 use CommonDoc\Console\BuildCommand;
 use CommonDoc\Container\ExtensionPluginManager;
+use CommonDoc\Input\Root;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
@@ -130,7 +131,7 @@ final class ContainerBootTest extends TestCase
             $bus = $this->container()->get(MessageBusInterface::class);
 
             $result = $bus->handle(new BuildSiteCommand(
-                source: "{$tree}/source",
+                roots : [new Root(path: "{$tree}/source")],
                 output: "{$tree}/build",
             ));
 
@@ -255,7 +256,7 @@ final class ContainerBootTest extends TestCase
         $providers = $this->container()->get(ListenerProviderInterface::class);
 
         $command = new BuildSiteCommand(
-            source: 'docs',
+            roots : [new Root(path: 'docs')],
             output: 'build',
         );
 

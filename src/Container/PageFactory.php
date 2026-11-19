@@ -15,7 +15,6 @@ declare(strict_types=1);
 namespace CommonDoc\Container;
 
 use CommonDoc\Exception\InvalidArgumentException;
-use CommonDoc\Output\DocumentRoot;
 use CommonDoc\SiteConfig;
 use CommonDoc\View\Page;
 use Laminas\ServiceManager\Factory\FactoryInterface;
@@ -34,9 +33,9 @@ use function is_string;
  * one with `build()`, which the service manager never caches, and passes only
  * what differs per document: its local path and its label. Everything shared by
  * every page in a deployment (the project name, the slug, the version label) comes
- * from `SiteConfig`, and the address is derived from `DocumentRoot` rather than
- * accepted, so a page cannot carry a URL that disagrees with the file the write
- * pass produces for the same document.
+ * from `SiteConfig`, and the address is derived from the translation that site
+ * carries rather than accepted, so a page cannot carry a URL that disagrees with
+ * the file the write pass produces for the same document.
  *
  * @internal
  */
@@ -91,11 +90,9 @@ final readonly class PageFactory implements FactoryInterface
     ): Page {
         $optionsFrom = self::optionsFrom($options);
 
-        // Coerced rather than checked: an address cannot be derived without a
-        // root, so a wrong service is a construction failure with a typed
-        // message instead of a fatal error somewhere else.
-        $root = Type\instance_of(DocumentRoot::class)->coerce($container->get(DocumentRoot::class));
-
+        // The site carries the translation, so it is read once here rather than
+        // fetched again: a second fetch could only return the same object, and a
+        // second source for an address is a second rule.
         $site = Type\instance_of(SiteConfig::class)->coerce($container->get(SiteConfig::class));
 
         return new Page(
@@ -103,7 +100,7 @@ final readonly class PageFactory implements FactoryInterface
             projectName : $site->projectName,
             projectSlug : $site->projectSlug,
             sourcePath  : $optionsFrom['localPath'],
-            url         : $root->published($optionsFrom['localPath']),
+            url         : $site->documentRoot->published($optionsFrom['localPath']),
             versionLabel: $site->versionLabel,
             children    : Type\vec(Type\instance_of(Page::class))->coerce($optionsFrom['children']),
         );

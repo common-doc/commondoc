@@ -70,7 +70,7 @@ final class DocumentRootFactoryTest extends TestCase
         );
 
         $subject = new DocumentRootFactory()(
-            self::container(new SiteConfig(root: $root)),
+            self::container(new SiteConfig(documentRoot: $root)),
             DocumentRoot::class,
         );
 

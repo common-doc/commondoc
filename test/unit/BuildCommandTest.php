@@ -16,8 +16,10 @@ namespace CommonDocTest;
 
 use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\Console\BuildCommand;
+use CommonDoc\Input\Root;
+use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Record\BuildRecord;
-use InvalidArgumentException;
+use CommonDoc\SiteConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -30,27 +32,47 @@ use Webware\MessageBus\MessageStatus;
 use Webware\MessageBus\ResultInterface;
 
 /**
- * What the command prints and what it exits with.
+ * What the command sends, prints and exits with.
+ *
+ * The command is a transport over the configured site. A run with no arguments
+ * has to work, because a workflow runs it from configuration alone; the two
+ * options are development overrides and must not become the source of truth.
  *
  * The record is the only reporting channel, so the non-record case is a test of
- * its own: printing nothing for an unrecognised result is exactly what let the
- * previous version report a silent no-op as a successful build.
+ * its own: printing nothing for an unrecognised result is exactly what let an
+ * earlier version report a silent no-op as a successful build.
  */
 #[CoversClass(BuildCommand::class)]
 #[CoversMethod(BuildCommand::class, '__construct')]
 #[CoversMethod(BuildCommand::class, 'configure')]
 #[CoversMethod(BuildCommand::class, 'execute')]
+#[CoversMethod(BuildCommand::class, 'request')]
 final class BuildCommandTest extends TestCase
 {
-    #[Test]
-    public function definesTheSourceArgumentAndTheOutputOption(): void
-    {
-        $definition = new BuildCommand($this->stubBus())->getDefinition();
+    private const string CONFIGURED_OUTPUT = 'site';
 
-        static::assertTrue($definition->hasArgument('source'));
-        static::assertTrue($definition->getArgument('source')->isRequired());
-        static::assertTrue($definition->hasOption('output'));
-        static::assertSame('build', $definition->getOption('output')->getDefault());
+    private static function site(): SiteConfig
+    {
+        return new SiteConfig(
+            documentRoot: new DocumentRoot('/'),
+            roots       : [new Root(path: 'docs/v1')],
+            output      : self::CONFIGURED_OUTPUT,
+        );
+    }
+
+    #[Test]
+    public function buildsTheConfiguredSiteWhenGivenNothing(): void
+    {
+        $bus = $this->recordingBus();
+
+        $tester = new CommandTester(new BuildCommand($bus, self::site()));
+        $tester->execute([]);
+
+        $request = $this->onlyRequest($bus);
+
+        static::assertEquals([new Root(path: 'docs/v1')], $request->getRoots());
+        static::assertSame(self::CONFIGURED_OUTPUT, $request->getOutput());
+        static::assertSame(Command::SUCCESS, $tester->getStatusCode());
     }
 
     #[Test]
@@ -68,6 +90,17 @@ final class BuildCommandTest extends TestCase
     }
 
     #[Test]
+    public function ignoresAnEmptySourceAndKeepsTheConfiguredRoots(): void
+    {
+        $bus = $this->recordingBus();
+
+        $tester = new CommandTester(new BuildCommand($bus, self::site()));
+        $tester->execute(['source' => '']);
+
+        static::assertEquals([new Root(path: 'docs/v1')], $this->onlyRequest($bus)->getRoots());
+    }
+
+    #[Test]
     public function refusesAResultThatIsNotARecord(): void
     {
         $tester = $this->runWith(['out/index.html']);
@@ -80,21 +113,30 @@ final class BuildCommandTest extends TestCase
     }
 
     #[Test]
-    public function rejectsAnEmptyOutputOption(): void
+    public function replacesTheConfiguredOutputWhenOneIsGiven(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $bus = $this->recordingBus();
 
-        $tester = new CommandTester(new BuildCommand($this->stubBus()));
-        $tester->execute(['source' => 'docs', '--output' => '']);
+        $tester = new CommandTester(new BuildCommand($bus, self::site()));
+        $tester->execute(['--output' => 'elsewhere']);
+
+        static::assertSame('elsewhere', $this->onlyRequest($bus)->getOutput());
     }
 
     #[Test]
-    public function rejectsAnEmptySourceArgument(): void
+    public function replacesTheConfiguredRootsWithOneRootWhenASourceIsGiven(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $bus = $this->recordingBus();
 
-        $tester = new CommandTester(new BuildCommand($this->stubBus()));
-        $tester->execute(['source' => '']);
+        $tester = new CommandTester(new BuildCommand($bus, self::site()));
+        $tester->execute(['source' => 'docs/other']);
+
+        $request = $this->onlyRequest($bus);
+
+        // Published at `/` because a single-repository run is what this option is
+        // for. It cannot express a mount, so it cannot compose a site.
+        static::assertEquals([new Root(path: 'docs/other')], $request->getRoots());
+        static::assertSame(self::CONFIGURED_OUTPUT, $request->getOutput());
     }
 
     #[Test]
@@ -147,20 +189,70 @@ final class BuildCommandTest extends TestCase
         static::assertStringContainsString('Wrote index.md', $tester->getDisplay());
     }
 
+    #[Test]
+    public function requiresNeitherAnArgumentNorAnOption(): void
+    {
+        // The common run is the workflow's: it supplies nothing and builds what was
+        // configured, so a required argument would move the site definition into
+        // workflow YAML.
+        $definition = new BuildCommand($this->stubBus(), self::site())->getDefinition();
+
+        static::assertTrue($definition->hasArgument('source'));
+        static::assertFalse($definition->getArgument('source')->isRequired());
+        static::assertTrue($definition->hasOption('output'));
+        static::assertNull($definition->getOption('output')->getDefault());
+    }
+
+    private function onlyRequest(MessageBusInterface $bus): BuildSiteCommand
+    {
+        static::assertCount(1, $this->sent);
+
+        return $this->sent[0];
+    }
+
+    private function recordingBus(): MessageBusInterface
+    {
+        $this->sent = [];
+
+        $bus = $this->createStub(MessageBusInterface::class);
+        $bus->method('handle')->willReturnCallback(
+            function (object $message): ResultInterface {
+                static::assertInstanceOf(BuildSiteCommand::class, $message);
+
+                $this->sent[] = $message;
+
+                return new CommandResult(
+                    command: $message,
+                    status : MessageStatus::Success,
+                    result : new BuildRecord(
+                        input : [],
+                        asset : [],
+                        output: [],
+                        failed: [],
+                    ),
+                );
+            },
+        );
+
+        return $bus;
+    }
+
+    /** @var list<BuildSiteCommand> */
+    private array $sent = [];
+
     private function runWith(mixed $result): CommandTester
     {
-        $command = new BuildSiteCommand(
-            source: 'docs',
-            output: 'out',
-        );
         $bus = $this->stubBus(new CommandResult(
-            command: $command,
+            command: new BuildSiteCommand(
+                roots : [new Root(path: 'docs')],
+                output: 'out',
+            ),
             status : MessageStatus::Success,
             result : $result,
         ));
 
-        $tester = new CommandTester(new BuildCommand($bus));
-        $tester->execute(['source' => 'docs', '--output' => 'out']);
+        $tester = new CommandTester(new BuildCommand($bus, self::site()));
+        $tester->execute([]);
 
         return $tester;
     }

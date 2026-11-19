@@ -50,6 +50,6 @@ final readonly class DocumentRootFactory implements FactoryInterface
     ): DocumentRoot {
         return Type\instance_of(SiteConfig::class)
             ->coerce($container->get(SiteConfig::class))
-            ->root;
+            ->documentRoot;
     }
 }
