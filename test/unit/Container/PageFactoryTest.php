@@ -16,6 +16,7 @@ namespace CommonDocTest\Container;
 
 use CommonDoc\Container\PageFactory;
 use CommonDoc\Output\DocumentRoot;
+use CommonDoc\SiteConfig;
 use CommonDoc\View\Page;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -38,16 +39,23 @@ use Psr\Container\ContainerInterface;
 final class PageFactoryTest extends TestCase
 {
     /**
-     * @param array<array-key, mixed> $config
+     * @param array{projectName?: string, projectSlug?: string, versionLabel?: string} $identity
      */
-    private static function container(array $config, DocumentRoot $root): ContainerInterface
+    private static function container(array $identity, DocumentRoot $root): ContainerInterface
     {
+        $siteConfig = new SiteConfig(
+            root        : $root,
+            projectName : $identity['projectName'] ?? '',
+            projectSlug : $identity['projectSlug'] ?? '',
+            versionLabel: $identity['versionLabel'] ?? '',
+        );
+
         $container = self::createStub(ContainerInterface::class);
         $container
             ->method('get')
             ->willReturnCallback(
                 static fn(string $id): mixed => match ($id) {
-                    'config'            => $config,
+                    SiteConfig::class   => $siteConfig,
                     DocumentRoot::class => $root,
                     default             => null,
                 },
@@ -59,16 +67,16 @@ final class PageFactoryTest extends TestCase
     /**
      * Build one page the way a caller does, through the factory's options.
      *
-     * @param array<array-key, mixed> $config
-     * @param array<array-key, mixed> $options
+     * @param array<array-key, mixed>                                                  $options
+     * @param array{projectName?: string, projectSlug?: string, versionLabel?: string} $identity
      */
     private static function page(
         array $options,
-        array $config = [],
+        array $identity = [],
         ?DocumentRoot $root = null,
     ): Page {
         $subject = new PageFactory()(
-            self::container($config, $root ?? new DocumentRoot('/repo/')),
+            self::container($identity, $root ?? new DocumentRoot('/repo/')),
             Page::class,
             $options,
         );
@@ -95,16 +103,14 @@ final class PageFactoryTest extends TestCase
     #[Test]
     public function capturesTheDeploymentIdentityForEveryPage(): void
     {
-        $config = [
-            Page::class => [
-                'projectName'  => 'CommonDoc',
-                'projectSlug'  => 'commondoc',
-                'versionLabel' => '1.0',
-            ],
+        $identity = [
+            'projectName'  => 'CommonDoc',
+            'projectSlug'  => 'commondoc',
+            'versionLabel' => '1.0',
         ];
 
-        $first  = self::page(['localPath' => 'index.md', 'label' => 'Home'], $config);
-        $second = self::page(['localPath' => 'guide/setup.md', 'label' => 'Setup'], $config);
+        $first  = self::page(['localPath' => 'index.md', 'label' => 'Home'], $identity);
+        $second = self::page(['localPath' => 'guide/setup.md', 'label' => 'Setup'], $identity);
 
         static::assertSame('CommonDoc', $first->projectName);
         static::assertSame('commondoc', $first->projectSlug);
@@ -137,21 +143,11 @@ final class PageFactoryTest extends TestCase
     }
 
     #[Test]
-    public function leavesTheIdentityBlankWhenTheConfigServiceIsMissing(): void
+    public function leavesTheIdentityBlankWhenTheSiteConfigCarriesNone(): void
     {
-        // A container without 'config' still yields a usable page: a page with no
-        // project name is cosmetic, a build that cannot start is not.
-        $container = self::createStub(ContainerInterface::class);
-        $container
-            ->method('get')
-            ->willReturnCallback(
-                static fn(string $id): mixed => DocumentRoot::class === $id ? new DocumentRoot('/') : null,
-            );
-
-        $page = new PageFactory()($container, Page::class, [
-            'localPath' => 'index.md',
-            'label'     => 'Home',
-        ]);
+        // A deployment that states no identity still yields a usable page: a page
+        // with no project name is cosmetic, a build that cannot start is not.
+        $page = self::page(['localPath' => 'index.md', 'label' => 'Home'], [], new DocumentRoot('/'));
 
         static::assertSame('', $page->projectName);
         static::assertSame('/', $page->url);

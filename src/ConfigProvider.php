@@ -30,6 +30,7 @@ use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\Container\PageFactory;
+use CommonDoc\Container\SiteConfigFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
@@ -204,6 +205,7 @@ final readonly class ConfigProvider
                 PageContextListener::class       => PageContextListenerFactory::class,
                 Page::class                      => PageFactory::class,
                 RouteCollector::class            => RouteCollectorFactory::class,
+                SiteConfig::class                => SiteConfigFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
             'invokables' => [
