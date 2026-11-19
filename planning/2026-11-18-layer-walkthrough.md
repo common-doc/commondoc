@@ -874,6 +874,42 @@ knows the request and the last thing before anything is read from disk. It needs
 result (to hand roots to the scan). Neither is a new concept: both are D24 and D15
 becoming real.
 
+**D37. The documentation target is configuration, and it is verified.** `docs/v1` is
+this repository's habit, not a property of the package. A repository migrating from
+DocBook keeps its sources in `docs/book`; one that publishes per major keeps a directory
+per major. So `Input\Target` carries the location, with `docs/v1` as the default, and it
+resolves against a repository root so a composed site states it once and the repository
+that differs states its own. It refuses an empty target and one that can escape the
+repository it is resolved against, checked per path segment so `v1..2` remains legal.
+
+A target whose directory is missing, unreadable, or holds no Markdown is refused rather
+than composed as an empty root. It would otherwise build cleanly and publish nothing,
+which an operator cannot distinguish from a repository with no pages to publish.
+
+**D38. A root entry names either a repository or a directory, and the difference is
+whether the target applies.** `['repository' => ..., 'target' => ...]` means "find this
+repository's documentation at its target, and refuse if it is not there".
+`['path' => ...]` means "walk this directory", unresolved, for a root assembled outside
+a repository. Both take a `mount`. This is the shape both identification mechanisms end
+in (D28), because an org custom property and a `site.json` manifest both name a
+repository and both need to know where inside it the documentation lives. The
+abstraction was therefore not contingent on the remote-form decision below.
+
+### Open: does `Root` gain a remote form
+
+Unresolved, and it is a different question from the target. Two shapes:
+
+| Shape | What it means |
+| --- | --- |
+| fetch resolves to a directory | a phase materialises each repository at its target, then the build runs as it does today; `Root` unchanged |
+| `Root` gains a remote form | `Root` describes a repository and a revision, and the scan reads through a provider |
+
+Deciding needs the actual requirement, not a preference: whether a composed site must
+be buildable with no network at the point the walk runs, whether a credential may be
+needed per repository, and whether the fetched revision must be recorded in the record.
+The transport is in place either way, and the target abstraction above is used either
+way.
+
 ### The transport a fetch phase would use
 
 Ported from the multi-repository component in `webinertia/asciidoc-php`, which
