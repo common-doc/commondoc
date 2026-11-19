@@ -17,12 +17,10 @@ compensations. This walkthrough is the sanity check.
 
 ## Resume here
 
-**State**: branch `tyrsson-progress` off `1.0.x` at `fe20e72`. Merged and done:
+**State**: `1.0.x` at `e2b03e6`, clean, baseline verified. Merged and done:
 P6 (`#22`), P7 (`#22`), P3 and P4 (`#23`), the first half of P1 (`#24`), the
-resume record (`#25`), assets as a phase (`#26`), and the resume correction
-(`#27`). On this branch: what a phase hands forward is `Record\Progress` rather
-than `Outcome`, because `Result` is already this package's word for how a build
-finished, and the console takes its exit code from the result's status (D35).
+resume record (`#25`), assets as a phase (`#26`), the resume correction (`#27`),
+and `Progress` plus the console reading the result's status (`#28`).
 
 ### Next: finish P1
 
@@ -386,6 +384,28 @@ Two consequences:
   caller to the handler's current return type. `BuildCommand` narrows to
   `BuildRecord` and refuses anything else; that is a decision about the console
   layer, not a constraint the bus imposes.
+
+**D36. Event identifiers are a type, not a string.** `CommonMarkEvent` holds every
+CommonMark event this package acts on, and its case values are `::class`
+references so a rename in the library breaks at the reference rather than leaving a
+name nothing dispatches. `Environment::getListenersForEvent()` matches with `is_a()`,
+so an identifier that is not a real class name registers a listener that never fires
+and fails silently; the type is what makes that unrepresentable.
+
+The set is this package's hooks, not CommonMark's event list. Three of CommonMark's
+four events have no case because nothing here listens for them, and one arrives when
+a listener does.
+
+The case carries one `@mago-expect analysis:invalid-enum-case-value`, and it
+silences a false positive: PHP accepts `SomeClass::class` as a backed case value, and
+the analyzer infers `class-string` and then rejects it as not a `string`. Two other
+encodings were measured and both are worse. A literal class name trips `lint`'s
+`no-literal-namespace-string`, and `::class . ''` widens the value to `string`, which
+`addEventListener()` rejects because it takes a `class-string`.
+
+Document data keys are a separate question and are not in that enum. The value there
+is a bag key rather than an event class, so one enum holding both would be a bag of
+unrelated literals.
 
 ---
 
