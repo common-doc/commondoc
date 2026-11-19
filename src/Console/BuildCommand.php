@@ -28,6 +28,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Webware\MessageBus\MessageBusInterface;
+use Webware\MessageBus\MessageStatus;
 
 use function get_debug_type;
 use function is_string;
@@ -50,10 +51,10 @@ use function sprintf;
  * filtering the result for strings once meant an empty result printed nothing, so
  * a silent no-op looked like a successful build.
  *
- * The exit code follows the record rather than the status, because the record is
- * what was actually written. A handler that reported success while recording a
- * failure would otherwise exit zero with failures printed, and the record is the
- * only place those two facts can be compared.
+ * The exit code follows the result's status rather than the record, because the
+ * handler is what compares what it wrote against what it discovered. Asking the
+ * record again here would re-decide a question already answered, and two answers
+ * to one question can disagree.
  *
  * @api
  */
@@ -112,6 +113,8 @@ final class BuildCommand extends Command
             return Command::INVALID;
         }
 
+        $status = $result->getStatus();
+
         /** @var mixed $raw */
         $raw = $result->getResult();
 
@@ -133,7 +136,11 @@ final class BuildCommand extends Command
             $output->writeln(sprintf('<error>Failed %s: %s</error>', $path, $reason));
         }
 
-        return $raw->complete() ? Command::SUCCESS : Command::FAILURE;
+        // The status rather than the record. The handler is what compares what it
+        // wrote against what it discovered, so reading its answer keeps that rule in
+        // one place: a console that asked the record again would be re-deciding
+        // something already decided, and two answers to one question can disagree.
+        return MessageStatus::Success === $status ? Command::SUCCESS : Command::FAILURE;
     }
 
     /**

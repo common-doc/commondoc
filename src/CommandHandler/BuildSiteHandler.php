@@ -21,7 +21,7 @@ use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Input\Markdown;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Record\BuildRecord;
-use CommonDoc\Record\Outcome;
+use CommonDoc\Record\Progress;
 use CommonDoc\Record\Reason;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
@@ -175,11 +175,11 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
             }
         }
 
-        // The assets were copied by their own phase, so their outcome arrives on
+        // The assets were copied by their own phase, so their progress arrives on
         // the message rather than being produced here. Composing rather than
         // re-deciding is the whole point of the split: this method no longer knows
         // that an asset is a thing that can fail independently.
-        $outcome = $command->getOutcome()->and(new Outcome(
+        $progress = $command->getProgress()->and(new Progress(
             output: $written,
             failed: $failed,
         ));
@@ -187,8 +187,8 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
         $record = new BuildRecord(
             input : $documents,
             asset : $assets,
-            output: $outcome->output,
-            failed: $outcome->failed,
+            output: $progress->output,
+            failed: $progress->failed,
         );
 
         return new CommandResult(

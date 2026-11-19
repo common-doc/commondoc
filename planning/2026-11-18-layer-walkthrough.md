@@ -17,11 +17,12 @@ compensations. This walkthrough is the sanity check.
 
 ## Resume here
 
-**State**: `1.0.x` at `c104a27`, clean, baseline verified (`commondoc:build` with
-no arguments writes 8 files, exit 0; `mago lint` 0; `mago analyze` 0; 284 tests
-pass). Merged and done: P6 (`#22`), P7 (`#22`), P3 and P4 (`#23`), the first half
-of P1 (`#24`), the resume record (`#25`), and the second part of P1, assets as a
-phase (`#26`).
+**State**: branch `tyrsson-progress` off `1.0.x` at `fe20e72`. Merged and done:
+P6 (`#22`), P7 (`#22`), P3 and P4 (`#23`), the first half of P1 (`#24`), the
+resume record (`#25`), assets as a phase (`#26`), and the resume correction
+(`#27`). On this branch: what a phase hands forward is `Record\Progress` rather
+than `Outcome`, because `Result` is already this package's word for how a build
+finished, and the console takes its exit code from the result's status (D35).
 
 ### Next: finish P1
 
@@ -126,6 +127,16 @@ Its contract is set by `webware-console`, which reads a command's definition for
 the input prompt and the help view, captures whatever the command writes, and
 renders the returned status. A failure that is thrown cannot be rendered; a
 failure that is returned can.
+
+**D35. The exit code comes from the result's status, not from the record.**
+`ResultInterface` already answers `getStatus(): StatusInterface`, and the handler
+is what compares what it wrote against what it discovered, so the console reads
+that answer instead of asking the record a second time. Two answers to one
+question can disagree; one answer cannot. Reading the status is also what stops
+the console knowing that `BuildRecord::complete()` exists.
+
+Recorded here, out of numeric order, because the decision belongs to this layer and
+D33 and D34 were written later in Layer 4.
 
 ### Open
 
@@ -321,18 +332,29 @@ so the result payload is unconstrained: the result carries whatever object is th
 outcome, and `BuildRecord` is that object here, already exposing `input` and
 `asset`.
 
-**D33. A phase contributes an outcome; the record is assembled at the end.**
+**D33. A phase contributes its progress; the record is assembled at the end.**
 `BuildRecord`'s invariant is that every discovered path is accounted for, and that
 cannot hold until the last phase has run. So no phase can own the record. A phase
-hands an `Outcome` forward (D15), and the handler merges the accumulated outcome
-with its own work into the one record. The outcome is deliberately not a partial
+hands a `Progress` forward (D15), and the handler merges the accumulated progress
+with its own work into the one record. Progress is deliberately not a partial
 `BuildRecord`: two types with the same fields and different guarantees would be
-confused for each other, and the difference is exactly the invariant an outcome
-does not claim.
+confused for each other, and the difference is exactly the invariant progress does
+not claim.
 
-The scan is state on the message rather than an outcome because absence means a
-precondition is missing and must refuse. An outcome that is empty means the phase
-wrote nothing, which is a valid state and not a refusal.
+The name is about sequence, not completion. `Result` is the package's word for how
+a build finished and it already exists on the bus, so a second term for finishing
+would collide with it. Progress says nothing about whether the build succeeded.
+
+The scan is state on the message rather than progress because absence means a
+precondition is missing and must refuse. Empty progress means the phase wrote
+nothing, which is a valid state.
+
+There is no phase enum. An enum closes the set, and this package's extension axis
+is configuration (D31), so a consumer's phase could not report itself without a
+case in a shipped enum. Attribution is not carried either: `BuildRecord` refuses a
+path it never discovered, the scan partitions every discovered path into documents
+and assets, so for a written path the producing phase is already derivable, and a
+stamp would be a field nothing reads.
 
 **D34. The set of recordable failures is written once.** Two phases now record a
 failed path, so the catch union lives in `Record\Reason` rather than at each catch.
@@ -509,14 +531,14 @@ Still in the handler: asset copying and the record. Reporting has not moved.
 
 **Landed, assets.** Copying is now `AssetCopyMiddleware`, at priority 40 below the
 scan, and the handler's asset loop and its `copy()` are gone. The phase records
-what it wrote and what it could not, and hands an `Outcome` forward (D33). The
-handler composes that outcome with its own work into the one record, so a report
+what it wrote and what it could not, and hands a `Progress` forward (D33). The
+handler composes that progress with its own work into the one record, so a report
 still names both kinds of failure in one ordered list.
 
 Two things learned:
 
 - The scenario tests for copying belonged to the phase, not the handler. What
-  stayed in the handler's tests is the composition: one record from an outcome it
+  stayed in the handler's tests is the composition: one record from progress it
   was handed plus the documents it wrote.
 - A phase that fails must not stop. Stopping at the first unreadable asset would
   name one file, and the operator wants the list.

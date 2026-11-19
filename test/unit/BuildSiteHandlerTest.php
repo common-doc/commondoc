@@ -23,7 +23,7 @@ use CommonDoc\Input\Root;
 use CommonDoc\Input\Scan;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Record\BuildRecord;
-use CommonDoc\Record\Outcome;
+use CommonDoc\Record\Progress;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDocTest\Support\AbstractTemporaryTree;
@@ -226,7 +226,7 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         // rather than from the handler's own work. The handler's job is the one
         // record, not the copying.
         $result = $this->handler(converter: $this->failingConverter('missing.md'))
-            ->handle($this->command(new Outcome(failed: ['site.css' => 'disk full'])));
+            ->handle($this->command(new Progress(failed: ['site.css' => 'disk full'])));
 
         /** @var mixed $raw */
         $raw = $result->getResult();
@@ -244,7 +244,7 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         $this->writeFile('source/guide/setup.md', contents: "# Setup\n");
         $this->writeFile('source/images/d.png', contents: 'PNG');
 
-        $result = $this->handler()->handle($this->command(new Outcome(output: ['images/d.png'])));
+        $result = $this->handler()->handle($this->command(new Progress(output: ['images/d.png'])));
 
         /** @var mixed $raw */
         $raw = $result->getResult();
@@ -291,15 +291,15 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         return new RouteCollector($this->createStub(RouterInterface::class));
     }
 
-    private function command(?Outcome $outcome = null): BuildSiteCommand
+    private function command(?Progress $progress = null): BuildSiteCommand
     {
         $roots = [new Root(path: $this->source)];
 
         return new BuildSiteCommand(
-            roots  : $roots,
-            output : $this->output,
-            scan   : Scan::of($roots),
-            outcome: $outcome,
+            roots   : $roots,
+            output  : $this->output,
+            scan    : Scan::of($roots),
+            progress: $progress,
         );
     }
 

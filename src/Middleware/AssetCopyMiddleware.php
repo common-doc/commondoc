@@ -18,7 +18,7 @@ use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\Exception\ExceptionInterface;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Exception\LogicException;
-use CommonDoc\Record\Outcome;
+use CommonDoc\Record\Progress;
 use CommonDoc\Record\Reason;
 use Override;
 use Psl\Exception\ExceptionInterface as PslExceptionInterface;
@@ -81,7 +81,7 @@ final readonly class AssetCopyMiddleware implements MiddlewareInterface
             return $next->handle($message);
         }
 
-        return $next->handle($message->withOutcome($this->copy($message)));
+        return $next->handle($message->withProgress($this->copy($message)));
     }
 
     /**
@@ -96,7 +96,7 @@ final readonly class AssetCopyMiddleware implements MiddlewareInterface
      * @throws InvalidArgumentException When a scanned asset has no source
      * @throws LogicException When the scan phase has not run
      */
-    private function copy(BuildSiteCommand $command): Outcome
+    private function copy(BuildSiteCommand $command): Progress
     {
         $scan   = $command->getScan();
         $target = $command->getOutput();
@@ -119,7 +119,7 @@ final readonly class AssetCopyMiddleware implements MiddlewareInterface
             }
         }
 
-        return new Outcome(
+        return new Progress(
             output: $output,
             failed: $failed,
         );
