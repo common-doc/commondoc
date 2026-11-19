@@ -470,25 +470,40 @@ D22 already established:
 | Field | Why it is site-level |
 | --- | --- |
 | base path, path type | one address space |
-| output directory | one destination |
-| roots, each with a mount prefix | the site is composed from them |
 | project name, slug, version label | every page in the build shares them |
+
+The roots and the output directory are site-level too, but they are added by P3
+rather than here: they are the fields a command line may override, and this type is
+built at boot.
 
 `Page` keeps those three identity fields because templates read them flat, but
 `PageFactory` copies them from `SiteConfig` rather than reading config itself.
 Per-document values (local path, label, address) stay where they are.
 
-**D26. CLI options are overrides on `SiteConfig`, not a second input path.**
-A command run has exactly one configuration, produced by one precedence rule:
+Two properties were settled while implementing it:
+
+- The section is keyed by `SiteConfig::class`, one section rather than two.
+- The fallback is **per key**, not per section. A whole-section fallback would
+  discard a correctly written base path because an unrelated key was missing, and
+  that is the one failure a deployment cannot see: it would publish at `/` and look
+  correct on disk.
+
+**D26. CLI options are overrides, not a second input path.** A command run has
+exactly one configuration, produced by one precedence rule:
 
 ```
 CLI option  >  config tree  >  built-in default
 ```
 
-Every override is a `with*` builder returning a new valid instance, so the
-override is testable without a console, and an override that would produce an
-invalid site is refused at the point of override rather than surfacing later as a
-strange address.
+Revised: as first written, the overrides mutated `SiteConfig`, which cannot work.
+A field a command line may override cannot live on a boot-time object, because the
+override arrives after the object exists. So `SiteConfig` carries only what a
+command line cannot change (D32), and the overridable fields (roots, output) belong
+to the build request on the message, where P3 puts them.
+
+That split is what removes the timing hole rather than papering over it: two
+lifetimes, two types, and no object holding a value that can still change after it
+was built.
 
 This changes the command surface, and the change is the point: with the roots in
 config, `source` stops being `REQUIRED` and becomes an override. A run with no

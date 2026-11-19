@@ -16,6 +16,7 @@ namespace CommonDoc\Container;
 
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Output\DocumentRoot;
+use CommonDoc\SiteConfig;
 use CommonDoc\View\Page;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Override;
@@ -24,7 +25,6 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
-use function is_array;
 use function is_string;
 
 /**
@@ -33,15 +33,10 @@ use function is_string;
  * A page is per document, so it cannot be a shared service. The caller asks for
  * one with `build()`, which the service manager never caches, and passes only
  * what differs per document: its local path and its label. Everything shared by
- * every page in a deployment (the project name, the slug, the version label) is
- * read from config, and the address is derived from `DocumentRoot` rather than
+ * every page in a deployment (the project name, the slug, the version label) comes
+ * from `SiteConfig`, and the address is derived from `DocumentRoot` rather than
  * accepted, so a page cannot carry a URL that disagrees with the file the write
  * pass produces for the same document.
- *
- * The section is keyed by `Page::class`, so a deployment states its identity in
- * its own autoload file. A missing or malformed section falls back to empty
- * strings rather than refusing: a page with no project name is a cosmetic
- * problem, while a container that cannot build its own services is not.
  *
  * @internal
  */
@@ -81,40 +76,10 @@ final readonly class PageFactory implements FactoryInterface
     }
 
     /**
-     * The section this factory reads, or empty values when it is absent.
-     *
-     * @return array{projectName: string, projectSlug: string, versionLabel: string}
-     *
-     * @throws Type\Exception\ExceptionInterface When the section does not match the spec
-     */
-    private static function section(mixed $config): array
-    {
-        $defaults = [
-            'projectName'  => '',
-            'projectSlug'  => '',
-            'versionLabel' => '',
-        ];
-
-        // Guarded rather than early-returned: a non-array config means there is
-        // no section to read, and the shape check below falls back. One fallback
-        // path instead of two, so no branch can be removed silently.
-        /** @var mixed $section Deliberately untyped: the shape check decides what it is */
-        $section = is_array($config) ? $config[Page::class] ?? null : null;
-
-        $spec = Type\shape([
-            'projectName'  => Type\string(),
-            'projectSlug'  => Type\string(),
-            'versionLabel' => Type\string(),
-        ]);
-
-        return $spec->matches($section) ? $spec->coerce($section) : $defaults;
-    }
-
-    /**
      * @param ?array<array-key, mixed> $options The page's local path, label and children
      *
-     * @throws ContainerExceptionInterface When the document root cannot be fetched
-     * @throws NotFoundExceptionInterface When the document root is not registered
+     * @throws ContainerExceptionInterface When a collaborator cannot be fetched
+     * @throws NotFoundExceptionInterface When a collaborator is not registered
      * @throws InvalidArgumentException When the options do not name a document
      * @throws Type\Exception\ExceptionInterface When a collaborator is the wrong type
      */
@@ -131,15 +96,15 @@ final readonly class PageFactory implements FactoryInterface
         // message instead of a fatal error somewhere else.
         $root = Type\instance_of(DocumentRoot::class)->coerce($container->get(DocumentRoot::class));
 
-        $section = self::section($container->get('config'));
+        $site = Type\instance_of(SiteConfig::class)->coerce($container->get(SiteConfig::class));
 
         return new Page(
             label       : $optionsFrom['label'],
-            projectName : $section['projectName'],
-            projectSlug : $section['projectSlug'],
+            projectName : $site->projectName,
+            projectSlug : $site->projectSlug,
             sourcePath  : $optionsFrom['localPath'],
             url         : $root->published($optionsFrom['localPath']),
-            versionLabel: $section['versionLabel'],
+            versionLabel: $site->versionLabel,
             children    : Type\vec(Type\instance_of(Page::class))->coerce($optionsFrom['children']),
         );
     }

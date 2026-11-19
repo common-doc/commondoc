@@ -17,86 +17,65 @@ namespace CommonDocTest\Container;
 use CommonDoc\Container\DocumentRootFactory;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\PathType;
+use CommonDoc\SiteConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psl\Type\Exception\CoercionException;
 use Psr\Container\ContainerInterface;
 
+/**
+ * The factory only serves the site's translation under its own name.
+ *
+ * How the base path and path type are read is `SiteConfigFactoryTest`'s concern,
+ * because one section now feeds both. What is left here is the delegation, and the
+ * refusal when the site is not what it claims to be.
+ */
 #[CoversClass(DocumentRootFactory::class)]
 #[CoversMethod(DocumentRootFactory::class, '__invoke')]
 final class DocumentRootFactoryTest extends TestCase
 {
     /**
-     * @param array<array-key, mixed> $config
+     * @param mixed $siteConfig Whatever the container should serve for the site
      */
-    private static function container(array $config): ContainerInterface
+    private static function container(mixed $siteConfig): ContainerInterface
     {
         $container = self::createStub(ContainerInterface::class);
         $container
             ->method('get')
             ->willReturnCallback(
-                static fn(string $id): mixed => 'config' === $id ? $config : null,
+                static fn(string $id): mixed => SiteConfig::class === $id ? $siteConfig : null,
             );
 
         return $container;
     }
 
     #[Test]
-    public function buildsTheRootFromConfiguration(): void
+    public function refusesASiteThatIsNotASiteConfig(): void
     {
-        $root = new DocumentRootFactory()(self::container([
-            DocumentRoot::class => [
-                'basePath' => '/repo/',
-                'pathType' => PathType::File,
-            ],
-        ]), DocumentRoot::class);
+        // A misregistered service is a wiring failure, so it is refused here with
+        // a typed message rather than surfacing as a fatal further in.
+        $this->expectException(CoercionException::class);
 
-        static::assertSame('/repo/', $root->basePath);
-        static::assertSame('/repo/guide/setup.html', $root->published('guide/setup.md'));
+        new DocumentRootFactory()(self::container(null), DocumentRoot::class);
     }
 
     #[Test]
-    public function defaultsToTheDirectoryPathType(): void
+    public function servesTheRootTheSiteCarries(): void
     {
-        $root = new DocumentRootFactory()(self::container([]), DocumentRoot::class);
+        $root = new DocumentRoot(
+            basePath: '/repo/',
+            pathType: PathType::File,
+        );
 
-        static::assertSame(PathType::Directory, $root->pathType);
-        static::assertSame('guide/setup/index.html', $root->file('guide/setup.md'));
-    }
+        $subject = new DocumentRootFactory()(
+            self::container(new SiteConfig(root: $root)),
+            DocumentRoot::class,
+        );
 
-    #[Test]
-    public function fallsBackToTheCustomDomainDefaults(): void
-    {
-        $root = new DocumentRootFactory()(self::container([]), DocumentRoot::class);
-
-        static::assertSame('/', $root->basePath);
-        static::assertSame('/guide/setup/', $root->published('guide/setup.md'));
-    }
-
-    #[Test]
-    public function fallsBackWhenTheConfigServiceIsMissingEntirely(): void
-    {
-        // The container is asked for 'config' and may not have it; a stub that
-        // returns null stands in for that case.
-        $container = self::createStub(ContainerInterface::class);
-        $container->method('get')->willReturn(null);
-
-        $root = new DocumentRootFactory()($container, DocumentRoot::class);
-
-        static::assertSame('/', $root->basePath);
-        static::assertSame(PathType::Directory, $root->pathType);
-    }
-
-    #[Test]
-    public function fallsBackWhenTheSectionIsMalformed(): void
-    {
-        // A deployment with one wrong key should still build, so a section that
-        // does not match the shape is replaced rather than refused.
-        $root = new DocumentRootFactory()(self::container([
-            DocumentRoot::class => ['basePath' => 42],
-        ]), DocumentRoot::class);
-
-        static::assertSame('/', $root->basePath);
+        // The same instance, not an equal one: a second translation would be a
+        // second rule, and a link and the file serving it could disagree.
+        static::assertSame($root, $subject);
     }
 }
