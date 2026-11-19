@@ -117,6 +117,20 @@ final class HeaderCollectorTest extends TestCase
     }
 
     #[Test]
+    public function recognisesAStatusLineThatCarriesSurroundingWhitespace(): void
+    {
+        $collector = new HeaderCollector();
+
+        $collector($this->handle(), line: "Location: https://example.test/next\r\n");
+        $collector($this->handle(), line: "  HTTP/1.1 200 OK  \r\n");
+
+        // The line is trimmed before it is compared, so a padded status line still resets the map.
+        // Without the trim the header from the hop that was followed would survive into the final
+        // response.
+        static::assertSame([], $collector->headers());
+    }
+
+    #[Test]
     public function resetsOnANewStatusLineSoARedirectLeavesOnlyTheFinalResponse(): void
     {
         $collector = new HeaderCollector();
@@ -131,6 +145,17 @@ final class HeaderCollectorTest extends TestCase
         // The caller is building the final response, so a header from the hop that was followed
         // must not survive into it.
         static::assertSame([], $collector->headers());
+    }
+
+    #[Test]
+    public function returnsTheLineLengthForAStatusLineToo(): void
+    {
+        $collector = new HeaderCollector();
+        $line      = "HTTP/1.1 200 OK\r\n";
+
+        // cURL treats a short return as a transfer error, so every branch that answers has to
+        // return the length, not only the blank-line branch.
+        static::assertSame(strlen($line), $collector($this->handle(), line: $line));
     }
 
     #[Test]
