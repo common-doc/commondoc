@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" width="720" height="220" role="img" aria-label="The passes of a build: scan, partition, register addresses, convert and write, copy assets">
+  <style>
+    .box { fill: #f4f5f7; stroke: #9aa5b1; stroke-width: 1.5; }
+    .label { fill: #1b1b1b; font: 13px -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .note { fill: #5a5a5a; font: 11px -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .arrow { stroke: #5a5a5a; stroke-width: 1.5; fill: none; marker-end: url(#head); }
+  </style>
+  <defs>
+    <marker id="head" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+  </defs>
+
+  <rect class="box" x="12" y="70" width="124" height="62" rx="6"/>
+  <text class="label" x="74" y="96" text-anchor="middle">scan</text>
+  <text class="note" x="74" y="115" text-anchor="middle">one walk</text>
+
+  <rect class="box" x="172" y="70" width="124" height="62" rx="6"/>
+  <text class="label" x="234" y="90" text-anchor="middle">partition</text>
+  <text class="note" x="234" y="107" text-anchor="middle">documents</text>
+  <text class="note" x="234" y="121" text-anchor="middle">assets</text>
+
+  <rect class="box" x="332" y="70" width="124" height="62" rx="6"/>
+  <text class="label" x="394" y="90" text-anchor="middle">register</text>
+  <text class="note" x="394" y="107" text-anchor="middle">one address</text>
+  <text class="note" x="394" y="121" text-anchor="middle">per document</text>
+
+  <rect class="box" x="492" y="18" width="140" height="62" rx="6"/>
+  <text class="label" x="562" y="38" text-anchor="middle">convert</text>
+  <text class="note" x="562" y="55" text-anchor="middle">one document</text>
+  <text class="note" x="562" y="69" text-anchor="middle">at a time</text>
+
+  <rect class="box" x="492" y="124" width="140" height="62" rx="6"/>
+  <text class="label" x="562" y="144" text-anchor="middle">copy</text>
+  <text class="note" x="562" y="161" text-anchor="middle">assets,</text>
+  <text class="note" x="562" y="175" text-anchor="middle">unchanged</text>
+
+  <path class="arrow" d="M136 101 L166 101"/>
+  <path class="arrow" d="M296 101 L326 101"/>
+  <path class="arrow" d="M456 92 L486 62"/>
+  <path class="arrow" d="M456 110 L486 145"/>
+</svg>
