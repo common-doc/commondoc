@@ -14,13 +14,27 @@ declare(strict_types=1);
 
 namespace CommonDocTest\Container;
 
+use CommonDoc\Container\RootEntryReader;
 use CommonDoc\Container\RootReader;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Root;
+use CommonDoc\Input\Target;
+use DirectoryIterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+
+use function dirname;
+use function file_put_contents;
+use function is_dir;
+use function is_file;
+use function mkdir;
+use function rmdir;
+use function str_replace;
+use function sys_get_temp_dir;
+use function tempnam;
+use function unlink;
 
 /**
  * Reading a list is not the same job as reading a scalar.
@@ -30,10 +44,33 @@ use PHPUnit\Framework\TestCase;
  * root because one was mistyped, which is the failure a deployment cannot see.
  */
 #[CoversClass(RootReader::class)]
+#[CoversClass(RootEntryReader::class)]
 #[CoversMethod(RootReader::class, 'defaults')]
 #[CoversMethod(RootReader::class, 'read')]
+#[CoversMethod(RootEntryReader::class, 'read')]
 final class RootReaderTest extends TestCase
 {
+    private static function removeTree(string $path): void
+    {
+        if (! is_dir($path)) {
+            if (is_file($path)) {
+                unlink($path);
+            }
+
+            return;
+        }
+
+        foreach (new DirectoryIterator($path) as $entry) {
+            if ($entry->isDot()) {
+                continue;
+            }
+
+            self::removeTree($entry->getPathname());
+        }
+
+        rmdir($path);
+    }
+
     #[Test]
     public function dropsOnlyTheEntriesThatCannotNameADirectory(): void
     {
@@ -63,6 +100,24 @@ final class RootReaderTest extends TestCase
             static::assertEquals($defaults, $roots);
             static::assertSame('docs/v1', $roots[0]->path);
             static::assertSame('/', $roots[0]->mount);
+        }
+    }
+
+    #[Test]
+    public function letsAnEntryOverrideTheSiteTarget(): void
+    {
+        $root = $this->temporaryTree(['docs/book/index.md' => '# home']);
+
+        try {
+            // The one repository that kept its DocBook layout states its own target.
+            $roots = new RootReader()->read(
+                configured: [['repository' => $root, 'mount' => '/', 'target' => 'docs/book']],
+                fallback  : new Target('docs/v1'),
+            );
+
+            static::assertSame("{$root}/docs/book", $roots[0]->path);
+        } finally {
+            self::removeTree($root);
         }
     }
 
@@ -100,6 +155,45 @@ final class RootReaderTest extends TestCase
     }
 
     #[Test]
+    public function refusesARepositoryWhoseTargetHoldsNoDocumentation(): void
+    {
+        $root = $this->temporaryTree(['docs/book/index.md' => '# home']);
+
+        try {
+            // Composing it would build cleanly and publish nothing, which is
+            // indistinguishable from a repository with no pages.
+            $this->expectException(InvalidArgumentException::class);
+            $this->expectExceptionMessage('is not a readable directory');
+
+            new RootReader()->read(
+                configured: [['repository' => $root, 'mount' => '/']],
+                fallback  : new Target('docs/v1'),
+            );
+        } finally {
+            self::removeTree($root);
+        }
+    }
+
+    #[Test]
+    public function resolvesARepositoryEntryThroughTheSiteTarget(): void
+    {
+        $root = $this->temporaryTree(['docs/v1/index.md' => '# home']);
+
+        try {
+            $roots = new RootReader()->read(
+                configured: [['repository' => $root, 'mount' => '/']],
+                fallback  : new Target('docs/v1'),
+            );
+
+            // The entry names a repository, not a directory: the target decides where inside.
+            static::assertCount(1, $roots);
+            static::assertSame("{$root}/docs/v1", $roots[0]->path);
+        } finally {
+            self::removeTree($root);
+        }
+    }
+
+    #[Test]
     public function returnsRootsTheSiteCanAccept(): void
     {
         $roots = new RootReader()->read([
@@ -109,5 +203,37 @@ final class RootReaderTest extends TestCase
 
         static::assertInstanceOf(Root::class, $roots[0]);
         static::assertNotSame($roots[0]->mount, $roots[1]->mount);
+    }
+
+    /**
+     * @param array<string, string> $files Path relative to the root, then its contents
+     */
+    private function temporaryTree(array $files): string
+    {
+        $root = (string) tempnam(
+            directory: sys_get_temp_dir(),
+            prefix   : 'commondoc-roots-',
+        );
+        unlink($root);
+        mkdir(directory: $root);
+
+        foreach ($files as $path => $contents) {
+            $directory = dirname("{$root}/{$path}");
+
+            if (! is_dir($directory)) {
+                mkdir(
+                    directory: $directory,
+                    recursive: true,
+                );
+            }
+
+            file_put_contents("{$root}/{$path}", $contents);
+        }
+
+        return str_replace(
+            search : '\\',
+            replace: '/',
+            subject: $root,
+        );
     }
 }
