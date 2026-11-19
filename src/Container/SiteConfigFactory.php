@@ -16,6 +16,7 @@ namespace CommonDoc\Container;
 
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Root;
+use CommonDoc\Input\Target;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\PathType;
 use CommonDoc\SiteConfig;
@@ -95,7 +96,14 @@ final readonly class SiteConfigFactory implements FactoryInterface
                 key    : 'output',
                 default: self::DEFAULT_OUTPUT,
             ),
-            'roots'        => new RootReader()->read($section['roots'] ?? null),
+            'roots'        => new RootReader()->read(
+                configured: $section['roots'] ?? null,
+                fallback  : new Target(self::text(
+                    section: $section,
+                    key    : 'target',
+                    default: Target::DEFAULT,
+                )),
+            ),
             'projectName'  => self::text(
                 section: $section,
                 key    : 'projectName',

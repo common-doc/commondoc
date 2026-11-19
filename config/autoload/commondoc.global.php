@@ -24,17 +24,24 @@ declare(strict_types=1);
  * the build emits is made from it, so a wrong value produces a site that looks
  * right on disk and resolves nothing once served.
  *
- * `roots` is the site's composition: each entry is a source directory and the
- * prefix it publishes at. The default is this repository's own documentation, so a
- * run with no arguments builds this site; a deployment states its own. Mounts must
+ * `roots` is the site's composition: each entry names a repository and the prefix it
+ * publishes at. An entry may also name its own `target`, which is where that
+ * repository keeps its documentation; the site-level `target` is the answer for every
+ * entry that states none. The default here is this repository's own documentation, so
+ * a run with no arguments builds this site; a deployment states its own. Mounts must
  * be exclusive, and `SiteConfig` refuses a combination where one root's files would
  * be published at an address belonging to another.
+ *
+ * The target is why nothing here hard-codes `docs/v1`. A repository migrating from
+ * DocBook keeps its sources in `docs/book`, and that is a value the operator supplies
+ * rather than a variation this package decides.
  *
  * The identity values are blank for a single-repository build, which is the correct
  * answer rather than a placeholder: a page with no project name is a cosmetic
  * problem, and inventing one would be worse than leaving it empty.
  */
 
+use CommonDoc\Input\Target;
 use CommonDoc\Output\PathType;
 use CommonDoc\SiteConfig;
 
@@ -44,8 +51,12 @@ return [
         'basePath'     => '/',
         'pathType'     => PathType::Directory,
         'output'       => 'build',
+        // Where a repository keeps its documentation, relative to its root. A composed
+        // site states it once here and overrides it per entry when one repository
+        // differs.
+        'target'       => Target::DEFAULT,
         'roots'        => [
-            ['path' => 'docs/v1', 'mount' => '/'],
+            ['repository' => '.', 'mount' => '/'],
         ],
         'projectName'  => '',
         'projectSlug'  => '',
