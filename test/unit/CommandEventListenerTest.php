@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace CommonDocTest;
 
 use CommonDoc\Command\BuildSiteCommand;
+use CommonDoc\Input\Root;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -37,7 +38,7 @@ final class CommandEventListenerTest extends TestCase
     public function postHandleListenerAcceptsThePostHandleEvent(): void
     {
         $command = new BuildSiteCommand(
-            source: 'docs',
+            roots : [new Root(path: 'docs')],
             output: 'build',
         );
         $result = new CommandResult(
@@ -60,7 +61,7 @@ final class CommandEventListenerTest extends TestCase
     public function preHandleListenerAcceptsThePreHandleEvent(): void
     {
         $command = new BuildSiteCommand(
-            source: 'docs',
+            roots : [new Root(path: 'docs')],
             output: 'build',
         );
         $event    = new CommandPreHandleEvent($command);

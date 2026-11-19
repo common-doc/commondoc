@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace CommonDocTest;
 
 use CommonDoc\Command\BuildSiteCommand;
+use CommonDoc\Input\Root;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
@@ -32,7 +33,7 @@ final class SourceLoadingMiddlewareTest extends TestCase
     public function forwardsTheMessageAndReturnsTheHandlerResult(): void
     {
         $message = new BuildSiteCommand(
-            source: 'docs',
+            roots : [new Root(path: 'docs')],
             output: 'build',
         );
         $result = new CommandResult(

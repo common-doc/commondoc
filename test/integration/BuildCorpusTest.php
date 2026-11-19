@@ -18,6 +18,7 @@ use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\Input\Asset;
 use CommonDoc\Input\Markdown;
+use CommonDoc\Input\Root;
 use CommonDoc\Input\Tree;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\LinkRewriter;
@@ -79,6 +80,74 @@ use const SORT_STRING;
 final class BuildCorpusTest extends TestCase
 {
     private const string CORPUS = __DIR__ . '/../../docs/v1';
+
+    #[Test]
+    public function composesTwoRepositoriesIntoOneAddressSpace(): void
+    {
+        // The capability the whole layer exists for: two source directories, each
+        // published beneath its own mount, producing one site. The relative links
+        // inside each root still resolve, because the mount is applied to the path
+        // before anything reads it, so a document's neighbours move with it.
+        $source = $this->temporaryDirectory();
+        $output = $this->temporaryDirectory();
+
+        try {
+            $this->copyCorpus("{$source}/primary");
+            $this->copyCorpus("{$source}/secondary");
+
+            $result = $this
+                ->container()
+                ->get(MessageBusInterface::class)
+                ->handle(
+                    new BuildSiteCommand(
+                        roots : [
+                            new Root(
+                                path : "{$source}/primary",
+                                mount: '/one/',
+                            ),
+                            new Root(
+                                path : "{$source}/secondary",
+                                mount: '/two/',
+                            ),
+                        ],
+                        output: $output,
+                    ),
+                );
+
+            static::assertSame(MessageStatus::Success, $result->getStatus());
+
+            /** @var mixed $raw */
+            $raw = $result->getResult();
+
+            static::assertInstanceOf(BuildRecord::class, $raw);
+            static::assertSame([], $raw->failed);
+
+            // Every path is named relative to the site, not to its repository.
+            static::assertContains('one/index.md', $raw->output);
+            static::assertContains('two/index.md', $raw->output);
+            static::assertContains('one/assets/site.css', $raw->output);
+            static::assertContains('two/assets/site.css', $raw->output);
+
+            static::assertFileExists("{$output}/one/index.html");
+            static::assertFileExists("{$output}/two/index.html");
+            static::assertFileExists("{$output}/one/concepts/document/index.html");
+            static::assertFileExists("{$output}/two/concepts/document/index.html");
+
+            // The link from the second root's document resolves inside that root's
+            // mount, so it was rewritten against the composed path, not the
+            // repository-local one.
+            $document = $this->read(
+                directory: $output,
+                relative : 'two/concepts/document/index.html',
+            );
+
+            static::assertStringContainsString('href="/two/concepts/address/#the-index-rule"', $document);
+            static::assertStringContainsString('href="/two/getting-started/"', $document);
+        } finally {
+            $this->removeDirectory($source);
+            $this->removeDirectory($output);
+        }
+    }
 
     #[Test]
     public function recordsALinkToAFileTheScanDidNotFindAndKeepsBuilding(): void
@@ -242,7 +311,7 @@ final class BuildCorpusTest extends TestCase
         $bus = $this->container()->get(MessageBusInterface::class);
 
         return $bus->handle(new BuildSiteCommand(
-            source: $source,
+            roots : [new Root(path: $source)],
             output: $output,
         ));
     }

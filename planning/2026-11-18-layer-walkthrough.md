@@ -404,6 +404,20 @@ forward. This is D15 made concrete, and it is where the site definition lives.
 translated into the one address space. Today it assumes a single root, which is
 the only thing in the package that assumes one.
 
+**Landed, and it needed no change to `DocumentRoot`.** The mount is applied to the
+discovered path before anything reads it, so the translation still takes one path
+and answers one address. That is D24's cardinality working: a composed site is the
+same code path with a longer list.
+
+Two things learned while landing it:
+
+- `SiteConfig` owns the exclusivity invariant, because two roots whose mounts
+  overlap leave the owner of a path to iteration order.
+- **A root mounted at `/` cannot coexist with any other root.** That is correct
+  rather than a limitation to work around: `/` claims every address. A composed
+  site therefore mounts every root at a name. Where a landing page at `/` comes
+  from is undecided.
+
 **P5. Record the output path, not only the source path.** `Wrote index.md` does
 not say where it went, and the report phase cannot compute it without
 `DocumentRoot`. Storing the written file in the record makes the report a

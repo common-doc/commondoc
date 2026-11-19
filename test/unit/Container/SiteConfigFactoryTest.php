@@ -81,9 +81,50 @@ final class SiteConfigFactoryTest extends TestCase
     {
         $site = self::site();
 
-        static::assertSame('/', $site->root->basePath);
-        static::assertSame(PathType::Directory, $site->root->pathType);
-        static::assertSame('/guide/setup/', $site->root->published('guide/setup.md'));
+        static::assertSame('/', $site->documentRoot->basePath);
+        static::assertSame(PathType::Directory, $site->documentRoot->pathType);
+        static::assertSame('/guide/setup/', $site->documentRoot->published('guide/setup.md'));
+    }
+
+    #[Test]
+    public function defaultsToThisRepositorysOwnSources(): void
+    {
+        // A library default cannot know a deployment's layout, so it states the one
+        // layout that is true of this repository. A run with no arguments then
+        // builds the configured site, which is the common case.
+        $site = self::site();
+
+        static::assertSame('build', $site->output);
+        static::assertCount(1, $site->roots);
+        static::assertSame('docs/v1', $site->roots[0]->path);
+        static::assertSame('/', $site->roots[0]->mount);
+    }
+
+    #[Test]
+    public function dropsARootEntryThatCannotNameADirectory(): void
+    {
+        // A typo costs its own entry rather than every entry, for the same reason a
+        // wrong key costs only its own value.
+        $site = self::site([
+            'roots' => [
+                ['path' => 'docs/v1', 'mount' => '/'],
+                ['mount' => '/broken/'],
+                ['path' => '', 'mount' => '/empty/'],
+                'not an entry',
+                ['path' => 'other', 'mount' => 42],
+            ],
+        ]);
+
+        static::assertCount(1, $site->roots);
+        static::assertSame('docs/v1', $site->roots[0]->path);
+    }
+
+    #[Test]
+    public function fallsBackToTheDefaultRootsWhenNoneSurvives(): void
+    {
+        $site = self::site(['roots' => ['not an entry']]);
+
+        static::assertSame('docs/v1', $site->roots[0]->path);
     }
 
     #[Test]
@@ -96,8 +137,8 @@ final class SiteConfigFactoryTest extends TestCase
 
         $site = new SiteConfigFactory()($container, SiteConfig::class);
 
-        static::assertSame('/', $site->root->basePath);
-        static::assertSame(PathType::Directory, $site->root->pathType);
+        static::assertSame('/', $site->documentRoot->basePath);
+        static::assertSame(PathType::Directory, $site->documentRoot->pathType);
     }
 
     #[Test]
@@ -110,7 +151,7 @@ final class SiteConfigFactoryTest extends TestCase
 
         $site = new SiteConfigFactory()($container, SiteConfig::class);
 
-        static::assertSame('/', $site->root->basePath);
+        static::assertSame('/', $site->documentRoot->basePath);
     }
 
     #[Test]
@@ -123,7 +164,7 @@ final class SiteConfigFactoryTest extends TestCase
             SiteConfig::class,
         );
 
-        static::assertSame('/', $site->root->basePath);
+        static::assertSame('/', $site->documentRoot->basePath);
     }
 
     #[Test]
@@ -147,11 +188,30 @@ final class SiteConfigFactoryTest extends TestCase
             'versionLabel' => '1.0',
         ]);
 
-        static::assertSame('/repo/', $site->root->basePath);
-        static::assertSame(PathType::File, $site->root->pathType);
+        static::assertSame('/repo/', $site->documentRoot->basePath);
+        static::assertSame(PathType::File, $site->documentRoot->pathType);
         static::assertSame('CommonDoc', $site->projectName);
         static::assertSame('commondoc', $site->projectSlug);
         static::assertSame('1.0', $site->versionLabel);
+    }
+
+    #[Test]
+    public function readsTheRootsAndTheOutputFromTheSameSection(): void
+    {
+        $site = self::site([
+            'output' => 'site',
+            'roots'  => [
+                ['path' => 'docs/v1', 'mount' => '/commondoc/'],
+                ['path' => '../other', 'mount' => '/other/'],
+            ],
+        ]);
+
+        static::assertSame('site', $site->output);
+        static::assertCount(2, $site->roots);
+        static::assertSame('docs/v1', $site->roots[0]->path);
+        static::assertSame('/commondoc/', $site->roots[0]->mount);
+        static::assertSame('../other', $site->roots[1]->path);
+        static::assertSame('/other/', $site->roots[1]->mount);
     }
 
     #[Test]
@@ -163,5 +223,19 @@ final class SiteConfigFactoryTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         self::site(['basePath' => 'repo']);
+    }
+
+    #[Test]
+    public function refusesOverlappingMountsWithBothNamed(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/"a" and "b"/');
+
+        self::site([
+            'roots' => [
+                ['path' => 'a', 'mount' => '/'],
+                ['path' => 'b', 'mount' => '/guide/'],
+            ],
+        ]);
     }
 }
