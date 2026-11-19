@@ -74,18 +74,22 @@ final class HeaderCollector
     {
         $trimmed = trim($line);
 
-        if ('' === $trimmed) {
-            return strlen($line);
-        }
-
         if (str_starts_with($trimmed, 'HTTP/')) {
+            // A new status line discards what the previous response sent, so a redirect chain
+            // leaves only the final response's headers.
             $this->headers = [];
 
+            // Load-bearing, not tidiness: a status line is never a header, and its reason phrase
+            // may legally contain a colon, so falling through to add() would invent a header.
             return strlen($line);
         }
 
-        $this->add($trimmed);
+        if ('' !== $trimmed) {
+            // A blank line ends the header block and carries no header of its own.
+            $this->add($trimmed);
+        }
 
+        // cURL treats a short return as a transfer error, so every line answers with its length.
         return strlen($line);
     }
 }

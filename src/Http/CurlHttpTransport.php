@@ -135,6 +135,11 @@ final readonly class CurlHttpTransport implements ClientInterface
             "\r" => '\r',
         ]);
 
+        // The cast narrows the analyzer's `string|null` rather than converting anything:
+        // preg_replace returns null only on an error, which this fixed valid pattern cannot
+        // produce. Removing it therefore cannot change one character of the result, so the
+        // mutant that removes it is a genuine equivalent.
+        // @infection-ignore CastString
         $escaped = (string) preg_replace(
             self::URL_CONTROL_PATTERN,
             replacement: '',

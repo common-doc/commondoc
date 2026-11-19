@@ -85,6 +85,11 @@ final class CurlOptions
             "\r" => '\r',
         ]);
 
+        // The cast narrows the analyzer's `string|null` rather than converting anything:
+        // preg_replace returns null only on an error, which this fixed valid pattern cannot
+        // produce. Removing it therefore cannot change one character of the result, so the
+        // mutant that removes it is a genuine equivalent.
+        // @infection-ignore CastString
         $escaped = (string) preg_replace(
             self::CONTROL_CHARACTER_PATTERN,
             replacement: '',
