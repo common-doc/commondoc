@@ -18,6 +18,7 @@ use CommonDoc\Exception\InvalidArgumentException;
 use Psl\Filesystem;
 
 use function array_keys;
+use function is_string;
 use function ksort;
 use function rtrim;
 use function sprintf;

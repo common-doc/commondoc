@@ -41,6 +41,7 @@ use Webware\MessageBus\Command\CommandResultInterface;
 use Webware\MessageBus\CommandHandlerInterface;
 use Webware\MessageBus\MessageStatus;
 
+use function array_pop;
 use function explode;
 use function rtrim;
 use function sprintf;
