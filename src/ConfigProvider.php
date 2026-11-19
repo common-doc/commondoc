@@ -17,6 +17,7 @@ namespace CommonDoc;
 use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\Console\BuildCommand;
+use CommonDoc\Container\AssetCopyMiddlewareFactory;
 use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
@@ -35,6 +36,7 @@ use CommonDoc\Container\SourceLoadingMiddlewareFactory;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
+use CommonDoc\Middleware\AssetCopyMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\DocumentViewRenderer;
@@ -164,9 +166,19 @@ final readonly class ConfigProvider
                 BuildSiteCommand::class => BuildSiteHandler::class,
             ],
             MessageBusConfigProvider::MIDDLEWARE_PIPELINE_KEY => [
+                // The scan first: it answers which files exist, and every phase
+                // below it reads that answer rather than walking the tree itself.
                 [
                     'middleware' => SourceLoadingMiddleware::class,
                     'priority'   => 50,
+                ],
+                // Then the assets, so every copied file is in place before the
+                // first document is rendered and a copy failure is recorded before
+                // any conversion is attempted. Copying needs no environment, so it
+                // does not belong in the pass that drives CommonMark.
+                [
+                    'middleware' => AssetCopyMiddleware::class,
+                    'priority'   => 40,
                 ],
             ],
         ];
@@ -206,6 +218,7 @@ final readonly class ConfigProvider
                 Page::class                      => PageFactory::class,
                 RouteCollector::class            => RouteCollectorFactory::class,
                 SiteConfig::class                => SiteConfigFactory::class,
+                AssetCopyMiddleware::class       => AssetCopyMiddlewareFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
             'invokables' => [

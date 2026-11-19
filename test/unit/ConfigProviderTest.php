@@ -18,6 +18,7 @@ use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\ConfigProvider;
 use CommonDoc\Console\BuildCommand;
+use CommonDoc\Container\AssetCopyMiddlewareFactory;
 use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
@@ -36,6 +37,7 @@ use CommonDoc\Container\SourceLoadingMiddlewareFactory;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
+use CommonDoc\Middleware\AssetCopyMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\SiteConfig;
@@ -125,7 +127,7 @@ final class ConfigProviderTest extends TestCase
     }
 
     #[Test]
-    public function pipesTheSourceLoadingMiddleware(): void
+    public function pipesTheSourceLoadingMiddlewareBeforeTheAssetCopy(): void
     {
         $config = new ConfigProvider()->__invoke();
 
@@ -134,6 +136,10 @@ final class ConfigProviderTest extends TestCase
                 [
                     'middleware' => SourceLoadingMiddleware::class,
                     'priority'   => 50,
+                ],
+                [
+                    'middleware' => AssetCopyMiddleware::class,
+                    'priority'   => 40,
                 ],
             ],
             $config[MessageBusInterface::class][MessageBusConfigProvider::MIDDLEWARE_PIPELINE_KEY],
@@ -203,6 +209,7 @@ final class ConfigProviderTest extends TestCase
                 Page::class                      => PageFactory::class,
                 RouteCollector::class            => RouteCollectorFactory::class,
                 SiteConfig::class                => SiteConfigFactory::class,
+                AssetCopyMiddleware::class       => AssetCopyMiddlewareFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
             $dependencies['factories'],

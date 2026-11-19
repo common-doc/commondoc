@@ -18,6 +18,7 @@ use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Exception\LogicException;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Scan;
+use CommonDoc\Record\Outcome;
 use Override;
 use Webware\MessageBus\Command\NamedCommandInterface;
 
@@ -35,7 +36,8 @@ use Webware\MessageBus\Command\NamedCommandInterface;
  *
  * Immutable, so a phase that needs to hand something forward returns a new
  * instance rather than writing to this one. `PipelineHandlerInterface::handle()`
- * takes a message, so that is the channel a phase uses.
+ * takes a message, so that is the channel a phase uses. Two things travel that
+ * way: what the scan found, and what the phases that write files have done.
  *
  * Implements NamedCommandInterface, which extends CommandInterface: the guard
  * requires the named form of every class in a `Command\` namespace.
@@ -45,9 +47,10 @@ use Webware\MessageBus\Command\NamedCommandInterface;
 final readonly class BuildSiteCommand implements NamedCommandInterface
 {
     /**
-     * @param list<Root> $roots  Where the sources are, and where each is published
-     * @param string     $output The directory the rendered site is written to
-     * @param ?Scan      $scan   What the scan phase found, when it has run
+     * @param list<Root> $roots   Where the sources are, and where each is published
+     * @param string     $output  The directory the rendered site is written to
+     * @param ?Scan      $scan    What the scan phase found, when it has run
+     * @param ?Outcome   $outcome What the writing phases have done so far
      *
      * @throws InvalidArgumentException When no root is supplied
      */
@@ -55,6 +58,7 @@ final readonly class BuildSiteCommand implements NamedCommandInterface
         private array $roots,
         private string $output,
         private ?Scan $scan = null,
+        private ?Outcome $outcome = null,
     ) {
         if ([] === $roots) {
             throw new InvalidArgumentException(
@@ -67,6 +71,18 @@ final readonly class BuildSiteCommand implements NamedCommandInterface
     public function getCommandName(): string
     {
         return self::class;
+    }
+
+    /**
+     * What the phases that write files have done so far.
+     *
+     * Empty rather than absent when no such phase has run, because a build that has
+     * written nothing has still done nothing, and unlike the scan that is a state
+     * rather than a missing precondition.
+     */
+    public function getOutcome(): Outcome
+    {
+        return $this->outcome ?? Outcome::none();
     }
 
     public function getOutput(): string
@@ -105,6 +121,26 @@ final readonly class BuildSiteCommand implements NamedCommandInterface
     }
 
     /**
+     * The same request, with a phase's work added to what earlier phases did.
+     *
+     * Accumulating rather than replacing, because more than one phase writes files
+     * and the build reports them together. The merge is on the outcome rather than
+     * here, so the rule for combining two of them lives in one place.
+     *
+     * @throws InvalidArgumentException When the request it reconstructs is rejected,
+     *         which the constructor's own guard makes unreachable here
+     */
+    public function withOutcome(Outcome $outcome): self
+    {
+        return new self(
+            roots  : $this->roots,
+            output : $this->output,
+            scan   : $this->scan,
+            outcome: $this->getOutcome()->and($outcome),
+        );
+    }
+
+    /**
      * The same request, written somewhere else.
      *
      * @throws InvalidArgumentException When the directory is empty
@@ -116,9 +152,10 @@ final readonly class BuildSiteCommand implements NamedCommandInterface
         }
 
         return new self(
-            roots : $this->roots,
-            output: $output,
-            scan  : $this->scan,
+            roots  : $this->roots,
+            output : $output,
+            scan   : $this->scan,
+            outcome: $this->outcome,
         );
     }
 
@@ -127,7 +164,8 @@ final readonly class BuildSiteCommand implements NamedCommandInterface
      *
      * The scan is dropped, because what was found beneath the old roots says nothing
      * about the new ones. A request that kept a stale scan would build from a
-     * discovery it did not make.
+     * discovery it did not make. The outcome goes with it for the same reason: files
+     * written from the old roots are not files written from the new ones.
      *
      * @param list<Root> $roots
      *
@@ -144,19 +182,16 @@ final readonly class BuildSiteCommand implements NamedCommandInterface
     /**
      * The same request carrying what the scan phase found.
      *
-     * A phase hands its work forward by returning a new message, because the pipeline
-     * passes messages and a shared object could not tell one build's result from the
-     * next.
-     *
      * @throws InvalidArgumentException When the request it reconstructs is rejected,
      *         which the constructor's own guard makes unreachable here
      */
     public function withScan(Scan $scan): self
     {
         return new self(
-            roots : $this->roots,
-            output: $this->output,
-            scan  : $scan,
+            roots  : $this->roots,
+            output : $this->output,
+            scan   : $scan,
+            outcome: $this->outcome,
         );
     }
 }
