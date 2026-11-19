@@ -79,10 +79,14 @@ return [
             'max_heading_level'   => 6,
             // One of 'before', 'after' or 'none'.
             'insert'              => 'before',
-            'id_prefix'           => 'content',
-            'apply_id_to_heading' => false,
+            // The id goes on the heading and carries no prefix, so an authored link to
+            // `page.md#the-index-rule` and a link any consumer builds from the heading
+            // text both resolve. A prefix here would make every consumer learn it, and
+            // nothing could derive the id from the heading it came from.
+            'id_prefix'           => '',
+            'apply_id_to_heading' => true,
             'heading_class'       => '',
-            'fragment_prefix'     => 'content',
+            'fragment_prefix'     => '',
             'html_class'          => 'heading-permalink',
             'title'               => 'Permalink',
             // HeadingPermalinkRenderer::DEFAULT_SYMBOL, the pilcrow.
