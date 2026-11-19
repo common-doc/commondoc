@@ -2,7 +2,7 @@
 
 **Date**: 2026-11-18
 **Component**: `common-doc/commondoc`
-**Branch**: `1.0.x` at `5a562a8`
+**Branch**: `1.0.x` at `c104a27`
 
 The owner reads each layer from app entry inwards and asks questions. This file
 records **architectural decisions only**. Implementation detail lives in
@@ -17,20 +17,33 @@ compensations. This walkthrough is the sanity check.
 
 ## Resume here
 
-**State**: `tyrsson-asset-report-phases` off `1.0.x` at `befc7c5`. Merged and
-done: P6 (`#22`), P7 (`#22`), P3 and P4 (`#23`), and the first half of P1
-(`#24`). The second part of P1 is in this branch: assets are their own phase.
+**State**: `1.0.x` at `c104a27`, clean, baseline verified (`commondoc:build` with
+no arguments writes 8 files, exit 0; `mago lint` 0; `mago analyze` 0; 284 tests
+pass). Merged and done: P6 (`#22`), P7 (`#22`), P3 and P4 (`#23`), the first half
+of P1 (`#24`), the resume record (`#25`), and the second part of P1, assets as a
+phase (`#26`).
 
 ### Next: finish P1
 
-Two parts remain, in this order. Neither is started.
+Two parts remain, in this order. Neither is started, and the first needs a ruling
+before any code.
 
-1. **Reporting becomes a phase.** `CommandPostHandleMiddleware` runs at priority
-   `-100` and receives the `CommandResult`, so the record is available there. The
-   handler's job then ends at the record, and `Console\BuildCommand` stops
-   knowing what a `BuildRecord` looks like. The open question is the console
-   output: the listener has none, so decide whether reporting is a listener that
-   writes nothing or whether rendering the report stays in the console.
+1. **Reporting becomes a phase (needs a decision).** D16 says the report is
+   produced after the handler. What already moved is the *production* of the
+   record: the handler composes it, and `BuildRecord` is the report data. What has
+   not moved is the rendering, and the open question is whether it should:
+
+   - **Leave rendering in the console.** Then D16 is already satisfied: the record
+     is the report and `Console\BuildCommand` renders it, which keeps the console
+     as transport (D4). `CommandPostHandleListener` is then a seam with nothing
+     behind it, and the honest move is to delete it rather than keep an empty
+     method.
+   - **Move rendering into the post-handle listener.** Then the listener needs the
+     console's `OutputInterface`, which puts console IO inside the bus and makes a
+     listener write to a terminal the bus does not own.
+
+   The trade is D4 against D16, and it is the owner's call. Recorded as an open
+   question, not as work.
 2. **Validate the roots in a phase rather than in the walk.** `Tree::at()` refuses
    an unreadable directory, and today that refusal surfaces from inside
    `SourceLoadingMiddleware`. Whether it should be its own earlier phase is
