@@ -18,10 +18,7 @@ use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\Exception\ExceptionInterface;
 use CommonDoc\Exception\LogicException;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
-use CommonDoc\Input\Asset;
 use CommonDoc\Input\Markdown;
-use CommonDoc\Input\Root;
-use CommonDoc\Input\Tree;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\View\Page;
@@ -35,7 +32,6 @@ use Mezzio\Router\Exception\DuplicateRouteException;
 use Mezzio\Router\RouteCollectorInterface;
 use Psl\Exception\ExceptionInterface as PslExceptionInterface;
 use Psl\File;
-use Psl\Filesystem;
 use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
 use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
@@ -45,17 +41,12 @@ use Webware\MessageBus\Command\CommandResultInterface;
 use Webware\MessageBus\CommandHandlerInterface;
 use Webware\MessageBus\MessageStatus;
 
-use function array_keys;
 use function array_pop;
 use function explode;
-use function is_string;
-use function ksort;
 use function rtrim;
 use function sprintf;
 use function strlen;
 use function substr;
-
-use const SORT_STRING;
 
 /**
  * The coordinator over the passes a build is made of.
@@ -157,81 +148,15 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     }
 
     /**
-     * Where one mounted path is on disk.
-     *
-     * The map is built from the same walk that produced the list being iterated, so
-     * a miss is an invariant failure in this class rather than anything a deployment
-     * can cause. It is a typed refusal instead of an index that reads null, because
-     * an unreadable path would otherwise reach `Psl\File\read` as a `TypeError` and
-     * be reported as a problem with a document that is fine.
-     *
-     * @param array<non-empty-string, non-empty-string> $sources Mounted path to source path
-     *
-     * @return non-empty-string
-     *
-     * @throws LogicException When a path the walk produced is missing from the map
-     */
-    private static function sourceOf(array $sources, string $path): string
-    {
-        /** @var mixed $file Deliberately untyped: the check below decides what it is */
-        $file = $sources[$path] ?? null;
-
-        if (! is_string($file) || '' === $file) {
-            throw new LogicException(sprintf(
-                'The path "%s" was scanned but has no source, which is a defect in this class rather than in the documentation.',
-                $path,
-            ));
-        }
-
-        return $file;
-    }
-
-    /**
-     * Every file the build covers, keyed by the path it is published at.
-     *
-     * The mounted path is what the rest of the build works with: it is relative to
-     * the site, so it is what an address is made from, what a route is named, and
-     * what the report names. The value is where that file actually is on disk, which
-     * is the only thing that differs between a single-root build and a composed one.
-     *
-     * Registering a document under its mounted path means two roots that published
-     * one path would overwrite each other, which is why `SiteConfig` refuses
-     * overlapping mounts rather than leaving it to be discovered here.
-     *
-     * @param list<Root> $roots
-     *
-     * @return array<non-empty-string, non-empty-string> Mounted path to source path
-     *
-     * @throws InvalidArgumentException When a root is not a readable directory
-     * @throws Filesystem\Exception\NotFoundException When a directory disappears mid-walk
-     * @throws Filesystem\Exception\NotDirectoryException When an entry stops being a directory
-     * @throws Filesystem\Exception\NotReadableException When a directory becomes unreadable
-     */
-    private static function sources(array $roots): array
-    {
-        $sources = [];
-
-        foreach ($roots as $root) {
-            $directory = $root->directory();
-
-            foreach (Tree::at($directory)->paths() as $path) {
-                $sources[$root->mountPath($path)] = self::join($directory, $path);
-            }
-        }
-
-        ksort($sources, SORT_STRING);
-
-        return $sources;
-    }
-
-    /**
      * Build the site and report what was written and what failed.
      *
      * Both kinds of file fail the same way and are reported the same way. A
      * build that stopped at the first unreadable asset would name nothing, and an
      * operator cannot fix a path they were not told about.
      *
-     * @throws InvalidArgumentException When a source root is not a readable directory
+     * @throws InvalidArgumentException When a scanned path has no source, which is a
+     *         defect in this package rather than in the documentation
+     * @throws LogicException When the scan phase has not run
      * @throws DuplicateRouteException When two documents publish at one path
      * @throws ContainerExceptionInterface When a per-build object cannot be built
      * @throws Type\Exception\ExceptionInterface When a built object is the wrong type
@@ -240,17 +165,12 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     {
         $target = $command->getOutput();
 
-        // One pass over every root, mounted as it is read. From here on a path is
-        // relative to the site rather than to the repository it came from, so the
-        // filters, the translation, the routes and the record all see one address
-        // space and nothing below this method knows how many roots there were.
-        $sources   = self::sources($command->getRoots());
-        $paths     = array_keys($sources);
-        $documents = new Markdown()->scan($paths);
-        $assets    = new Asset()->scan(
-            paths    : $paths,
-            documents: $documents,
-        );
+        // Read rather than discovered: the scan ran as its own phase, so what a
+        // build covers is already known before a document is read. Nothing here
+        // knows how many repositories were walked.
+        $scan      = $command->getScan();
+        $documents = $scan->documents;
+        $assets    = $scan->assets;
 
         $this->seed($documents);
 
@@ -269,15 +189,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
 
         foreach ($documents as $document) {
             try {
-                $this->write(
-                    $converter,
-                    self::sourceOf(
-                        sources: $sources,
-                        path   : $document,
-                    ),
-                    $document,
-                    $target,
-                );
+                $this->write($converter, $scan->sourceOf($document), $document, $target);
                 $written[] = $document;
             } catch (
                 CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterException|PslExceptionInterface $failure
@@ -288,14 +200,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
 
         foreach ($assets as $asset) {
             try {
-                $this->copy(
-                    self::sourceOf(
-                        sources: $sources,
-                        path   : $asset,
-                    ),
-                    $asset,
-                    $target,
-                );
+                $this->copy($scan->sourceOf($asset), $asset, $target);
                 $written[] = $asset;
             } catch (ExceptionInterface|FileWriterException|PslExceptionInterface $failure) {
                 $failed[$asset] = self::reason($failure);

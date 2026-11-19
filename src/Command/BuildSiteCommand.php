@@ -15,7 +15,9 @@ declare(strict_types=1);
 namespace CommonDoc\Command;
 
 use CommonDoc\Exception\InvalidArgumentException;
+use CommonDoc\Exception\LogicException;
 use CommonDoc\Input\Root;
+use CommonDoc\Input\Scan;
 use Override;
 use Webware\MessageBus\Command\NamedCommandInterface;
 
@@ -45,12 +47,14 @@ final readonly class BuildSiteCommand implements NamedCommandInterface
     /**
      * @param list<Root> $roots  Where the sources are, and where each is published
      * @param string     $output The directory the rendered site is written to
+     * @param ?Scan      $scan   What the scan phase found, when it has run
      *
      * @throws InvalidArgumentException When no root is supplied
      */
     public function __construct(
         private array $roots,
         private string $output,
+        private ?Scan $scan = null,
     ) {
         if ([] === $roots) {
             throw new InvalidArgumentException(
@@ -81,6 +85,26 @@ final readonly class BuildSiteCommand implements NamedCommandInterface
     }
 
     /**
+     * What the scan phase found.
+     *
+     * Absent means the phase has not run. The handler requires it, because discovery
+     * is cross-document work and a coordinator that also discovered would be the only
+     * place anything happened, which is the arrangement this pipeline replaces.
+     *
+     * @throws LogicException When the scan phase has not run
+     */
+    public function getScan(): Scan
+    {
+        if (null === $this->scan) {
+            throw new LogicException(
+                'This request has not been scanned. The scan is a phase, so it has to run before a handler reads what it found.',
+            );
+        }
+
+        return $this->scan;
+    }
+
+    /**
      * The same request, written somewhere else.
      *
      * @throws InvalidArgumentException When the directory is empty
@@ -94,11 +118,16 @@ final readonly class BuildSiteCommand implements NamedCommandInterface
         return new self(
             roots : $this->roots,
             output: $output,
+            scan  : $this->scan,
         );
     }
 
     /**
      * The same request, over different roots.
+     *
+     * The scan is dropped, because what was found beneath the old roots says nothing
+     * about the new ones. A request that kept a stale scan would build from a
+     * discovery it did not make.
      *
      * @param list<Root> $roots
      *
@@ -109,6 +138,25 @@ final readonly class BuildSiteCommand implements NamedCommandInterface
         return new self(
             roots : $roots,
             output: $this->output,
+        );
+    }
+
+    /**
+     * The same request carrying what the scan phase found.
+     *
+     * A phase hands its work forward by returning a new message, because the pipeline
+     * passes messages and a shared object could not tell one build's result from the
+     * next.
+     *
+     * @throws InvalidArgumentException When the request it reconstructs is rejected,
+     *         which the constructor's own guard makes unreachable here
+     */
+    public function withScan(Scan $scan): self
+    {
+        return new self(
+            roots : $this->roots,
+            output: $this->output,
+            scan  : $scan,
         );
     }
 }
