@@ -56,6 +56,12 @@ final class HttpServerFixture
     public const string SCENARIO_REDIRECT = 'redirect';
     public const string SCENARIO_ECHO     = 'echo';
 
+    /**
+     * Answers with the bytes it was sent, so a test can assert what reached the wire without the
+     * client's own timeout being what ends the request.
+     */
+    public const string SCENARIO_RAW = 'raw';
+
     private const string PAYLOAD = 'hello-from-server';
 
     /**
@@ -169,12 +175,14 @@ final class HttpServerFixture
             separator: ' ',
             string   : $head,
         );
-        $method  = $parts[0] ?? '';
-        $payload = self::SCENARIO_ECHO === $scenario ? "echo:{$body}" : self::PAYLOAD;
+        $method = $parts[0] ?? '';
 
-        $extra = self::SCENARIO_ECHO === $scenario
-            ? "X-Method: {$method}\r\n"
-            : "Set-Cookie: a=1\r\nSet-Cookie: b=2\r\n";
+        [$payload, $extra] = match ($scenario) {
+            self::SCENARIO_ECHO => ["echo:{$body}", "X-Method: {$method}\r\n"],
+            self::SCENARIO_RAW  => [$head . $body, "X-Method: {$method}\r\n"],
+            default             => [self::PAYLOAD, "Set-Cookie: a=1\r\nSet-Cookie: b=2\r\n"],
+        };
+
         fwrite(
             stream: $connection,
             data  : sprintf(

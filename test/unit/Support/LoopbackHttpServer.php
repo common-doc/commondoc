@@ -16,13 +16,13 @@ namespace CommonDocTest\Support;
 
 use RuntimeException;
 
-use function escapeshellarg;
 use function fclose;
 use function fgets;
 use function getenv;
 use function is_resource;
 use function proc_close;
 use function proc_open;
+use function proc_terminate;
 use function sprintf;
 use function str_starts_with;
 use function stream_get_contents;
@@ -62,18 +62,16 @@ final class LoopbackHttpServer
     /**
      * Start a server that answers once, with the response its scenario names.
      *
-     * @param 'ok'|'redirect'|'echo' $scenario
+     * @param 'echo'|'ok'|'raw'|'redirect' $scenario
      *
      * @throws RuntimeException When the server cannot be started or never reports its port
      */
     public static function start(string $scenario): self
     {
-        $command = sprintf(
-            '%s %s %s',
-            escapeshellarg(PHP_BINARY),
-            escapeshellarg(__DIR__ . DIRECTORY_SEPARATOR . 'http-server.php'),
-            escapeshellarg($scenario),
-        );
+        // An array command opens the process directly instead of going through a shell, which
+        // matters because the shell would be the process terminated on stop() while the PHP child
+        // kept running and holding the pipes open.
+        $command = [PHP_BINARY, __DIR__ . DIRECTORY_SEPARATOR . 'http-server.php', $scenario];
 
         // The child is given an explicit environment with coverage turned off. It produces no
         // coverage data, so inheriting `XDEBUG_MODE=coverage` would only instrument a process
@@ -113,7 +111,7 @@ final class LoopbackHttpServer
     }
 
     /**
-     * Wait for the child to finish, then release it.
+     * Release the child, whether or not it ever served a request.
      *
      * Idempotent, because the caller may stop explicitly and the destructor runs afterwards.
      */
@@ -123,8 +121,13 @@ final class LoopbackHttpServer
             return;
         }
 
-        // Both pipes are drained before the wait: a child blocked writing to a full pipe would
-        // never exit, and the wait would hang the suite rather than fail it.
+        // Terminated rather than awaited: a child that never received a request is parked in
+        // accept() until its own timeout, so waiting on it would cost that timeout instead of a
+        // few milliseconds. A child that already answered has exited, and terminating a finished
+        // process does nothing.
+        proc_terminate($this->process);
+
+        // Drained after the terminate so a child that died mid-write cannot block the close.
         foreach ($this->pipes as $pipe) {
             if (! is_resource($pipe)) {
                 continue;
