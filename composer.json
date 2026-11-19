@@ -79,11 +79,8 @@
             "https"
         ]
     },
-    "bin": [
-        "bin/commondoc"
-    ],
     "scripts": {
-        "console": "php bin/commondoc",
+        "console": "@php vendor/bin/webware",
         "test": "phpunit --no-coverage --colors=always --testsuite \"unit test\"",
         "test-coverage": "phpunit --colors=always --coverage-clover clover.xml --coverage-text",
         "test-integration": "phpunit --no-coverage --colors=always --testsuite \"integration test\"",
