@@ -15,12 +15,11 @@ namespace CommonDocTest\Http;
 
 use CommonDoc\Exception\HttpException;
 use CommonDoc\Http\CurlHttpTransport;
-use CommonDoc\Http\ResponseBuilder;
+use CommonDocTest\Support\HttpServerFixture;
+use CommonDocTest\Support\LoopbackHttpServer;
 use CommonDocTest\Support\UnsafeRequest;
 use CommonDocTest\Support\UnsafeUri;
-use Laminas\Diactoros\Request;
 use Laminas\Diactoros\RequestFactory;
-use Laminas\Diactoros\Response;
 use Laminas\Diactoros\StreamFactory;
 use Laminas\Diactoros\Uri;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -28,24 +27,12 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseFactoryInterface;
 
 use function array_map;
-use function fclose;
-use function file_put_contents;
 use function sprintf;
 use function str_repeat;
-use function str_replace;
 use function str_starts_with;
-use function stream_get_contents;
-use function stream_set_timeout;
-use function stream_socket_accept;
-use function stream_socket_get_name;
-use function stream_socket_server;
 use function strlen;
-use function sys_get_temp_dir;
-use function tempnam;
-use function unlink;
 
 #[CoversClass(CurlHttpTransport::class)]
 #[CoversMethod(CurlHttpTransport::class, 'sendRequest')]
@@ -62,39 +49,6 @@ final class CurlHttpTransportTest extends TestCase
     private const int DESCRIPTION_LIMIT = 64;
 
     #[Test]
-    public function aBareLineFeedInAHeaderValueIsRejected(): void
-    {
-        $exception = $this->rejectionOf(self::CLOSED_PORT, [
-            'Authorization' => "Bearer abc\nX-Injected: yes",
-        ]);
-
-        $this->assertStringContainsString('Authorization', $exception->getMessage());
-    }
-
-    #[Test]
-    public function aCrlfInAHeaderNameIsRejected(): void
-    {
-        $exception = $this->rejectionOf(self::CLOSED_PORT, [
-            "X-Test\r\nX-Injected" => 'yes',
-        ]);
-
-        $this->assertStringContainsString('X-Test\\r\\nX-Injected', $exception->getMessage());
-    }
-
-    /**
-     * A header value carrying a CRLF arrives as two headers. libcurl sends it without complaint.
-     */
-    #[Test]
-    public function aCrlfInAHeaderValueIsRejected(): void
-    {
-        $exception = $this->rejectionOf(self::CLOSED_PORT, [
-            'Authorization' => "Bearer abc\r\nX-Injected: yes",
-        ]);
-
-        $this->assertStringContainsString('Authorization', $exception->getMessage());
-    }
-
-    #[Test]
     public function aDescriptionOfExactlyTheLimitIsNotTruncated(): void
     {
         $visible = str_repeat('a', times: self::DESCRIPTION_LIMIT - strlen(self::CLOSED_PORT) - 2);
@@ -103,26 +57,6 @@ final class CurlHttpTransportTest extends TestCase
 
         $this->assertStringContainsString(self::CLOSED_PORT . "{$visible}\\r", $message);
         $this->assertStringNotContainsString('...', $message);
-    }
-
-    #[Test]
-    public function aHeaderNameContainingAColonIsRejected(): void
-    {
-        $exception = $this->rejectionOf(self::CLOSED_PORT, [
-            'X-Test: X-Injected' => 'yes',
-        ]);
-
-        $this->assertStringContainsString('X-Test', $exception->getMessage());
-    }
-
-    #[Test]
-    public function aHeaderNameContainingASpaceIsRejected(): void
-    {
-        $exception = $this->rejectionOf(self::CLOSED_PORT, [
-            'X Test' => 'yes',
-        ]);
-
-        $this->assertStringContainsString('X Test', $exception->getMessage());
     }
 
     #[Test]
@@ -135,57 +69,6 @@ final class CurlHttpTransportTest extends TestCase
 
         $this->assertStringContainsString(self::CLOSED_PORT . "{$visible}...", $message);
         $this->assertStringNotContainsString($padding, $message);
-    }
-
-    #[Test]
-    public function anEmptyHeaderNameIsRejected(): void
-    {
-        $exception = $this->rejectionOf(self::CLOSED_PORT, [
-            '' => 'yes',
-        ]);
-
-        $this->assertStringContainsString('not a valid HTTP header name', $exception->getMessage());
-    }
-
-    /**
-     * diactoros permits an obs-fold and unfolds it into one value; the transport rejects every CR
-     * and LF instead. The divergence is deliberate, so both halves of it are pinned here.
-     */
-    #[Test]
-    public function anObsFoldInAHeaderValueIsRejected(): void
-    {
-        $unfolded = new Request()
-            ->withHeader('X-Folded', value: "abc\r\n folded")
-            ->getHeaderLine('X-Folded');
-
-        $this->assertSame('abc folded', $unfolded, message: 'The PSR-7 implementation unfolds an obs-fold.');
-
-        $exception = $this->rejectionOf(self::CLOSED_PORT, [
-            'X-Folded' => "abc\r\n folded",
-        ]);
-
-        $this->assertStringContainsString('X-Folded', $exception->getMessage());
-        $this->assertStringNotContainsString('abc', $exception->getMessage());
-    }
-
-    #[Test]
-    public function aNulInAHeaderNameIsRejected(): void
-    {
-        $exception = $this->rejectionOf(self::CLOSED_PORT, [
-            "X\0Test" => 'yes',
-        ]);
-
-        $this->assertStringContainsString('X\\0Test', $exception->getMessage());
-    }
-
-    #[Test]
-    public function aNulInAHeaderValueIsRejected(): void
-    {
-        $exception = $this->rejectionOf(self::CLOSED_PORT, [
-            'Accept' => "application/json\0",
-        ]);
-
-        $this->assertStringContainsString('Accept', $exception->getMessage());
     }
 
     #[Test]
@@ -203,148 +86,177 @@ final class CurlHttpTransportTest extends TestCase
 
     /**
      * A header value that survives validation must reach the wire byte for byte.
+     *
+     * The listener answers with what it received, so the request is never ended by the client's own
+     * timeout: a mutant that dropped the options would still be answered, and would fail on the
+     * headers rather than hang.
      */
     #[Test]
     public function cleanHeadersReachTheWireUnchanged(): void
     {
-        $request = new RequestFactory()
-            ->createRequest('GET', self::CLOSED_PORT)
-            ->withHeader('Accept', value: 'application/vnd.github+json')
-            ->withHeader('X-Trace-Id', value: 'trace-123');
+        $sent = $this->sentBytes(
+            new RequestFactory()
+                ->createRequest(
+                    method: 'GET',
+                    uri   : 'https://example.test/',
+                )
+                ->withHeader('Accept', value: 'application/vnd.github+json')
+                ->withHeader('X-Trace-Id', value: 'trace-123'),
+        );
 
-        $captured = $this->capturedRequest($request);
-
-        $this->assertStringContainsString("Accept: application/vnd.github+json\r\n", $captured);
-        $this->assertStringContainsString("X-Trace-Id: trace-123\r\n", $captured);
-        $this->assertStringContainsString("User-Agent: commondoc\r\n", $captured);
+        $this->assertStringContainsString("Accept: application/vnd.github+json\r\n", $sent);
+        $this->assertStringContainsString("X-Trace-Id: trace-123\r\n", $sent);
+        $this->assertStringContainsString("User-Agent: commondoc\r\n", $sent);
     }
 
     /**
-     * The success path, reached over the one scheme that answers without a server.
+     * Every control character in a rejected URL is escaped or stripped, one at a time.
      *
-     * Every other test here either stops at validation or ends in a transport failure, because a
-     * single-process test cannot answer a request the client is blocked on. The `file` scheme is
-     * served by libcurl itself, so the transfer completes and the assembled response can be read
-     * back. It is not an HTTP test; it is the only way to prove a transfer result reaches the
-     * builder at all.
+     * The message must be safe to write to a log, so a CR, an LF, a tab and a NUL each get their
+     * own treatment. A single case would leave the other three untested.
      */
     #[Test]
-    public function returnsTheResponseWhenTheTransferSucceeds(): void
+    public function describesEveryControlCharacterInARejectedUrl(): void
     {
-        $file = tempnam(
-            directory: sys_get_temp_dir(),
-            prefix   : 'commondoc-transport-',
-        );
+        foreach (["\r" => '\r', "\n" => '\n', "\t" => '\t', "\0" => '\0'] as $raw => $shown) {
+            $message = $this->rejectionOf("http://127.0.0.1:1/{$raw}", [])->getMessage();
 
-        static::assertIsString($file);
-
-        file_put_contents(
-            filename: $file,
-            data    : 'served-bytes',
-        );
-
-        try {
-            // The `file` scheme is served by libcurl itself, so a transfer completes with no
-            // server. It reports status 0, which diactoros refuses, so a factory stub stands in:
-            // what is under test is that a completed transfer reaches the builder.
-            $factory = $this->createStub(ResponseFactoryInterface::class);
-            $factory->method('createResponse')->willReturn(new Response());
-
-            $response = new CurlHttpTransport(builder: new ResponseBuilder(responseFactory: $factory))
-                ->sendRequest(new UnsafeRequest(
-                    new UnsafeUri(
-                        'file:///'
-                            . str_replace(
-                                search : '\\',
-                                replace: '/',
-                                subject: $file,
-                            ),
-                    ),
-                    [],
-                ));
-            static::assertSame('served-bytes', (string) $response->getBody());
-        } finally {
-            unlink(filename: $file);
+            static::assertStringContainsString($shown, $message);
+            static::assertStringNotContainsString($raw, $message);
         }
     }
 
     /**
-     * PSR-18 hands the client a whole request, so the method and the body have to be honoured too.
+     * PSR-18 forbids following a redirect, and the cURL option keeps that true rather than leaving
+     * it to the contract alone.
      */
     #[Test]
-    public function theMethodAndBodyOfTheRequestReachTheWire(): void
+    public function doesNotFollowARedirect(): void
     {
-        $request = new RequestFactory()
-            ->createRequest('POST', self::CLOSED_PORT)
-            ->withBody(new StreamFactory()->createStream('payload-123'));
+        $server = LoopbackHttpServer::start('redirect');
 
-        $captured = $this->capturedRequest($request);
+        try {
+            $response = new CurlHttpTransport()->sendRequest(
+                new RequestFactory()->createRequest('GET', $server->url('/moved')),
+            );
 
-        $this->assertStringStartsWith('POST / HTTP/1.1', $captured);
-        $this->assertStringContainsString('payload-123', $captured);
+            // The redirect is the answer, not something to chase: the second hop is never
+            // attempted, so nothing serves `/elsewhere` and a client that followed would fail.
+            static::assertSame(302, $response->getStatusCode());
+            static::assertSame('/elsewhere', $response->getHeaderLine('location'));
+        } finally {
+            $server->stop();
+        }
     }
 
     /**
-     * The value may be the credential, so it must never appear in a message that reaches a log.
+     * The guard lives in the options; the transport must not send what the options refuse.
+     *
+     * Nothing listens on the URL, so a request that survived the guard would fail at connect time
+     * instead, which is what the helper distinguishes.
      */
     #[Test]
-    public function theRejectionNamesTheHeaderAndNeverItsValue(): void
+    public function refusesToSendARequestWithAForgedHeader(): void
     {
-        $sentinel = 'do-not-log-me';
-
         $exception = $this->rejectionOf(self::CLOSED_PORT, [
-            'Authorization' => sprintf('Bearer %s%s', $sentinel, "\r\nX-Injected: yes"),
+            'Authorization' => "Bearer abc\nX-Injected: yes",
         ]);
 
-        $message = $exception->getMessage();
-
-        $this->assertStringContainsString('Authorization', $message);
-        $this->assertStringNotContainsString($sentinel, $message);
-        $this->assertStringNotContainsString('Bearer', $message);
-        $this->assertStringNotContainsString('X-Injected', $message);
+        $this->assertStringContainsString('Authorization', $exception->getMessage());
     }
 
     /**
-     * A loopback listener captures the bytes the transport writes. It never answers, so the request
-     * must end in a transport failure rather than a response.
+     * A transfer that fails names the URL and cURL's own error, and produces no response.
+     *
+     * Nothing listens on the port, so the failure arrives at connect time rather than waiting for
+     * a timeout to expire.
      */
-    private function capturedRequest(RequestInterface $request): string
+    #[Test]
+    public function reportsATransportFailureWithTheUrlAndTheReason(): void
     {
-        $server = stream_socket_server('tcp://127.0.0.1:0', $errno, $error);
+        try {
+            new CurlHttpTransport()->sendRequest(
+                new RequestFactory()->createRequest(
+                    method: 'GET',
+                    uri   : self::CLOSED_PORT,
+                ),
+            );
 
-        if (false === $server) {
-            $this->fail(sprintf('Unable to listen on a loopback port: %s (%d).', $error, $errno));
+            $this->fail('A connection to a closed port must not produce a response.');
+        } catch (HttpException $exception) {
+            static::assertStringContainsString(self::CLOSED_PORT, $exception->getMessage());
+            static::assertStringContainsString('failed', $exception->getMessage());
         }
+    }
 
-        $address = (string) stream_socket_get_name($server, remote: false);
-        $failure = null;
+    /**
+     * The success path, over a real HTTP server in a child process.
+     *
+     * The client blocks until a response arrives, so a single process cannot answer it. A child
+     * process can, and it is not a mock: the transport opens a socket, sends a request, reads and
+     * parses the response, which is what it does in production. See `LoopbackHttpServer` for why
+     * the cURL functions cannot simply be stubbed.
+     */
+    #[Test]
+    public function returnsWhatTheServerSent(): void
+    {
+        $server = LoopbackHttpServer::start('ok');
 
         try {
-            new CurlHttpTransport(0.25)->sendRequest(
-                $request->withUri(new Uri(sprintf('http://%s/', $address))),
+            $response = new CurlHttpTransport()->sendRequest(
+                new RequestFactory()->createRequest('GET', $server->url('/health')),
             );
-        } catch (HttpException $exception) {
-            $failure = $exception;
+
+            static::assertSame(200, $response->getStatusCode());
+            static::assertSame('hello-from-server', (string) $response->getBody());
+            // A header proves the collect-and-build half, which RETURNTRANSFER and the header
+            // callback both have to be set for. Header values that repeat are kept as a list.
+            static::assertSame(['text/plain'], $response->getHeader('content-type'));
+            static::assertSame(['a=1', 'b=2'], $response->getHeader('set-cookie'));
+        } finally {
+            $server->stop();
         }
+    }
 
-        $connection = stream_socket_accept($server, timeout: 5);
+    /**
+     * A request body reaches the server, which is the half a byte-capture cannot prove.
+     */
+    #[Test]
+    public function sendsTheRequestBodyItWasGiven(): void
+    {
+        $server = LoopbackHttpServer::start('echo');
 
-        if (false === $connection) {
-            $this->fail('The transport never opened a connection to the listener.');
+        try {
+            $request = new RequestFactory()
+                ->createRequest('POST', $server->url('/echo'))
+                ->withBody(new StreamFactory()->createStream('payload-123'));
+
+            $response = new CurlHttpTransport()->sendRequest($request);
+
+            static::assertSame('echo:payload-123', (string) $response->getBody());
+            static::assertSame('POST', $response->getHeaderLine('x-method'));
+        } finally {
+            $server->stop();
         }
+    }
 
-        stream_set_timeout($connection, seconds: 5);
-        $captured = (string) stream_get_contents($connection);
-        fclose($connection);
-        fclose($server);
-
-        $this->assertInstanceOf(
-            HttpException::class,
-            $failure,
-            message: 'The listener never answers, so the request must end in a transport failure.',
+    /**
+     * PSR-18 hands the client a whole request, so the method and the body reach the wire.
+     */
+    #[Test]
+    public function theMethodAndBodyReachTheWire(): void
+    {
+        $sent = $this->sentBytes(
+            new RequestFactory()
+                ->createRequest(
+                    method: 'POST',
+                    uri   : 'https://example.test/',
+                )
+                ->withBody(new StreamFactory()->createStream('payload-123')),
         );
 
-        return $captured;
+        static::assertStringStartsWith('POST / HTTP/1.1', $sent);
+        static::assertStringContainsString('payload-123', $sent);
     }
 
     /**
@@ -371,5 +283,24 @@ final class CurlHttpTransportTest extends TestCase
         }
 
         $this->fail('The transport sent a request that should have been rejected.');
+    }
+
+    /**
+     * A server in a child process answers with the bytes it was sent, which is what the transport
+     * wrote. It answers, so this never depends on the client's timeout to end the request.
+     */
+    private function sentBytes(RequestInterface $request): string
+    {
+        $server = LoopbackHttpServer::start(HttpServerFixture::SCENARIO_RAW);
+
+        try {
+            $response = new CurlHttpTransport()->sendRequest(
+                $request->withUri(new Uri($server->url('/'))),
+            );
+        } finally {
+            $server->stop();
+        }
+
+        return (string) $response->getBody();
     }
 }
