@@ -65,10 +65,21 @@ removes four compensations:
 - the concrete-`Environment` return on `EnvironmentFactory`, plus the comment
   that exists only to justify it
 
-It also needs `ExtensionPluginManager::getDefaultExtensions()` to gain an
-ordering control: today it returns `array_keys($invokables)` then
-`array_keys($factories)`, so a consumer cannot order its extension relative to a
-built-in. Recorded in the extension-point audit.
+It does **not** need any ordering control, and an earlier revision of this file said it
+did. Retracted, with the measurement: a `DocumentParsedEvent` listener carries its own
+priority, so the extension that owns the listener decides where it runs. Two extensions
+registering listeners at 10 and 20 produce identical output in either registration
+order, because listeners are held in a priority-sorted list; extension registration
+order is irrelevant to them.
+
+`getDefaultExtensions()` still returns `array_keys($invokables)` then
+`array_keys($factories)`, and that remains true. It only matters for two extensions
+claiming the *same* parser marker at the *same* priority, which no pair in this package
+does: every always-loaded extension that listens sets an explicit priority of its own
+(`-50` external link, `-99` normalize headings, `-100` heading permalink, `-150` table
+of contents). Adding a config-level ordering row was therefore a solution to a problem
+that does not exist here. If a real collision ever appears, the fix is a priority in
+the listener registration, not a row in the plugin manager's config.
 
 ### Then: P5
 
@@ -832,10 +843,28 @@ post-handle event. A fetch phase is any priority above `50`.
   can be absent and nothing reports it.
 - `ExtensionPluginManager::getDefaultExtensions()` returns
   `array_keys($invokables)` then `array_keys($factories)`. Every built-in is an
-  invokable and every consumer extension is a factory, so a consumer cannot order
-  its extension relative to a built-in. Ordering is declaration order within a
-  bucket, not a priority. `@include` and merge directives order *files*, not
-  extensions.
+  invokable and every consumer extension is a factory, so ordering is declaration
+  order within a bucket, not a priority.
+
+**But bucket order does not stop a consumer extension from ordering itself**, which an
+earlier revision of this file claimed it did. Retracted. A CommonMark extension acts
+along two separate channels:
+
+| Channel | Ordered by |
+| --- | --- |
+| parsers, renderers | extension registration order, within a priority |
+| event listeners | the priority the registering code passes |
+
+Every listener the always-loaded extensions register carries an explicit priority, so
+they do not rely on extension order at all. A consumer extension's `register()` has the
+same lever, which is finer-grained than the extension list: it places that one listener
+against the built-ins on that one event.
+
+Measured: two extensions registering `DocumentParsedEvent` listeners at 10 and 20
+produce output in the same order whether registered A then B or B then A. The earlier
+"a consumer cannot order its extension relative to a built-in" was true of the parser
+channel and false of the one that matters here, and it was never checked against the
+extensions this package actually loads.
 
 ### Where a fetch phase sits
 
