@@ -2,7 +2,7 @@
 
 **Date**: 2026-11-18
 **Component**: `common-doc/commondoc`
-**Branch**: `1.0.x` at `b0b7580`
+**Branch**: `1.0.x`
 
 The owner reads each layer from app entry inwards and asks questions. This file
 records **architectural decisions only**. Implementation detail lives in
@@ -17,14 +17,16 @@ compensations. This walkthrough is the sanity check.
 
 ## Resume here
 
-**State**: `1.0.x` at `b0b7580`, clean, baseline verified (`commondoc:build` with no
-arguments writes 8 files, exit 0). Merged and done: P6 (`#22`), P7 (`#22`), P3 and
-P4 (`#23`), the first half of P1 (`#24`), the resume record (`#25`), assets as a
-phase (`#26`), the resume correction (`#27`), `Progress` plus the console reading the
-result's status (`#28`), the document data key (`#29`), `CommonMarkEvent` (D36,
-`#30`), the record correction (`#31`), and the PSR-18 transport described under
-*The transport a fetch phase would use* (`#32`), with its tests moved onto a real
-loopback server (`#33`).
+**State**: the tip of `1.0.x`, clean, baseline verified (`commondoc:build` with no
+arguments writes 8 files: 6 rendered documents and 2 assets, exit 0). Deliberately no
+commit SHA here: every merge that touches this file moves the tip, so a SHA makes
+the first line of the record false the moment the record lands. Merged and done: P6
+(`#22`), P7 (`#22`), P3 and P4 (`#23`), the first half of P1 (`#24`), the resume
+record (`#25`), assets as a phase (`#26`), the resume correction (`#27`), `Progress`
+plus the console reading the result's status (`#28`), the document data key (`#29`),
+`CommonMarkEvent` (D36, `#30`), the record correction (`#31`), the PSR-18 transport
+described under *The transport a fetch phase would use* (`#32`), and its tests moved
+onto a real loopback server (`#33`).
 
 ### Next: finish P1
 
