@@ -106,6 +106,22 @@ repository that has no pages to publish, so the build refuses instead:
 A repository with nothing to publish belongs out of the composition rather than in
 it as an empty root.
 
+## Heading ids
+
+Every heading carries its own slug as its `id`, with no prefix:
+
+```html
+<h2 id="the-index-rule"><a href="#the-index-rule" class="heading-permalink" ...>...</a>The index rule</h2>
+```
+
+This is a contract rather than a cosmetic choice. A link to a section is
+`<address>#<slug>`, and a consumer has to be able to build one from the heading it
+came from. A prefix would force every consumer to learn it, so the prefix is empty and
+the slug is derivable.
+
+An authored cross-document link therefore resolves as written: `address.md#the-index-rule`
+becomes `/concepts/address/#the-index-rule`, and the target page has that anchor.
+
 ## Related
 
 - [Documents](../concepts/document.md) defines what counts as a document

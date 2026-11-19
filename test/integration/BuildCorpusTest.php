@@ -228,10 +228,19 @@ final class BuildCorpusTest extends TestCase
             );
 
             // A target relative to the document's own directory, carrying a
-            // fragment that survives the rewrite untouched. The fragment is
-            // passed through as written, which does not match the id the
-            // heading permalink emits; see the findings record.
+            // fragment that survives the rewrite untouched.
             static::assertStringContainsString('href="/concepts/address/#the-index-rule"', $document);
+
+            // And the fragment resolves, because the heading carries the plain slug
+            // as its own id. A prefix on the id would leave the authored fragment
+            // pointing at nothing, and would force every link builder to learn it.
+            $target = $this->read(
+                directory: $output,
+                relative : 'concepts/address/index.html',
+            );
+
+            static::assertStringContainsString('<h2 id="the-index-rule">', $target);
+            static::assertStringNotContainsString('id="content-', $target);
             // A target that climbs out of that directory.
             static::assertStringContainsString('href="/getting-started/"', $document);
 

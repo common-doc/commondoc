@@ -188,17 +188,16 @@ emits, so the two agree without any Pages-specific handling.
 - `.gitignore` does not list `/build/`, so a local build dirties the tree.
 - No workflow exists, so nothing deploys.
 
-## Cross-document heading fragments do not resolve
+## Cross-document heading fragments did not resolve
 
-Measured while writing the end-to-end corpus test.
+Measured while writing the end-to-end corpus test, and resolved on 2026-11-19.
 
 A source link written `address.md#the-index-rule` is rewritten to
 `/concepts/address/#the-index-rule`. The rewriter splits the target at `#` or `?`,
 translates only the path, and appends the suffix unchanged. That part is correct:
 the fragment belongs to the target document.
 
-The fragment does not match the id that is actually emitted, though.
-`commonmark.global.php` sets:
+The fragment did not match the id that was emitted. `commonmark.global.php` set:
 
 ```
 'heading_permalink' => [
@@ -207,24 +206,34 @@ The fragment does not match the id that is actually emitted, though.
 ],
 ```
 
-With `apply_id_to_heading` false, the id lands on the permalink anchor, not on the
-heading, and it carries the `content` prefix. The document contains
+With `apply_id_to_heading` false the id landed on the permalink anchor rather than
+on the heading, and it carried the `content` prefix. The document contained
 `<a id="content-the-index-rule" ...>` and nothing with `id="the-index-rule"`, so an
-authored `#the-index-rule` reaches a page with no such anchor.
+authored `#the-index-rule` reached a page with no such anchor.
 
-Two ways out, and the choice is a config decision rather than a code one:
+### Resolution
 
-| Change | Effect |
-| --- | --- |
-| `apply_id_to_heading` true, `id_prefix` empty | authored fragments match, permalink anchors still present |
-| rewrite fragments through the prefix | the rewriter learns a rendering option, which is coupling in the wrong direction |
+**D39. A heading carries its own slug as its id, with no prefix.** `id_prefix` and
+`fragment_prefix` are both empty and `apply_id_to_heading` is true:
 
-The first keeps the rewriter ignorant of rendering, which is the property that
-makes it testable with a bare `Document`.
+```
+<h2 id="the-index-rule"><a href="#the-index-rule" class="heading-permalink" ...>¶</a>The index rule</h2>
+```
 
-The corpus test asserts the current output
-(`href="/concepts/address/#the-index-rule"`) so the behaviour is pinned rather than
-assumed, and the assertion is annotated to point here.
+The deciding argument is not tidiness, it is that a section link must be constructible
+without knowing this package's configuration. Section linking belongs to
+`webware-navigation`, and a consumer building `#slug` from a heading cannot do that if
+the anchor is `content-slug`. A prefix makes every link builder learn a private
+convention; no prefix makes the id derivable from the heading it came from.
+
+The earlier option of teaching `LinkRewriter` the prefix is now wrong for the same
+reason in the other direction: it would put rendering knowledge inside the rewriter,
+which is the coupling the rewriter exists without.
+
+Verified in a real build: the target page has `<h2 id="the-index-rule">`, the authored
+link is unchanged at `/concepts/address/#the-index-rule`, the permalinks still render,
+the table of contents points at the same plain slugs, and no `content-` id remains
+anywhere in the output. The corpus test asserts the id rather than only the href.
 
 ## Test tooling: two traps the HTTP tests hit
 
