@@ -14,12 +14,12 @@ declare(strict_types=1);
 
 namespace CommonDoc\Container;
 
+use CommonDoc\CommonMarkEvent;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\PageContextListener;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Environment\EnvironmentInterface;
-use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Exception\AlreadyInitializedException;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\ExtensionInterface;
@@ -107,7 +107,7 @@ final readonly class EnvironmentFactory implements FactoryInterface
         // of equal priority run in the order they were added, so nothing else
         // has to be arranged.
         $environment->addEventListener(
-            DocumentParsedEvent::class,
+            CommonMarkEvent::DocumentParsed->value,
             $container->get(PageContextListener::class),
         );
 

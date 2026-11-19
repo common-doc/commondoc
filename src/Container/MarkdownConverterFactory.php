@@ -14,13 +14,13 @@ declare(strict_types=1);
 
 namespace CommonDoc\Container;
 
+use CommonDoc\CommonMarkEvent;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\LinkRewriter;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Environment\EnvironmentInterface;
-use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Exception\AlreadyInitializedException;
 use League\CommonMark\MarkdownConverter;
 use Override;
@@ -110,7 +110,7 @@ final readonly class MarkdownConverterFactory implements FactoryInterface
             ->coerce($locator->build(EnvironmentInterface::class));
 
         $environment->addEventListener(
-            DocumentParsedEvent::class,
+            CommonMarkEvent::DocumentParsed->value,
             new LinkRewriter($root, $scan['documents'], $scan['assets']),
         );
 
