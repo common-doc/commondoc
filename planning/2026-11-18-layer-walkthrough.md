@@ -870,11 +870,16 @@ The client is not registered in the container, because nothing resolves it yet, 
 a registered service nobody fetches with is the speculative seam the record keeps
 warning about. It gains a factory when a fetch phase consumes it.
 
-One known gap, measured rather than assumed: the success path cannot be reached
-over HTTP from a single-process unit test, because the client blocks on a response
-it cannot be given. The tests reach it over the `file` scheme, which libcurl serves
-itself, and the remaining uncovered line is the `curl_init()` failure guard that
-its own return type requires and that no supported PHP reaches.
+The success path is reached over a real server, not a scheme libcurl happens to
+serve. `CommonDocTest\Support\LoopbackHttpServer` starts `http-server.php` as a
+child process (see `#33`): the client opens a socket, writes a request, reads and
+parses a response, which is what it does in production. It cannot be mocked,
+because the transport imports the `curl_*` functions explicitly and that binds them
+at compile time, and it cannot run in-process, because the client blocks on a
+response it would be waiting on itself.
+
+The one uncovered line is the `curl_init()` failure guard, which its own return type
+requires and which no supported PHP reaches.
 
 ---
 
