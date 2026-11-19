@@ -17,12 +17,13 @@ compensations. This walkthrough is the sanity check.
 
 ## Resume here
 
-**State**: `1.0.x` at `52bfea6`, clean, baseline verified (`commondoc:build` with
-no arguments writes 8 files, exit 0). Merged and done: P6 (`#22`), P7 (`#22`), P3
-and P4 (`#23`), the first half of P1 (`#24`), the resume record (`#25`), assets as
-a phase (`#26`), the resume correction (`#27`), `Progress` plus the console reading
-the result's status (`#28`), the document data key (`#29`), and `CommonMarkEvent`
-(D36, `#30`).
+**State**: `1.0.x` at `9738343`, clean, baseline verified (`commondoc:build` with no
+arguments writes 8 files, exit 0). Merged and done: P6 (`#22`), P7 (`#22`), P3 and
+P4 (`#23`), the first half of P1 (`#24`), the resume record (`#25`), assets as a
+phase (`#26`), the resume correction (`#27`), `Progress` plus the console reading the
+result's status (`#28`), the document data key (`#29`), `CommonMarkEvent` (D36,
+`#30`), and the record correction (`#31`). On this branch: the PSR-18 transport
+described under *The transport a fetch phase would use*.
 
 ### Next: finish P1
 
@@ -821,6 +822,37 @@ knows the request and the last thing before anything is read from disk. It needs
 `SiteConfig` to exist (to know what was configured) and the message to carry the
 result (to hand roots to the scan). Neither is a new concept: both are D24 and D15
 becoming real.
+
+### The transport a fetch phase would use
+
+Ported from the multi-repository component in `webinertia/asciidoc-php`, which
+already solved the same problem, and landed as code with no wiring yet.
+
+- `Http\CurlHttpTransport` is a PSR-18 client over ext-curl: no redirects, a
+  bounded timeout, and every header name and value validated before libcurl sees
+  it. The validation is local rather than delegated to the message implementation,
+  because PSR-7 implementations differ and diactoros unfolds an obs-fold instead of
+  refusing it.
+- `Exception\HttpException` carries both `ClientExceptionInterface` (PSR-18
+  requires it) and this package's `ExceptionInterface`, which is what makes an
+  unreachable repository a refusal the console renders and exits `INVALID` on. It
+  sits in `Exception\` because a class named `*Exception` must, per the guard.
+- `Http\ResponseBuilder` is the pure half: a status, a header map and a body in, a
+  response out. It exists so the half that needs no network can be tested, and so a
+  server-controlled header cannot escape as an arbitrary exception type.
+
+No dependency was added. `ext-curl`, `laminas/laminas-diactoros`,
+`psr/http-client`, `psr/http-factory` and `psr/http-message` were already required.
+
+The client is not registered in the container, because nothing resolves it yet, and
+a registered service nobody fetches with is the speculative seam the record keeps
+warning about. It gains a factory when a fetch phase consumes it.
+
+One known gap, measured rather than assumed: the success path cannot be reached
+over HTTP from a single-process unit test, because the client blocks on a response
+it cannot be given. The tests reach it over the `file` scheme, which libcurl serves
+itself, and the remaining uncovered line is the `curl_init()` failure guard that
+its own return type requires and that no supported PHP reaches.
 
 ---
 
