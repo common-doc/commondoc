@@ -17,12 +17,12 @@ compensations. This walkthrough is the sanity check.
 
 ## Resume here
 
-**State**: `1.0.x` at `6941a55`, clean, baseline verified. Merged and done:
-P6 (`#22`), P7 (`#22`), P3 and P4 (`#23`), the first half of P1 (`#24`), the
-resume record (`#25`), assets as a phase (`#26`), the resume correction
-(`#27`), `Progress` plus the console reading the result's status (`#28`), and
-`CommonMarkEvent` (D36, `#30`). On this branch: the one document data key
-this package owns has a case of its own in `CommonDoc\DocumentData`.
+**State**: `1.0.x` at `52bfea6`, clean, baseline verified (`commondoc:build` with
+no arguments writes 8 files, exit 0). Merged and done: P6 (`#22`), P7 (`#22`), P3
+and P4 (`#23`), the first half of P1 (`#24`), the resume record (`#25`), assets as
+a phase (`#26`), the resume correction (`#27`), `Progress` plus the console reading
+the result's status (`#28`), the document data key (`#29`), and `CommonMarkEvent`
+(D36, `#30`).
 
 ### Next: finish P1
 
@@ -549,7 +549,8 @@ Two things learned:
   nothing about the new ones. A request that kept a stale scan would build from a
   discovery it did not make.
 
-Still in the handler: asset copying and the record. Reporting has not moved.
+Split across two branches. The scan (`#24`) and assets (`#26`) have landed; the
+record is composed by the handler from what the phases contributed.
 
 **Landed, assets.** Copying is now `AssetCopyMiddleware`, at priority 40 below the
 scan, and the handler's asset loop and its `copy()` are gone. The phase records
@@ -770,27 +771,34 @@ The purpose of this walkthrough is to confirm the extension points exist before 
 required changes are made. Measured, one row per point.
 
 | Point | Mechanism | Config-driven | Exists |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | bus middleware | `middleware_pipeline` list | yes | yes |
 | bus events and listeners | `listeners` key, per-event lists | yes | yes |
 | CommonMark extensions | plugin manager + its config section | yes | yes |
+| CommonMark events acted on | `CommonMarkEvent` (D36) | n/a, it is code | yes |
+| document data keys | `DocumentData` | n/a, it is code | yes |
 | command to handler | `command_map` | yes | yes |
 | console commands | `ConsoleInterface::commands` | yes | yes |
-| **message as carrier** | `BuildSiteCommand` | n/a | **no** |
-| **site definition** | `SiteConfig` | n/a | **no** |
+| message as carrier | `BuildSiteCommand` | n/a | yes, since P3 (`#23`) |
+| site definition | `SiteConfig` | n/a | yes, since P7 (`#22`) |
 
-**D31. The pipeline's extension points exist; the data's do not.** A phase has a
-place to run and nowhere to put what it produced. The two gaps are exactly P3 (the
-message gains `with*` builders) and P7 (`SiteConfig` exists and is validated), which
-is why those two are the precondition for a fetch phase rather than follow-up work.
+**D31. The pipeline's extension points exist; the data's did not.** As measured on
+2026-11-18, a phase had a place to run and nowhere to put what it produced. The two
+gaps were exactly P3 (the message gains `with*` builders) and P7 (`SiteConfig`
+exists and is validated), which is why those two were the precondition for a fetch
+phase rather than follow-up work.
+
+Both have since landed, so the table above is the current measurement rather than
+the original one. The two rows that were missing are now present, and the two rows
+that are new name where a hook and a bag key are declared.
 
 ### Confirmed properties of the points that do exist
 
 **Middleware accumulates across packages.** `ConfigMerger::applyValue()` appends an
 integer key rather than recursing, so a consumer's `middleware_pipeline` entry adds
-to ours instead of replacing index 0. Priority order is then global:
-`100` pre-handle event, `50` source loading, `1` handler, `-100` post-handle event.
-A fetch phase is any priority above `50`.
+to ours instead of replacing index 0. Priority order is then global: `100`
+pre-handle event, `50` source loading, `40` asset copy, `1` handler, `-100`
+post-handle event. A fetch phase is any priority above `50`.
 
 **Listeners accumulate** the same way, keyed by event class.
 
