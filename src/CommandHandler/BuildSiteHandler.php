@@ -21,6 +21,8 @@ use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Input\Markdown;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Record\BuildRecord;
+use CommonDoc\Record\Outcome;
+use CommonDoc\Record\Reason;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use InvalidArgumentException;
@@ -123,31 +125,6 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     }
 
     /**
-     * The reason a path was not written, never empty.
-     *
-     * `BuildRecord` requires a non-empty reason, so a failure with no message is
-     * described by its own class rather than by an empty string that would read
-     * as though nothing went wrong.
-     *
-     * The parameter repeats the caught union rather than naming `Throwable`,
-     * because that union is the set the build records. `Error`, `TypeError` and
-     * every other engine failure stay outside it.
-     *
-     * @return non-empty-string
-     */
-    private static function reason(
-        CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterException|PslExceptionInterface $failure,
-    ): string {
-        $message = $failure->getMessage();
-
-        if ('' === $message) {
-            return $failure::class;
-        }
-
-        return $message;
-    }
-
-    /**
      * Build the site and report what was written and what failed.
      *
      * Both kinds of file fail the same way and are reported the same way. A
@@ -194,51 +171,30 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
             } catch (
                 CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterException|PslExceptionInterface $failure
             ) {
-                $failed[$document] = self::reason($failure);
+                $failed[$document] = Reason::of($failure);
             }
         }
 
-        foreach ($assets as $asset) {
-            try {
-                $this->copy($scan->sourceOf($asset), $asset, $target);
-                $written[] = $asset;
-            } catch (ExceptionInterface|FileWriterException|PslExceptionInterface $failure) {
-                $failed[$asset] = self::reason($failure);
-            }
-        }
+        // The assets were copied by their own phase, so their outcome arrives on
+        // the message rather than being produced here. Composing rather than
+        // re-deciding is the whole point of the split: this method no longer knows
+        // that an asset is a thing that can fail independently.
+        $outcome = $command->getOutcome()->and(new Outcome(
+            output: $written,
+            failed: $failed,
+        ));
 
         $record = new BuildRecord(
             input : $documents,
             asset : $assets,
-            output: $written,
-            failed: $failed,
+            output: $outcome->output,
+            failed: $outcome->failed,
         );
 
         return new CommandResult(
             command: $command,
             status : $record->complete() ? MessageStatus::Success : MessageStatus::Failure,
             result : $record,
-        );
-    }
-
-    /**
-     * Copy one asset into the output at the path it already has.
-     *
-     * An asset is not translated. It sits where it is published, so its output
-     * file is its own mounted path; `DocumentRoot::asset()` exists for the address
-     * a link renders, not for the file. The write goes through `FileWriter` so
-     * the copy is atomic, exactly as a document's is.
-     *
-     * @param non-empty-string $file The path on disk, already resolved for whichever root holds it
-     *
-     * @throws FileWriterException When the asset cannot be written
-     * @throws PslExceptionInterface When the asset cannot be read
-     */
-    private function copy(string $file, string $asset, string $target): void
-    {
-        FileWriter::writeTree(
-            self::join($target, $asset),
-            File\read($file),
         );
     }
 

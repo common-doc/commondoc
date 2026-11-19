@@ -22,6 +22,7 @@ use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Input\Root;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
+use CommonDoc\Middleware\AssetCopyMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Record\BuildRecord;
 use FilesystemIterator;
@@ -242,6 +243,7 @@ final class ContainerBootTest extends TestCase
             [
                 CommandPreHandleMiddleware::class,
                 SourceLoadingMiddleware::class,
+                AssetCopyMiddleware::class,
                 MessageHandlerMiddleware::class,
                 CommandPostHandleMiddleware::class,
             ],

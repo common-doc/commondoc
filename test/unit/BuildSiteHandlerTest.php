@@ -23,6 +23,7 @@ use CommonDoc\Input\Root;
 use CommonDoc\Input\Scan;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Record\BuildRecord;
+use CommonDoc\Record\Outcome;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDocTest\Support\AbstractTemporaryTree;
@@ -41,7 +42,6 @@ use PHPUnit\Framework\Attributes\Test;
 use TypeError;
 use Webware\MessageBus\MessageStatus;
 
-use function file_get_contents;
 use function is_file;
 use function mkdir;
 use function str_contains;
@@ -83,18 +83,6 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
                 return $this->html;
             }
         };
-    }
-
-    #[Test]
-    public function copiesAnAssetWhereItSits(): void
-    {
-        $this->writeFile('source/index.md', contents: "# Home\n");
-        $this->writeFile('source/images/d.png', contents: 'PNG');
-
-        $this->handler()->handle($this->command());
-
-        // An asset is not translated, so the output file is its own local path.
-        static::assertSame('PNG', (string) file_get_contents("{$this->output}/images/d.png"));
     }
 
     #[Test]
@@ -170,33 +158,6 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
     }
 
     #[Test]
-    public function namesAnAssetThatCouldNotBeCopied(): void
-    {
-        $this->writeFile('source/index.md', contents: "# Home\n");
-        $this->writeFile('source/site.css', contents: 'body{}');
-
-        // A directory where the file belongs, so the copy cannot land. The point
-        // of the test is not the reason but the fact that the asset is named at
-        // all: a build that stopped without a path would leave an operator with
-        // a broken site and nothing to fix.
-        mkdir("{$this->output}/site.css", recursive: true);
-
-        $result = $this->handler()->handle($this->command());
-
-        /** @var mixed $raw */
-        $raw = $result->getResult();
-
-        static::assertInstanceOf(BuildRecord::class, $raw);
-        static::assertSame(MessageStatus::Failure, $result->getStatus());
-        static::assertSame(['site.css'], $raw->failedPath());
-        static::assertNotNull($raw->reasonFor('site.css'));
-        static::assertNotSame('', $raw->reasonFor('site.css'));
-        // The documents still went out; one bad asset does not cost the build.
-        static::assertSame(['index.md'], $raw->output);
-        static::assertTrue(is_file("{$this->output}/index.html"));
-    }
-
-    #[Test]
     public function recordsADocumentThatFailedAndWritesTheRest(): void
     {
         $this->writeFile('source/index.md', contents: "# Home\n");
@@ -261,10 +222,11 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         $this->writeFile('source/guide/setup.md', contents: 'see [gone](missing.md)');
         $this->writeFile('source/site.css', contents: 'body{}');
 
-        mkdir("{$this->output}/site.css", recursive: true);
-
+        // The asset copy is another phase, so its failure arrives on the message
+        // rather than from the handler's own work. The handler's job is the one
+        // record, not the copying.
         $result = $this->handler(converter: $this->failingConverter('missing.md'))
-            ->handle($this->command());
+            ->handle($this->command(new Outcome(failed: ['site.css' => 'disk full'])));
 
         /** @var mixed $raw */
         $raw = $result->getResult();
@@ -282,7 +244,7 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         $this->writeFile('source/guide/setup.md', contents: "# Setup\n");
         $this->writeFile('source/images/d.png', contents: 'PNG');
 
-        $result = $this->handler()->handle($this->command());
+        $result = $this->handler()->handle($this->command(new Outcome(output: ['images/d.png'])));
 
         /** @var mixed $raw */
         $raw = $result->getResult();
@@ -329,14 +291,15 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         return new RouteCollector($this->createStub(RouterInterface::class));
     }
 
-    private function command(): BuildSiteCommand
+    private function command(?Outcome $outcome = null): BuildSiteCommand
     {
         $roots = [new Root(path: $this->source)];
 
         return new BuildSiteCommand(
-            roots : $roots,
-            output: $this->output,
-            scan  : Scan::of($roots),
+            roots  : $roots,
+            output : $this->output,
+            scan   : Scan::of($roots),
+            outcome: $outcome,
         );
     }
 

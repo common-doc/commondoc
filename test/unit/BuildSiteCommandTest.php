@@ -19,6 +19,7 @@ use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Exception\LogicException;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Scan;
+use CommonDoc\Record\Outcome;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -35,13 +36,40 @@ use PHPUnit\Framework\TestCase;
 #[CoversMethod(BuildSiteCommand::class, '__construct')]
 #[CoversMethod(BuildSiteCommand::class, 'getCommandName')]
 #[CoversMethod(BuildSiteCommand::class, 'getOutput')]
+#[CoversMethod(BuildSiteCommand::class, 'getOutcome')]
 #[CoversMethod(BuildSiteCommand::class, 'getRoots')]
 #[CoversMethod(BuildSiteCommand::class, 'getScan')]
+#[CoversMethod(BuildSiteCommand::class, 'withOutcome')]
 #[CoversMethod(BuildSiteCommand::class, 'withOutput')]
 #[CoversMethod(BuildSiteCommand::class, 'withScan')]
 #[CoversMethod(BuildSiteCommand::class, 'withRoots')]
 final class BuildSiteCommandTest extends TestCase
 {
+    #[Test]
+    public function accumulatesWhatEachPhaseDid(): void
+    {
+        $scan = new Scan(
+            sources  : [],
+            documents: [],
+            assets   : [],
+        );
+        $command = new BuildSiteCommand(
+            roots : [new Root(path: 'docs')],
+            output: 'build',
+            scan  : $scan,
+        );
+
+        $written = $command
+            ->withOutcome(new Outcome(output: ['site.css']))
+            ->withOutcome(new Outcome(failed: ['index.md' => 'disk full']));
+
+        static::assertSame(['site.css'], $written->getOutcome()->output);
+        static::assertSame(['index.md' => 'disk full'], $written->getOutcome()->failed);
+        // More than one phase writes files and the build reports them together, so
+        // an outcome adds to what earlier phases did rather than replacing it.
+        static::assertSame($scan, $written->getScan());
+    }
+
     #[Test]
     public function carriesTheScanForwardAndKeepsTheRest(): void
     {
@@ -113,6 +141,20 @@ final class BuildSiteCommandTest extends TestCase
 
         // Writing somewhere else does not invalidate what was found.
         static::assertSame($scan, $scanned->withOutput('elsewhere')->getScan());
+    }
+
+    #[Test]
+    public function leavesTheOriginalAloneWhenAPhaseAddsItsOutcome(): void
+    {
+        $command = new BuildSiteCommand(
+            roots : [new Root(path: 'docs')],
+            output: 'build',
+        );
+
+        $written = $command->withOutcome(new Outcome(output: ['site.css']));
+
+        static::assertSame([], $command->getOutcome()->output);
+        static::assertSame(['site.css'], $written->getOutcome()->output);
     }
 
     #[Test]
@@ -194,6 +236,21 @@ final class BuildSiteCommandTest extends TestCase
         static::assertSame([$other], $moved->getRoots());
         static::assertSame('build', $moved->getOutput());
         static::assertCount(1, $command->getRoots());
+    }
+
+    #[Test]
+    public function reportsNothingWhenNoPhaseHasWrittenAnything(): void
+    {
+        $command = new BuildSiteCommand(
+            roots : [new Root(path: 'docs')],
+            output: 'build',
+        );
+
+        // A build that has written nothing has still done nothing, so an empty
+        // outcome is a state rather than a missing precondition. That is what makes
+        // it different from the scan, which refuses.
+        static::assertSame([], $command->getOutcome()->output);
+        static::assertSame([], $command->getOutcome()->failed);
     }
 
     #[Test]

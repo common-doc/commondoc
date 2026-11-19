@@ -17,23 +17,21 @@ compensations. This walkthrough is the sanity check.
 
 ## Resume here
 
-**State**: `1.0.x` at `5a562a8`, clean, baseline verified (`commondoc:build` with
-no arguments writes 8 files, exit 0). Merged and done: P6 (`#22`), P7 (`#22`),
-P3 and P4 (`#23`), and the first half of P1 (`#24`).
+**State**: `tyrsson-asset-report-phases` off `1.0.x` at `befc7c5`. Merged and
+done: P6 (`#22`), P7 (`#22`), P3 and P4 (`#23`), and the first half of P1
+(`#24`). The second part of P1 is in this branch: assets are their own phase.
 
 ### Next: finish P1
 
-Three parts remain, in this order. None is started.
+Two parts remain, in this order. Neither is started.
 
-1. **Assets become their own phase.** Copying an asset needs no environment, no
-   parse and no tree, so it does not belong in a loop that exists to drive
-   CommonMark. The loop is in `BuildSiteHandler::handle()` and its body is
-   `copy()`, which needs only a source path, the site path and the target.
-2. **Reporting becomes a phase.** `CommandPostHandleMiddleware` runs at priority
+1. **Reporting becomes a phase.** `CommandPostHandleMiddleware` runs at priority
    `-100` and receives the `CommandResult`, so the record is available there. The
    handler's job then ends at the record, and `Console\BuildCommand` stops
-   knowing what a `BuildRecord` looks like.
-3. **Validate the roots in a phase rather than in the walk.** `Tree::at()` refuses
+   knowing what a `BuildRecord` looks like. The open question is the console
+   output: the listener has none, so decide whether reporting is a listener that
+   writes nothing or whether rendering the report stays in the console.
+2. **Validate the roots in a phase rather than in the walk.** `Tree::at()` refuses
    an unreadable directory, and today that refusal surfaces from inside
    `SourceLoadingMiddleware`. Whether it should be its own earlier phase is
    undecided; what is decided is that the handler must not carry it.
@@ -279,14 +277,16 @@ Concretely, by the time the handler runs:
 ### What the handler is then left holding
 
 A loop per kind over data it did not have to find, plus the record. Encoding each
-document and copying each asset. Nothing is discovered, nothing is partitioned,
-nothing is validated.
+document. Nothing is discovered, nothing is partitioned, nothing is validated, and
+since D14 was implemented, nothing is copied either.
 
 ### Decisions
 
 **D14. Assets are not part of the render phase.** Copying an asset needs no
 environment, no parse and no tree, so it does not belong in a loop that exists to
-drive CommonMark. It is a separate phase over the same scan.
+drive CommonMark. It is a separate phase over the same scan, above the handler and
+below it in priority: every asset is in place before the first document is
+rendered, and a failure is recorded before the documents are attempted.
 
 **D15. Per-build working state travels forward on the message.**
 `PipelineHandlerInterface::handle()` takes a `MessageInterface`, so a phase hands
@@ -307,6 +307,31 @@ knowing what a report is. The handler's job ends at the record.
 so the result payload is unconstrained: the result carries whatever object is the
 outcome, and `BuildRecord` is that object here, already exposing `input` and
 `asset`.
+
+**D33. A phase contributes an outcome; the record is assembled at the end.**
+`BuildRecord`'s invariant is that every discovered path is accounted for, and that
+cannot hold until the last phase has run. So no phase can own the record. A phase
+hands an `Outcome` forward (D15), and the handler merges the accumulated outcome
+with its own work into the one record. The outcome is deliberately not a partial
+`BuildRecord`: two types with the same fields and different guarantees would be
+confused for each other, and the difference is exactly the invariant an outcome
+does not claim.
+
+The scan is state on the message rather than an outcome because absence means a
+precondition is missing and must refuse. An outcome that is empty means the phase
+wrote nothing, which is a valid state and not a refusal.
+
+**D34. The set of recordable failures is written once.** Two phases now record a
+failed path, so the catch union lives in `Record\Reason` rather than at each catch.
+A second copy would drift the first time a member was added, and the drift would
+be silent: one phase would record a failure the other let propagate. This
+package's own refusals are one member through `ExceptionInterface`, which is what
+that interface is for; naming its implementers would mean one added later silently
+stops being recorded.
+
+A refusal that means this package is broken (a request with no scan, an asset with
+no source) propagates instead of being recorded against a path. A recorded reason
+would blame a file for a defect, which is the failure the union exists to avoid.
 
 **Retraction.** An earlier revision of this record claimed the result is "a result
 value object, not a handoff channel" and that "discovery is published, not
@@ -468,6 +493,20 @@ Two things learned:
   discovery it did not make.
 
 Still in the handler: asset copying and the record. Reporting has not moved.
+
+**Landed, assets.** Copying is now `AssetCopyMiddleware`, at priority 40 below the
+scan, and the handler's asset loop and its `copy()` are gone. The phase records
+what it wrote and what it could not, and hands an `Outcome` forward (D33). The
+handler composes that outcome with its own work into the one record, so a report
+still names both kinds of failure in one ordered list.
+
+Two things learned:
+
+- The scenario tests for copying belonged to the phase, not the handler. What
+  stayed in the handler's tests is the composition: one record from an outcome it
+  was handed plus the documents it wrote.
+- A phase that fails must not stop. Stopping at the first unreadable asset would
+  name one file, and the operator wants the list.
 
 **P2. Turn `LinkRewriter` into a `ConfigurableExtensionInterface`.** One addition
 deletes four compensations: the second mode of `MarkdownConverterFactory`, the
