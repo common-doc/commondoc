@@ -1136,7 +1136,7 @@ Each per-file pass catches a **named union**, and every member is a failure of
 the file being processed:
 
 ```php
-catch (CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterInvalidArgumentException|FileWriterRuntimeException|PslExceptionInterface $failure)
+catch (CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterException|PslExceptionInterface $failure)
 ```
 
 `Error` and its children are outside the union, so they propagate and abort the
@@ -1147,6 +1147,14 @@ counter-intuitive: `CommonMarkException`, `ConfigurationExceptionInterface` and
 `Psl\Exception\ExceptionInterface` all extend **`Throwable`** rather than
 `Exception`. A class could therefore implement one without being an `Exception`,
 so `catch (Exception)` does not provably cover them.
+
+`FileWriterException` is `Webware\FileWriter\Exception\ExceptionInterface`.
+Naming that one interface rather than the package's two concrete classes needed
+a change upstream: the interface was a bare marker until `1.0.0-alpha.4`, so it
+promised no `getMessage()` and could not be proven to cover the classes that
+implement it. Measured, not assumed: substituting it against `alpha.2` produced
+five analyzer errors. The fix is one line in that package, because both its
+implementations were already exceptions.
 
 Removing the broad catch immediately paid for itself. Under `Throwable`, two
 thrown types were invisible because everything was swallowed:

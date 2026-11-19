@@ -35,8 +35,7 @@ use Psl\Exception\ExceptionInterface as PslExceptionInterface;
 use Psl\File;
 use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
-use Webware\FileWriter\Exception\InvalidArgumentException as FileWriterInvalidArgumentException;
-use Webware\FileWriter\Exception\RuntimeException as FileWriterRuntimeException;
+use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
 use Webware\FileWriter\FileWriter;
 use Webware\MessageBus\Command\CommandResult;
 use Webware\MessageBus\Command\CommandResultInterface;
@@ -138,7 +137,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      * @return non-empty-string
      */
     private static function reason(
-        CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterInvalidArgumentException|FileWriterRuntimeException|PslExceptionInterface $failure,
+        CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterException|PslExceptionInterface $failure,
     ): string {
         $message = $failure->getMessage();
 
@@ -193,7 +192,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
                 $this->write($converter, $source, $document, $target);
                 $written[] = $document;
             } catch (
-                CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterInvalidArgumentException|FileWriterRuntimeException|PslExceptionInterface $failure
+                CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterException|PslExceptionInterface $failure
             ) {
                 $failed[$document] = self::reason($failure);
             }
@@ -203,9 +202,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
             try {
                 $this->copy($source, $asset, $target);
                 $written[] = $asset;
-            } catch (
-                ExceptionInterface|FileWriterInvalidArgumentException|FileWriterRuntimeException|PslExceptionInterface $failure
-            ) {
+            } catch (ExceptionInterface|FileWriterException|PslExceptionInterface $failure) {
                 $failed[$asset] = self::reason($failure);
             }
         }
@@ -232,8 +229,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      * a link renders, not for the file. The write goes through `FileWriter` so
      * the copy is atomic, exactly as a document's is.
      *
-     * @throws FileWriterInvalidArgumentException When the asset name is empty
-     * @throws FileWriterRuntimeException When the asset cannot be read or written
+     * @throws FileWriterException When the asset cannot be written
      * @throws PslExceptionInterface When the asset cannot be read
      */
     private function copy(string $source, string $asset, string $target): void
@@ -293,8 +289,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      * @throws CommonMarkException When the document cannot be parsed or rendered
      * @throws ConfigurationExceptionInterface When a converter option is invalid
      * @throws ExceptionInterface When a local path, page or link is refused
-     * @throws FileWriterInvalidArgumentException When an output path is empty
-     * @throws FileWriterRuntimeException When the output cannot be written
+     * @throws FileWriterException When the output cannot be written
      * @throws PslExceptionInterface When the source cannot be read
      * @throws ContainerExceptionInterface When the page cannot be built, which is
      *         a wiring failure rather than a document failure and aborts the build
