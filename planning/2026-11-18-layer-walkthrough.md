@@ -2,7 +2,7 @@
 
 **Date**: 2026-11-18
 **Component**: `common-doc/commondoc`
-**Branch**: `tyrsson-orchestration` at `0049a4c`
+**Branch**: `1.0.x` at `5a562a8`
 
 The owner reads each layer from app entry inwards and asks questions. This file
 records **architectural decisions only**. Implementation detail lives in
@@ -12,6 +12,68 @@ records **architectural decisions only**. Implementation detail lives in
 is not. Several layers were built to satisfy a gate or an error message rather
 than to solve the problem the layer above poses, and the result is a chain of
 compensations. This walkthrough is the sanity check.
+
+---
+
+## Resume here
+
+**State**: `1.0.x` at `5a562a8`, clean, baseline verified (`commondoc:build` with
+no arguments writes 8 files, exit 0). Merged and done: P6 (`#22`), P7 (`#22`),
+P3 and P4 (`#23`), and the first half of P1 (`#24`).
+
+### Next: finish P1
+
+Three parts remain, in this order. None is started.
+
+1. **Assets become their own phase.** Copying an asset needs no environment, no
+   parse and no tree, so it does not belong in a loop that exists to drive
+   CommonMark. The loop is in `BuildSiteHandler::handle()` and its body is
+   `copy()`, which needs only a source path, the site path and the target.
+2. **Reporting becomes a phase.** `CommandPostHandleMiddleware` runs at priority
+   `-100` and receives the `CommandResult`, so the record is available there. The
+   handler's job then ends at the record, and `Console\BuildCommand` stops
+   knowing what a `BuildRecord` looks like.
+3. **Validate the roots in a phase rather than in the walk.** `Tree::at()` refuses
+   an unreadable directory, and today that refusal surfaces from inside
+   `SourceLoadingMiddleware`. Whether it should be its own earlier phase is
+   undecided; what is decided is that the handler must not carry it.
+
+### Then: P2, the one that deletes the most
+
+`LinkRewriter` becomes a `ConfigurableExtensionInterface` (D6, D7). One addition
+removes four compensations:
+
+- the second mode of `MarkdownConverterFactory`
+- the `ServiceLocatorInterface` coercion inside that second mode
+- the `ServiceLocatorInterface` in `BuildSiteHandler`
+- the concrete-`Environment` return on `EnvironmentFactory`, plus the comment
+  that exists only to justify it
+
+It also needs `ExtensionPluginManager::getDefaultExtensions()` to gain an
+ordering control: today it returns `array_keys($invokables)` then
+`array_keys($factories)`, so a consumer cannot order its extension relative to a
+built-in. Recorded in the extension-point audit.
+
+### Then: P5
+
+Record the written file, not only the source path, so `Wrote index.md` can say
+where it went. Depends on nothing outstanding.
+
+### Not started, and not scheduled
+
+- Where a landing page at `/` comes from in a composed site (see P4).
+- The `site.json` manifest provider, and the Action that writes one from org
+  custom properties (D28, D29, D30).
+- The publication workflow and the publisher image (D18 to D20). Note that the
+  `Dockerfile` in the repository is a dev-tooling image, not a publisher.
+- The heading-fragment mismatch, recorded in the findings with two ways out.
+
+### Two rules learned the hard way today
+
+- **Check the gate exit code, not filtered output.** Grepping Mago for `error[`
+  and `warning[` hides `help[` findings, which CI treats as failures.
+- **A surviving mutant can be a dead branch.** Before writing a test for it, ask
+  whether a caller can reach it; the `rtrim` in `Scan` could not.
 
 ---
 
@@ -417,6 +479,10 @@ with the comment that justifies it.
 a list of (root, mount) pairs with `with*` builders, so a phase enriches it
 forward. This is D15 made concrete, and it is where the site definition lives.
 
+**Landed.** `BuildSiteCommand` takes `list<Root>` and an output directory, and
+carries what the scan phase found. `Input\Root` is (directory, mount). A run with
+no arguments builds the configured site, which is what the Action needs.
+
 **P4. Give `DocumentRoot` the root-to-mount mapping** so a scanned path can be
 translated into the one address space. Today it assumes a single root, which is
 the only thing in the package that assumes one.
@@ -445,6 +511,11 @@ real tree and inspects the output; `BuildSiteHandlerTest` is 428 lines of double
 `docs/v1` now exists and was verified by hand: build to a temp directory, assert
 the exact output tree, and assert the rewritten links. That is the regression net
 for every change above.
+
+**Landed.** `test/integration/BuildCorpusTest.php` builds `docs/v1` and asserts
+the written set, the rewritten targets, the view-layer render, the recorded
+failure, and a composed two-root site. It found the heading-fragment mismatch on
+its first run.
 
 **D24. Multi-root is configuration, not a component.** Measured: `src/` contains
 **zero** occurrences of `repo`, `repository` or `multi`, and exactly **one**
