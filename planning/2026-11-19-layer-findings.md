@@ -225,3 +225,46 @@ makes it testable with a bare `Document`.
 The corpus test asserts the current output
 (`href="/concepts/address/#the-index-rule"`) so the behaviour is pinned rather than
 assumed, and the assertion is annotated to point here.
+
+## Test tooling: two traps the HTTP tests hit
+
+Both were measured while landing the transport tests (`#33`), and both had been
+holding the gates hostage rather than reporting anything true.
+
+### PHPUnit drops code a test did not declare
+
+A test class declaring `CoversClass(A::class)` that also exercises `B` has the `B`
+frames filtered out of the report as unintentional coverage. The suite executes
+them, the report says it did not, and `codecov/patch` fails on code that has tests.
+
+Measured: `phpunit --filter CurlHttpTransportTest --coverage-clover` reported
+`Http/CurlOptions.php` with 45 statements and **none** covered, while the same run
+was exercising the class on every rejection case.
+
+`CoversClass` cannot be attached to a method (PHPUnit rejects the attribute:
+"cannot target method"), and `CoversMethod` cannot name a private helper, so there
+is no metadata escape hatch. The answer is placement: a rejection test belongs to
+the class that raises the rejection. When it sits with the class that only
+propagates it, the guard and its message escaping read as uncovered.
+
+### A child process that is waiting makes a mutant time out
+
+`LoopbackHttpServer::stop()` drained the child's pipes before closing, and the
+child was parked in `stream_socket_accept()`. A mutant that made the request fail
+early therefore left the parent waiting the child's full accept timeout, and
+Infection reported a time out instead of a kill: 10.5 seconds to stop a server that
+had served nothing.
+
+Two changes, both measured:
+
+- pass the command as an **array** to `proc_open`, so the process opened is PHP and
+  not the shell that would be terminated while PHP kept the pipes open
+- call `proc_terminate` before draining, since a child that answered has already
+  exited and terminating a finished process does nothing
+
+`stop()` went from 10.5s to 0.016s, and the transport test class from 3.5s to 1.1s.
+
+The same trap in a different shape: the byte-capture test listened on a socket and
+never answered, so the request only ended because the transport's own timeout
+expired. That made the mutant removing the timeout option hang. A `raw` scenario now
+answers with the bytes it received, so the mutant fails on the missing headers.
