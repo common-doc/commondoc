@@ -283,6 +283,7 @@ final class BuildCorpusTest extends TestCase
                     'getting-started.md',
                     'index.md',
                     'reference/cli.md',
+                    'reference/configuration.md',
                 ],
                 $raw->output,
             );
@@ -297,6 +298,7 @@ final class BuildCorpusTest extends TestCase
                     'getting-started/index.html',
                     'index.html',
                     'reference/cli/index.html',
+                    'reference/configuration/index.html',
                 ],
                 $this->written($output),
             );
