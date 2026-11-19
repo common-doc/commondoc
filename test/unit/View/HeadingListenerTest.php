@@ -19,8 +19,11 @@ use CommonDoc\View\PageContext;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\CommonMark\Node\Block\Heading;
 use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 use League\CommonMark\MarkdownConverter;
+use League\CommonMark\Node\Block\Document;
+use League\CommonMark\Node\Inline\Text;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -113,6 +116,26 @@ final class HeadingListenerTest extends TestCase
     }
 
     #[Test]
+    public function skipsAHeadingWhoseIdIsEmpty(): void
+    {
+        // An empty id is an anchor nothing can address, so it is not a link target.
+        $context = $this->convertWithId('');
+
+        static::assertSame([], $context->sections());
+    }
+
+    #[Test]
+    public function skipsAHeadingWhoseIdIsNotAString(): void
+    {
+        // Nothing in the renderer produces this, but the data bag takes any value and the
+        // id is what becomes a fragment. A non-string is skipped as unlinkable rather than
+        // reaching the value object, which would refuse it.
+        $context = $this->convertWithId(7);
+
+        static::assertSame([], $context->sections());
+    }
+
+    #[Test]
     public function trimsWhitespaceThatEndsUpAtTheEdgeOfTheLabel(): void
     {
         // The block parser strips the space after the marker, but an entity is decoded
@@ -128,6 +151,25 @@ final class HeadingListenerTest extends TestCase
         $context = new PageContext();
 
         new MarkdownConverter($this->environment($context))->convert($markdown);
+
+        return $context;
+    }
+
+    private function convertWithId(mixed $id): PageContext
+    {
+        $context = new PageContext();
+
+        $heading = new Heading(2);
+        $heading->data->set(
+            key  : 'attributes/id',
+            value: $id,
+        );
+        $heading->appendChild(new Text('Install it'));
+
+        $document = new Document();
+        $document->appendChild($heading);
+
+        new HeadingListener($context)(new DocumentParsedEvent($document));
 
         return $context;
     }
