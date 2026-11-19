@@ -122,6 +122,13 @@ the slug is derivable.
 An authored cross-document link therefore resolves as written: `address.md#the-index-rule`
 becomes `/concepts/address/#the-index-rule`, and the target page has that anchor.
 
+The build also collects each document's headings as it parses it, as a level, a label and
+a fragment. The fragment is the same value as the `id` above, so a heading found this way
+is a heading a link can reach. This is what lets a consumer name a section without
+building the site first and reading the HTML; it is available in process through
+`CommonDoc\View\PageContext::sections()` and is not yet handed to the layout, because
+nothing renders a per-page table of contents.
+
 ## Related
 
 - [Documents](../concepts/document.md) defines what counts as a document

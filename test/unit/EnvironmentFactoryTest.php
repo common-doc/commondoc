@@ -17,6 +17,7 @@ namespace CommonDocTest;
 use CommonDoc\Container\EnvironmentFactory;
 use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\View\DocumentViewRenderer;
+use CommonDoc\View\HeadingListener;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
@@ -25,6 +26,7 @@ use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\Attributes\AttributesExtension;
 use League\CommonMark\Extension\Autolink\AutolinkExtension;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\CommonMark\Node\Block\Heading;
 use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
 use League\CommonMark\Extension\ExtensionInterface;
 use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
@@ -36,6 +38,7 @@ use League\CommonMark\Extension\Table\TableExtension;
 use League\CommonMark\Extension\TableOfContents\TableOfContentsExtension;
 use League\CommonMark\Extension\TaskList\TaskListExtension;
 use League\CommonMark\Node\Block\Document;
+use League\CommonMark\Node\Inline\Text;
 use Mezzio\Template\TemplateRendererInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
@@ -50,6 +53,7 @@ use function array_map;
 final class EnvironmentFactoryTest extends TestCase
 {
     private PageContext $context;
+    private HeadingListener $headings;
     private PageContextListener $listener;
     private Page $page;
     private DocumentViewRenderer $renderer;
@@ -188,6 +192,33 @@ final class EnvironmentFactoryTest extends TestCase
     }
 
     #[Test]
+    public function registersTheHeadingListenerForTheParsedEvent(): void
+    {
+        $environment = new EnvironmentFactory()(
+            $this->containerWithConfig([]),
+            EnvironmentInterface::class,
+        );
+
+        $heading = new Heading(2);
+        $heading->data->set(
+            key  : 'attributes/id',
+            value: 'install-it',
+        );
+        $heading->appendChild(new Text('Install it'));
+
+        $document = new Document();
+        $document->appendChild($heading);
+
+        $environment->dispatch(new DocumentParsedEvent($document));
+
+        $sections = $this->context->sections();
+
+        static::assertCount(1, $sections);
+        static::assertSame('install-it', $sections[0]->fragment);
+        static::assertSame('Install it', $sections[0]->label);
+    }
+
+    #[Test]
     public function registersThePageContextListenerForTheParsedEvent(): void
     {
         $environment = new EnvironmentFactory()(
@@ -257,6 +288,7 @@ final class EnvironmentFactoryTest extends TestCase
         );
 
         $this->context  = new PageContext();
+        $this->headings = new HeadingListener($this->context);
         $this->listener = new PageContextListener($this->context);
         $this->renderer = new DocumentViewRenderer($this->createStub(TemplateRendererInterface::class));
     }
@@ -278,6 +310,7 @@ final class EnvironmentFactoryTest extends TestCase
                     'config'                      => $config,
                     ExtensionPluginManager::class => $pluginManager,
                     DocumentViewRenderer::class   => $this->renderer,
+                    HeadingListener::class        => $this->headings,
                     PageContextListener::class    => $this->listener,
                     default                       => null,
                 },

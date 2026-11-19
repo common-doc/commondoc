@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDocTest;
 
+use CommonDoc\View\Heading;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -25,6 +26,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversMethod(PageContext::class, 'set')]
 #[CoversMethod(PageContext::class, 'clear')]
 #[CoversMethod(PageContext::class, 'current')]
+#[CoversMethod(PageContext::class, 'sections')]
+#[CoversMethod(PageContext::class, 'setSections')]
 final class PageContextTest extends TestCase
 {
     private static function page(string $label): Page
@@ -37,6 +40,25 @@ final class PageContextTest extends TestCase
             url         : '/page',
             versionLabel: '1.0',
         );
+    }
+
+    #[Test]
+    public function emptiesTheSectionsOnClear(): void
+    {
+        $context = new PageContext();
+        $context->set(self::page('Reference page'));
+        $context->setSections([new Heading(
+            level   : 1,
+            label   : 'Addresses',
+            fragment: 'addresses',
+        )]);
+
+        $context->clear();
+
+        // Cleared with the page, so one document's headings never become the next
+        // document's link targets.
+        static::assertNull($context->current());
+        static::assertSame([], $context->sections());
     }
 
     #[Test]
@@ -62,6 +84,28 @@ final class PageContextTest extends TestCase
     }
 
     #[Test]
+    public function holdsTheSectionsItWasGiven(): void
+    {
+        $sections = [
+            new Heading(
+                level   : 1,
+                label   : 'Addresses',
+                fragment: 'addresses',
+            ),
+            new Heading(
+                level   : 2,
+                label   : 'The index rule',
+                fragment: 'the-index-rule',
+            ),
+        ];
+        $context = new PageContext();
+
+        $context->setSections($sections);
+
+        static::assertSame($sections, $context->sections());
+    }
+
+    #[Test]
     public function replacesTheHeldPageInsteadOfAccumulating(): void
     {
         $first   = self::page('First page');
@@ -78,6 +122,12 @@ final class PageContextTest extends TestCase
     public function reportsNoPageWhenNothingIsSet(): void
     {
         static::assertNull(new PageContext()->current());
+    }
+
+    #[Test]
+    public function reportsNoSectionsBeforeAnyAreSet(): void
+    {
+        static::assertSame([], new PageContext()->sections());
     }
 
     #[Test]
