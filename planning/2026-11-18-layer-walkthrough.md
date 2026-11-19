@@ -17,10 +17,12 @@ compensations. This walkthrough is the sanity check.
 
 ## Resume here
 
-**State**: `1.0.x` at `e2b03e6`, clean, baseline verified. Merged and done:
+**State**: `1.0.x` at `6941a55`, clean, baseline verified. Merged and done:
 P6 (`#22`), P7 (`#22`), P3 and P4 (`#23`), the first half of P1 (`#24`), the
-resume record (`#25`), assets as a phase (`#26`), the resume correction (`#27`),
-and `Progress` plus the console reading the result's status (`#28`).
+resume record (`#25`), assets as a phase (`#26`), the resume correction
+(`#27`), `Progress` plus the console reading the result's status (`#28`), and
+`CommonMarkEvent` (D36, `#30`). On this branch: the one document data key
+this package owns has a case of its own in `CommonDoc\DocumentData`.
 
 ### Next: finish P1
 

@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDoc\View;
 
+use CommonDoc\DocumentData;
 use Dflydev\DotAccessData\Exception\DataException;
 use Dflydev\DotAccessData\Exception\InvalidPathException;
 use League\CommonMark\Event\DocumentParsedEvent;
@@ -52,6 +53,6 @@ final readonly class PageContextListener
             return;
         }
 
-        $event->getDocument()->data->set('commondoc.page', $page);
+        $event->getDocument()->data->set(DocumentData::Page->value, $page);
     }
 }

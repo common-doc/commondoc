@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDoc\View;
 
+use CommonDoc\DocumentData;
 use Dflydev\DotAccessData\Exception\InvalidPathException;
 use League\CommonMark\Exception\InvalidArgumentException;
 use League\CommonMark\Node\Block\Document;
@@ -81,7 +82,7 @@ final readonly class DocumentViewRenderer implements NodeRendererInterface
     private function pageFor(Document $document): ?Page
     {
         /** @var mixed $page */
-        $page = $document->data->get('commondoc.page', default: null);
+        $page = $document->data->get(DocumentData::Page->value, default: null);
 
         return $page instanceof Page ? $page : null;
     }
