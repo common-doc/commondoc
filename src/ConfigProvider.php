@@ -29,13 +29,15 @@ use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
-use CommonDoc\Container\PageFactoryFactory;
+use CommonDoc\Container\PageFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
+use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\DocumentViewRenderer;
+use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use League\CommonMark\ConverterInterface;
@@ -137,6 +139,7 @@ use function dirname;
  * @type Dependencies = array{
  *   aliases: array<interface-string, class-string>,
  *   factories: array<class-string, class-string>,
+ *   invokables: array<class-string, class-string>,
  * }
  * @type TemplateMap = array<non-empty-string, non-empty-string>
  * @type ViewConfig = array{map: TemplateMap, layout: non-empty-string}
@@ -182,12 +185,12 @@ final readonly class ConfigProvider
     public function getDependencies(): array
     {
         return [
-            'aliases'   => [
+            'aliases'    => [
                 ConverterInterface::class      => MarkdownConverter::class,
                 RouteCollectorInterface::class => RouteCollector::class,
                 RouterInterface::class         => QueryParamRouter::class,
             ],
-            'factories' => [
+            'factories'  => [
                 BuildCommand::class              => BuildCommandFactory::class,
                 BuildSiteHandler::class          => BuildSiteHandlerFactory::class,
                 CommandPostHandleListener::class => CommandPostHandleListenerFactory::class,
@@ -199,9 +202,14 @@ final readonly class ConfigProvider
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 PageContext::class               => PageContextFactory::class,
                 PageContextListener::class       => PageContextListenerFactory::class,
-                PageFactoryFactory::class        => PageFactoryFactory::class,
+                Page::class                      => PageFactory::class,
                 RouteCollector::class            => RouteCollectorFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
+            ],
+            'invokables' => [
+                // A build route needs middleware to exist and is never served,
+                // so the only honest implementation takes nothing to build.
+                NotServedMiddleware::class => NotServedMiddleware::class,
             ],
         ];
     }

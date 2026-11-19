@@ -864,7 +864,11 @@ starts accepting requests has stopped being a documentation builder.
 | `src/Output/PathType.php` | enum | `case Directory; case File;` | R |
 | `src/Output/DocumentRoot.php` | readonly class | `published()` and `file()` | R |
 | `src/Output/LinkRewriter.php` | readonly class | CommonMark `DocumentParsedEvent` listener | R |
-| `src/Record/BuildRecord.php` | readonly class | `input`, `output`, `failed` | R |
+| `src/Record/BuildRecord.php` | readonly class | `input`, `asset`, `output`, `failed` | R |
+| `src/Exception/ExceptionInterface.php` | interface | extends `Throwable`; every failure this package raises | R |
+| `src/Exception/InvalidArgumentException.php` | final class | extends SPL `InvalidArgumentException` | R |
+| `src/Exception/LogicException.php` | final class | extends SPL `LogicException` | R |
+| `src/Exception/RuntimeException.php` | final class | extends SPL `RuntimeException` | R |
 | `src/Router/RouteTable.php` | **deleted** | duplicated the Mezzio collector; see "Why `RouteTable` was deleted" | n/a |
 | `src/Http/Middleware/NotServedMiddleware.php` | readonly class | PSR-15 `process()` that refuses; the only middleware a build route can carry | R |
 
@@ -1012,3 +1016,241 @@ as one commit rather than filling each class in turn.
 7. Whether a link target naming a directory (`../guide/`) should resolve to that
    directory's index document. It is refused today because the guess is wrong for
    any directory without one.
+
+---
+
+## 16. Orchestration, as implemented
+
+The coordinator and the console narrowing landed after the link rewriter, in
+their own pull request, which is the split the owner asked for.
+
+### One environment and one converter per build
+
+The owner's decision, stated twice: "I would expect an Environment and converter
+per build honestly." The reason it matters here rather than being tidiness is
+that `Environment` is a shared service and `addEventListener` has no freeze
+guard, so a build that registered its link rewriter on the shared environment
+would stack a listener per build, each bound to a stale document list. That is
+also what would make running each repository's build in its own process a
+correctness requirement rather than an option.
+
+The mechanism is `build()`, not a callable factory. `ServiceManager::build()`
+never caches, so a fresh environment and a fresh page each time are one method
+call apart, and `MarkdownConverterFactory` needs no second type to own the
+difference. It was a `ConverterFactoryFactory` returning a callable first, and
+that was removed: a factory factory is justified only when the instance must be
+constructed at a call site that cannot reach the container. Here the call site
+can, so the callable was a type earning nothing.
+
+`MarkdownConverterFactory` therefore has two modes, told apart by its options:
+
+| Request | Result |
+|---|---|
+| no options, or options that are not a scan | a converter over the shared environment |
+| `['documents' => ..., 'assets' => ...]` | a converter over a freshly built environment carrying a `LinkRewriter` bound to those lists |
+
+The fresh environment comes from `$locator->build(EnvironmentInterface::class)`,
+so the extension list and the page listener are exactly what the shared one has.
+Only the rewriter differs.
+
+`Page` works the same way. It is one per document, so it cannot be a shared
+service, and the caller supplies only what differs per document:
+
+```php
+$services->build(Page::class, ['localPath' => $document, 'label' => $label]);
+```
+
+`PageFactory` reads that section of config and derives the address, so there is
+still exactly one translation. What is gone is `PageFactoryFactory` and the
+callable it returned.
+
+`BuildSiteHandler` therefore receives a `ServiceLocatorInterface` and uses it
+only for `build()`. Every fixed collaborator is still injected as an instance,
+and the locator is not used to resolve one.
+
+### Why `EnvironmentFactory` is not registered under its own name
+
+It was tried, and the integration suite refused it: `$container->get(
+EnvironmentFactory::class)` returns a `League\CommonMark\Environment\Environment`,
+because the service map invokes the factory rather than returning it. So the
+typed refusal was correct, and the entry was removed. Nothing needs it: the
+handler builds `EnvironmentInterface`, which is registered.
+
+### What the handler does
+
+| Pass | Behaviour |
+|---|---|
+| scan | `Tree::at()->paths()`, then `Markdown::scan()` and `Asset::scan()` |
+| seed | one `RouteCollector::get()` per document: name is the local path, path is the published path |
+| render and write | per document: set the page, convert, clear the page in a `finally`, write through `FileWriter::writeTree()` |
+| copy | per asset: read and write at its own local path |
+| report | one `BuildRecord`, and a status read from `record->complete()` |
+
+Seeding runs to completion before the first document is rendered, because a link
+may target a document the loop has not reached. Collision detection is
+`DuplicateRouteDetector`'s, exercised by a test with `guide/setup.md` and
+`guide/setup/index.md`, which both publish at `/guide/setup/`.
+
+### One failure policy, for both kinds of file
+
+Both documents and assets are recorded and the build continues: the operator
+wants the whole list rather than the first problem, and `BuildRecord` is exactly
+the shape for that.
+
+The first version did not do this. An asset that failed to copy threw, on the
+reasoning that `BuildRecord` was built for documents and an asset key would break
+its invariant. The owner rejected it in one sentence: "If the build fails without
+the named cause how is the user supposed to fix it? Root cause has to be known."
+That is correct and it was the decisive argument, because a build that stops at
+an unreadable stylesheet without naming it leaves an operator with a broken site
+and nothing to act on.
+
+So the record carries four lists over one key space:
+
+| List | Holds |
+|---|---|
+| `input` | documents discovered |
+| `asset` | assets discovered |
+| `output` | paths written, of either kind |
+| `failed` | local path to the reason it was not written, of either kind |
+
+The invariant is that `output` and `failed` together are exactly `input` and
+`asset` together, that nothing is in both outcomes, and that no path is in both
+discovered lists. A copied asset therefore appears in `output` as well as in
+`asset`, which is what makes "every discovered path is accounted for" checkable
+in one comparison instead of two.
+
+The console needed no change: it already printed "Wrote" per `output` entry and
+"Failed" per `failed` entry, so an asset now reads `Wrote site.css` or
+`Failed site.css: ...` with no special case.
+
+### What is caught, and what is deliberately not
+
+Nothing catches `Throwable`. The owner's rule, and it is a correctness rule
+rather than a style one: `Throwable` also admits `TypeError`, `Error` and every
+other engine failure, so a broad catch would record a bug in this program as a
+problem with a document. The operator would then be told to fix a file that is
+fine.
+
+Each per-file pass catches a **named union**, and every member is a failure of
+the file being processed:
+
+```php
+catch (CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterException|PslExceptionInterface $failure)
+```
+
+`Error` and its children are outside the union, so they propagate and abort the
+build with a stack trace.
+
+The vendor interfaces are named for a reason worth recording, because it is
+counter-intuitive: `CommonMarkException`, `ConfigurationExceptionInterface` and
+`Psl\Exception\ExceptionInterface` all extend **`Throwable`** rather than
+`Exception`. A class could therefore implement one without being an `Exception`,
+so `catch (Exception)` does not provably cover them.
+
+`FileWriterException` is `Webware\FileWriter\Exception\ExceptionInterface`.
+Naming that one interface rather than the package's two concrete classes needed
+a change upstream: the interface was a bare marker until `1.0.0-alpha.4`, so it
+promised no `getMessage()` and could not be proven to cover the classes that
+implement it. Measured, not assumed: substituting it against `alpha.2` produced
+five analyzer errors. The fix is one line in that package, because both its
+implementations were already exceptions.
+
+Removing the broad catch immediately paid for itself. Under `Throwable`, two
+thrown types were invisible because everything was swallowed:
+`League\Config\Exception\ConfigurationExceptionInterface`, which the converter can
+raise from an invalid option, and `Dflydev\DotAccessData\Exception\InvalidPathException`
+from the page read. Both are now declared and covered.
+
+### The package's own exception hierarchy
+
+The first version of the narrow catch named three SPL classes. The owner's
+correction was to give the package a shared interface instead: "Does all of our
+exceptions implement a shared interface? If not they should and you could catch
+ours based on that."
+
+There were no exceptions of our own at all. Every throw was a bare SPL type, so
+nothing distinguished "commondoc refused" from "a collaborator failed", and a
+consumer had no stable type to catch.
+
+`src/Exception/` now holds the hierarchy:
+
+| Type | Extends | Meaning |
+|---|---|---|
+| `ExceptionInterface` | `Throwable` | every failure this package raises itself |
+| `InvalidArgumentException` | SPL `InvalidArgumentException` | a value cannot be used |
+| `LogicException` | SPL `LogicException` | the contract forbids the call |
+| `RuntimeException` | SPL `RuntimeException` | the work failed, given valid input |
+
+Two decisions are worth stating:
+
+- **The interface extends `Throwable`.** Several fleet packages declare
+  `ExceptionInterface` without extending it, which reads the same but cannot be
+  used as a catch type, because nothing then guarantees the value is throwable.
+  Ours extends it, and a test asserts that so the mistake cannot be reintroduced.
+- **Each class extends its SPL counterpart.** The change needed no call site
+  rewritten: every existing `catch (InvalidArgumentException)` still catches, and
+  so does `catch (ExceptionInterface)`.
+
+Converting the throws exposed two real gaps rather than creating work. `Page`'s
+immutability guard, `NotServedMiddleware`, `DocumentRoot`, `Tree`, `BuildRecord`,
+`PageFactory`, `BuildCommand` and `LinkRewriter` all now throw the package's own
+types. `DocumentViewRenderer` deliberately keeps
+`League\CommonMark\Exception\InvalidArgumentException`, because there the refusal
+is about a node type inside CommonMark's own rendering contract, not about
+anything this package decides.
+
+The handler's union then names `ExceptionInterface` instead of three SPL classes,
+which is the point: a new exception type added to the package is recorded without
+touching the catch. It does **not** shorten the union, because the union's other
+members exist for vendor failures, not ours, and that is worth being precise
+about rather than claiming a reduction that did not happen.
+
+A consequence worth noting: the handler tests had to change their stub to throw
+the package's `RuntimeException` rather than SPL's. That is the tightened union
+working, and it now mirrors the real failure path, which is `LinkRewriter`
+refusing a target.
+
+### The page label is derived, and that is temporary
+
+`PageFactory` takes a label among its options, and nothing in the build produces
+one. The label is the file name without its document suffix, with no special case
+for `index`, so `guide/setup.md` is `setup` and `index.md` is `index`. Deriving
+something mechanical was chosen over inventing navigation vocabulary in the
+coordinator; a real label needs a source this build does not have, which is the
+document's first heading or a front-matter field.
+
+### `NotServedMiddleware` is an invokable
+
+A route cannot exist without middleware and this one has nothing to inject, so it
+is declared under `invokables` rather than behind a factory that would only
+return `new`. `Dependencies` in the provider's type aliases gained the key.
+
+`webware/webware-filewriter` moved from a transitive dependency to a direct
+requirement, because `src/` now names `FileWriter`.
+
+### What the console prints now
+
+`BuildCommand` narrows the result to a `BuildRecord` and prints each written
+document and each failure reason. A result that is not a record is **said out
+loud** and exits non-zero, which is the specific defect this replaces: the old
+version filtered the result for strings, so an empty result printed nothing and
+a silent no-op was indistinguishable from a successful build.
+
+The exit code follows the record rather than the status. The handler derives the
+status from the record, so the two agree; following the record means a future
+handler bug that reported success beside a failure would still exit non-zero.
+
+### Verified
+
+| Gate | Result |
+|---|---|
+| `mago format`, `lint`, `analyze`, `guard` | 0 |
+| unit | 194 tests, 358 assertions, 1 skipped |
+| integration | 23 tests, 135 assertions |
+| Infection | 370 mutants, 0 escaped, MSI 100% |
+| coverage | `BuildSiteHandler` 71/71 lines, `BuildRecord` 46/46, `PageFactory` 35/35, `MarkdownConverterFactory` 19/19 |
+
+The integration suite dispatches the real command through the container's own
+bus into the handler and asserts a file exists at the translated path, so the
+wiring is tested end to end rather than by type assertions.

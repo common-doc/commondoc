@@ -17,6 +17,7 @@ namespace CommonDocTest;
 use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\Console\BuildCommand;
 use CommonDoc\Container\BuildCommandFactory;
+use CommonDoc\Record\BuildRecord;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -44,7 +45,12 @@ final class BuildCommandFactoryTest extends TestCase
                     output: 'out',
                 ),
                 status : MessageStatus::Success,
-                result : [],
+                result : new BuildRecord(
+                    input : [],
+                    asset : [],
+                    output: [],
+                    failed: [],
+                ),
             ));
 
         $command = new BuildCommandFactory()($this->containerWithBus($bus), BuildCommand::class);

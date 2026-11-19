@@ -30,13 +30,15 @@ use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
-use CommonDoc\Container\PageFactoryFactory;
+use CommonDoc\Container\PageFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
+use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\DocumentViewRenderer;
+use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use League\CommonMark\ConverterInterface;
@@ -196,11 +198,23 @@ final class ConfigProviderTest extends TestCase
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 PageContext::class               => PageContextFactory::class,
                 PageContextListener::class       => PageContextListenerFactory::class,
-                PageFactoryFactory::class        => PageFactoryFactory::class,
+                Page::class                      => PageFactory::class,
                 RouteCollector::class            => RouteCollectorFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
             $dependencies['factories'],
+        );
+    }
+
+    #[Test]
+    public function registersTheMiddlewareABuildRouteCarries(): void
+    {
+        // A route cannot be registered without middleware, and this one has
+        // nothing to inject, so it is declared as an invokable rather than
+        // through a factory that would only return `new`.
+        static::assertSame(
+            [NotServedMiddleware::class => NotServedMiddleware::class],
+            new ConfigProvider()->getDependencies()['invokables'],
         );
     }
 

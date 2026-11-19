@@ -69,6 +69,13 @@ final readonly class EnvironmentFactory implements FactoryInterface
     }
 
     /**
+     * A fresh environment, so a caller can register its own listeners on it.
+     *
+     * The declared type is the concrete `Environment` rather than the interface,
+     * because adding a listener is only on the builder interface, and the caller
+     * that wants that is a build registering its link rewriter. The container
+     * still serves this under `EnvironmentInterface`, which resolves either way.
+     *
      * @param ?array<array-key, mixed> $options
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
@@ -79,7 +86,7 @@ final readonly class EnvironmentFactory implements FactoryInterface
         ContainerInterface $container,
         string $requestedName,
         ?array $options = null,
-    ): EnvironmentInterface {
+    ): Environment {
         $manager = $container->get(ExtensionPluginManager::class);
 
         $environment = new Environment($this->optionsFrom($container->get('config')));

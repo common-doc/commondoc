@@ -1,0 +1,59 @@
+# Getting started
+
+## Requirements
+
+- PHP 8.4 or newer, with `ext-curl`, `ext-json` and `ext-mbstring`.
+- A project with a `config/container.php`, because the console entry point builds
+  the container from it.
+
+## Running a build
+
+The entry point belongs to `webware-console`. There is no binary in this package.
+
+```powershell
+php vendor/bin/webware commondoc:build "C:\path\to\docs" --output "C:\path\to\out"
+```
+
+Both arguments accept an absolute path. `--output` defaults to `build`.
+
+A successful run exits `0` and prints one line per path written. A run that
+recorded any failure exits `1` and prints one line per failure, with the reason.
+
+## Relative paths are project relative
+
+The console entry point changes directory to the consuming project root before
+the container is built. Every relative path in a command is therefore resolved
+against that root, not against your shell's working directory.
+
+```
+# run from outside the project: these mean <project>/src and <project>/out
+php vendor/bin/webware commondoc:build src --output out
+```
+
+Pass absolute paths when the difference matters.
+
+## Windows
+
+`vendor/bin/webware` is Composer's generated proxy, an extensionless file whose
+first line is a `#!/usr/bin/env php` shebang. Windows has no shebang handling, so
+name the interpreter explicitly:
+
+```powershell
+php vendor/bin/webware commondoc:build C:\docs C:\out
+```
+
+## Where a build writes
+
+The output directory is created as needed. A document is written to the file its
+address implies, and an asset is copied to its own relative path. Neither
+operation overwrites anything outside the output directory.
+
+## Building this repository's own docs
+
+```powershell
+php vendor/bin/webware commondoc:build "$PWD\docs\v1" --output "$PWD\build"
+```
+
+The `assets` in that tree exist so the asset pass and the link rewriter are both
+exercised by a normal build. See [Assets](concepts/address.md) for how an asset
+address differs from a document address.

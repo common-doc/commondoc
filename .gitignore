@@ -13,6 +13,11 @@
 !/data/cache/.gitkeep
 /.vscode
 
+# The default --output directory of `commondoc:build`. It is generated output,
+# so a local build must not leave the tree dirty. A build written anywhere else
+# is the caller's to ignore.
+/build/
+
 # Development mode is a machine concern. `dev:mode --enable` writes this file and
 # `dev:mode --disable` deletes it, along with the gitignored
 # `config/autoload/development.local.php`. The tracked counterpart is
