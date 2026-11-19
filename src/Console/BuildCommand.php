@@ -15,8 +15,8 @@ declare(strict_types=1);
 namespace CommonDoc\Console;
 
 use CommonDoc\Command\BuildSiteCommand;
+use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Record\BuildRecord;
-use InvalidArgumentException;
 use Override;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -82,7 +82,11 @@ final class BuildCommand extends Command
     }
 
     /**
-     * @throws InvalidArgumentException
+     * @throws InvalidArgumentException When an argument or option is empty
+     * @throws ConsoleExceptionInterface From the console input, which validates
+     *         its own types before this method sees them. It is a distinct
+     *         hierarchy, so it has to be named: this package's exception is
+     *         final and cannot cover another library's class.
      */
     #[Override]
     protected function execute(InputInterface $input, OutputInterface $output): int

@@ -14,11 +14,12 @@ declare(strict_types=1);
 
 namespace CommonDoc\Output;
 
+use CommonDoc\Exception\RuntimeException;
 use CommonDoc\View\Page;
+use Dflydev\DotAccessData\Exception\InvalidPathException;
 use InvalidArgumentException;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\Node\Inline\AbstractWebResource;
-use RuntimeException;
 
 use function array_fill_keys;
 use function array_key_exists;
@@ -214,7 +215,11 @@ final readonly class LinkRewriter
      * document a relative target belongs to.
      *
      * @throws InvalidArgumentException when the translation refuses a path, which
-     *         the membership check in `rewrite()` makes unreachable
+     *         the membership check in `rewrite()` makes unreachable. This is the
+     *         package's own type, so it does not cover a vendor exception; the
+     *         data read below is therefore declared separately.
+     * @throws InvalidPathException from the document data read, which the default
+     *         value makes unreachable in practice
      * @throws RuntimeException when a target resolves to nothing the scan found,
      *         or to a path above the source root
      */

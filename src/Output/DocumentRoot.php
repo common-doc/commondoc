@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace CommonDoc\Output;
 
+use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Markdown;
-use InvalidArgumentException;
 use Psl\Str;
 
 use function explode;

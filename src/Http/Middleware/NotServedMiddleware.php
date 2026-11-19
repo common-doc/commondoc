@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDoc\Http\Middleware;
 
-use LogicException;
+use CommonDoc\Exception\LogicException;
 use Override;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;

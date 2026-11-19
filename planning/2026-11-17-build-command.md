@@ -864,7 +864,11 @@ starts accepting requests has stopped being a documentation builder.
 | `src/Output/PathType.php` | enum | `case Directory; case File;` | R |
 | `src/Output/DocumentRoot.php` | readonly class | `published()` and `file()` | R |
 | `src/Output/LinkRewriter.php` | readonly class | CommonMark `DocumentParsedEvent` listener | R |
-| `src/Record/BuildRecord.php` | readonly class | `input`, `output`, `failed` | R |
+| `src/Record/BuildRecord.php` | readonly class | `input`, `asset`, `output`, `failed` | R |
+| `src/Exception/ExceptionInterface.php` | interface | extends `Throwable`; every failure this package raises | R |
+| `src/Exception/InvalidArgumentException.php` | final class | extends SPL `InvalidArgumentException` | R |
+| `src/Exception/LogicException.php` | final class | extends SPL `LogicException` | R |
+| `src/Exception/RuntimeException.php` | final class | extends SPL `RuntimeException` | R |
 | `src/Router/RouteTable.php` | **deleted** | duplicated the Mezzio collector; see "Why `RouteTable` was deleted" | n/a |
 | `src/Http/Middleware/NotServedMiddleware.php` | readonly class | PSR-15 `process()` that refuses; the only middleware a build route can carry | R |
 
@@ -1128,32 +1132,76 @@ other engine failure, so a broad catch would record a bug in this program as a
 problem with a document. The operator would then be told to fix a file that is
 fine.
 
-Each per-file pass catches a **named union**:
+Each per-file pass catches a **named union**, and every member is a failure of
+the file being processed:
 
 ```php
-catch (Exception|CommonMarkException|ConfigurationExceptionInterface|PslExceptionInterface $failure)
+catch (CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterInvalidArgumentException|FileWriterRuntimeException|PslExceptionInterface $failure)
 ```
 
-Every member is a failure of the file being processed. `Error` and its children
-are outside the union, so they propagate and abort the build with a stack trace,
-which is the honest outcome for a defect in the builder.
+`Error` and its children are outside the union, so they propagate and abort the
+build with a stack trace.
 
-The vendor interfaces are named alongside `Exception` for a reason worth
-recording, because it is counter-intuitive. `CommonMarkException`,
-`ConfigurationExceptionInterface` and `Psl\Exception\ExceptionInterface` all
-extend `Throwable` rather than `Exception`. A class could therefore implement one
-without being an `Exception`, so `catch (Exception)` does not provably cover
-them, and the analyzer is right to say so. Listing three interfaces is the honest
-way to say "these plus every ordinary exception, and no engine errors".
+The vendor interfaces are named for a reason worth recording, because it is
+counter-intuitive: `CommonMarkException`, `ConfigurationExceptionInterface` and
+`Psl\Exception\ExceptionInterface` all extend **`Throwable`** rather than
+`Exception`. A class could therefore implement one without being an `Exception`,
+so `catch (Exception)` does not provably cover them.
 
 Removing the broad catch immediately paid for itself. Under `Throwable`, two
 thrown types were invisible because everything was swallowed:
 `League\Config\Exception\ConfigurationExceptionInterface`, which the converter can
-raise from an invalid option, and the distinction between the document and asset
-passes, which do not throw the same set. Both are now declared and covered.
+raise from an invalid option, and `Dflydev\DotAccessData\Exception\InvalidPathException`
+from the page read. Both are now declared and covered.
 
-The rule is pinned by a test rather than left as prose: a converter stubbed to
-throw `TypeError` must escape `handle()` rather than appear in the record.
+### The package's own exception hierarchy
+
+The first version of the narrow catch named three SPL classes. The owner's
+correction was to give the package a shared interface instead: "Does all of our
+exceptions implement a shared interface? If not they should and you could catch
+ours based on that."
+
+There were no exceptions of our own at all. Every throw was a bare SPL type, so
+nothing distinguished "commondoc refused" from "a collaborator failed", and a
+consumer had no stable type to catch.
+
+`src/Exception/` now holds the hierarchy:
+
+| Type | Extends | Meaning |
+|---|---|---|
+| `ExceptionInterface` | `Throwable` | every failure this package raises itself |
+| `InvalidArgumentException` | SPL `InvalidArgumentException` | a value cannot be used |
+| `LogicException` | SPL `LogicException` | the contract forbids the call |
+| `RuntimeException` | SPL `RuntimeException` | the work failed, given valid input |
+
+Two decisions are worth stating:
+
+- **The interface extends `Throwable`.** Several fleet packages declare
+  `ExceptionInterface` without extending it, which reads the same but cannot be
+  used as a catch type, because nothing then guarantees the value is throwable.
+  Ours extends it, and a test asserts that so the mistake cannot be reintroduced.
+- **Each class extends its SPL counterpart.** The change needed no call site
+  rewritten: every existing `catch (InvalidArgumentException)` still catches, and
+  so does `catch (ExceptionInterface)`.
+
+Converting the throws exposed two real gaps rather than creating work. `Page`'s
+immutability guard, `NotServedMiddleware`, `DocumentRoot`, `Tree`, `BuildRecord`,
+`PageFactory`, `BuildCommand` and `LinkRewriter` all now throw the package's own
+types. `DocumentViewRenderer` deliberately keeps
+`League\CommonMark\Exception\InvalidArgumentException`, because there the refusal
+is about a node type inside CommonMark's own rendering contract, not about
+anything this package decides.
+
+The handler's union then names `ExceptionInterface` instead of three SPL classes,
+which is the point: a new exception type added to the package is recorded without
+touching the catch. It does **not** shorten the union, because the union's other
+members exist for vendor failures, not ours, and that is worth being precise
+about rather than claiming a reduction that did not happen.
+
+A consequence worth noting: the handler tests had to change their stub to throw
+the package's `RuntimeException` rather than SPL's. That is the tightened union
+working, and it now mirrors the real failure path, which is `LinkRewriter`
+refusing a target.
 
 ### The page label is derived, and that is temporary
 
@@ -1190,9 +1238,9 @@ handler bug that reported success beside a failure would still exit non-zero.
 | Gate | Result |
 |---|---|
 | `mago format`, `lint`, `analyze`, `guard` | 0 |
-| unit | 187 tests, 339 assertions, 1 skipped |
+| unit | 194 tests, 358 assertions, 1 skipped |
 | integration | 23 tests, 135 assertions |
-| Infection | 366 mutants, 0 escaped, MSI 100% |
+| Infection | 370 mutants, 0 escaped, MSI 100% |
 | coverage | `BuildSiteHandler` 71/71 lines, `BuildRecord` 46/46, `PageFactory` 35/35, `MarkdownConverterFactory` 19/19 |
 
 The integration suite dispatches the real command through the container's own

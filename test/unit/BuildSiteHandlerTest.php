@@ -17,6 +17,7 @@ namespace CommonDocTest;
 use Closure;
 use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\CommandHandler\BuildSiteHandler;
+use CommonDoc\Exception\RuntimeException;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Record\BuildRecord;
@@ -35,7 +36,6 @@ use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
-use RuntimeException;
 use TypeError;
 use Webware\MessageBus\MessageStatus;
 

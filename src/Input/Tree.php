@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDoc\Input;
 
-use InvalidArgumentException;
+use CommonDoc\Exception\InvalidArgumentException;
 use Psl\Filesystem;
 use Psl\Str;
 

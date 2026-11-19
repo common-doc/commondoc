@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDoc\Record;
 
-use InvalidArgumentException;
+use CommonDoc\Exception\InvalidArgumentException;
 
 use function array_diff_key;
 use function array_flip;

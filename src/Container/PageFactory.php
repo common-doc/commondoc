@@ -14,9 +14,9 @@ declare(strict_types=1);
 
 namespace CommonDoc\Container;
 
+use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\Page;
-use InvalidArgumentException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Override;
 use Psl\Type;

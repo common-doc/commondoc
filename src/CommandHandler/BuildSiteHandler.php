@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace CommonDoc\CommandHandler;
 
 use CommonDoc\Command\BuildSiteCommand;
+use CommonDoc\Exception\ExceptionInterface;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Input\Asset;
 use CommonDoc\Input\Markdown;
@@ -23,20 +24,17 @@ use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
-use Exception;
 use InvalidArgumentException;
 use Laminas\ServiceManager\ServiceLocatorInterface;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Exception\CommonMarkException;
 use League\Config\Exception\ConfigurationExceptionInterface;
-use LogicException;
 use Mezzio\Router\Exception\DuplicateRouteException;
 use Mezzio\Router\RouteCollectorInterface;
 use Psl\Exception\ExceptionInterface as PslExceptionInterface;
 use Psl\File;
 use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
-use RuntimeException;
 use Webware\FileWriter\Exception\InvalidArgumentException as FileWriterInvalidArgumentException;
 use Webware\FileWriter\Exception\RuntimeException as FileWriterRuntimeException;
 use Webware\FileWriter\FileWriter;
@@ -140,7 +138,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      * @return non-empty-string
      */
     private static function reason(
-        CommonMarkException|ConfigurationExceptionInterface|Exception|PslExceptionInterface $failure,
+        CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterInvalidArgumentException|FileWriterRuntimeException|PslExceptionInterface $failure,
     ): string {
         $message = $failure->getMessage();
 
@@ -194,7 +192,9 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
             try {
                 $this->write($converter, $source, $document, $target);
                 $written[] = $document;
-            } catch (Exception|CommonMarkException|ConfigurationExceptionInterface|PslExceptionInterface $failure) {
+            } catch (
+                CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterInvalidArgumentException|FileWriterRuntimeException|PslExceptionInterface $failure
+            ) {
                 $failed[$document] = self::reason($failure);
             }
         }
@@ -203,7 +203,9 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
             try {
                 $this->copy($source, $asset, $target);
                 $written[] = $asset;
-            } catch (Exception|PslExceptionInterface $failure) {
+            } catch (
+                ExceptionInterface|FileWriterInvalidArgumentException|FileWriterRuntimeException|PslExceptionInterface $failure
+            ) {
                 $failed[$asset] = self::reason($failure);
             }
         }
@@ -275,20 +277,27 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      * one. The rewriter reads that page during parsing, which is how a relative
      * link is resolved against the document it was written in.
      *
-     * The throws below are what the caller is prepared to record. Anything else,
-     * an engine error or an exception from a collaborator this code does not
-     * understand, propagates: it is not a problem with the document, and
-     * recording it as one would hide a bug behind a content failure. That is why
-     * the loops catch a named union rather than `Throwable`, and why `Error` is
-     * absent from it.
+     * The throws below are what the caller is prepared to record, and they are
+     * the reason the loop catches a named union rather than `Throwable`: every
+     * member is a failure of the document being processed. An engine error, or
+     * an exception from a collaborator this code does not understand, propagates
+     * instead of being recorded, because presenting a defect in the builder as a
+     * problem with the documentation sends the operator after a file that is
+     * fine.
+     *
+     * This package's own refusals are one member of that union through
+     * `ExceptionInterface`, which is what the interface exists for: without it
+     * the three types below would each have to be named, and a new one added
+     * later would silently stop being recorded.
      *
      * @throws CommonMarkException When the document cannot be parsed or rendered
      * @throws ConfigurationExceptionInterface When a converter option is invalid
+     * @throws ExceptionInterface When a local path, page or link is refused
+     * @throws FileWriterInvalidArgumentException When an output path is empty
+     * @throws FileWriterRuntimeException When the output cannot be written
      * @throws PslExceptionInterface When the source cannot be read
-     * @throws InvalidArgumentException When the page or the output path is refused
-     * @throws LogicException When a collaborator has already been initialised
-     * @throws RuntimeException When a link target cannot be resolved
-     * @throws ContainerExceptionInterface When the page cannot be built
+     * @throws ContainerExceptionInterface When the page cannot be built, which is
+     *         a wiring failure rather than a document failure and aborts the build
      */
     private function write(
         ConverterInterface $converter,
