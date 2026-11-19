@@ -116,6 +116,23 @@ final class HeaderCollectorTest extends TestCase
         static::assertSame(['set-cookie' => ['a=1', 'b=2']], $collector->headers());
     }
 
+    /**
+     * A status line is never offered to the header parser, whatever it contains.
+     *
+     * RFC 7230 defines a reason phrase as `VCHAR`, which includes a colon, so a status line can
+     * look like a header. The branches are exclusive for exactly that reason.
+     */
+    #[Test]
+    public function neverParsesAStatusLineAsAHeaderEvenWhenItsReasonPhraseHasAColon(): void
+    {
+        $collector = new HeaderCollector();
+
+        $collector($this->handle(), line: "Location: https://example.test/next\r\n");
+        $collector($this->handle(), line: "HTTP/1.1 200 Look: here\r\n");
+
+        static::assertSame([], $collector->headers());
+    }
+
     #[Test]
     public function recognisesAStatusLineThatCarriesSurroundingWhitespace(): void
     {

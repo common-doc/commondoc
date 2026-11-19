@@ -166,10 +166,12 @@ final class CurlHttpTransportTest extends TestCase
     }
 
     /**
-     * A transfer that fails names the URL and cURL's own error, and produces no response.
+     * A transfer that fails names the URL and repeats cURL's own reason.
      *
      * Nothing listens on the port, so the failure arrives at connect time rather than waiting for
-     * a timeout to expire.
+     * a timeout to expire. The reason is asserted by the absence of the fallback rather than by
+     * its text: `curl_error()` words a refused connection differently per platform, but it is
+     * never empty, so a message carrying the placeholder would be carrying the wrong one.
      */
     #[Test]
     public function reportsATransportFailureWithTheUrlAndTheReason(): void
@@ -186,6 +188,7 @@ final class CurlHttpTransportTest extends TestCase
         } catch (HttpException $exception) {
             static::assertStringContainsString(self::CLOSED_PORT, $exception->getMessage());
             static::assertStringContainsString('failed', $exception->getMessage());
+            static::assertStringNotContainsString('unknown cURL error', $exception->getMessage());
         }
     }
 

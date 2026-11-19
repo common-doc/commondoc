@@ -91,6 +91,25 @@ where it went. Depends on nothing outstanding.
 - **A surviving mutant can be a dead branch.** Before writing a test for it, ask
   whether a caller can reach it; the `rtrim` in `Scan` could not.
 
+### Rule added later: a surviving mutant is guilty until proven equivalent
+
+A mutant that escapes is either a gap in a test or a genuine equivalent, and only
+the second may be silenced. The `unknown cURL error` fallback in `CurlHttpTransport`
+had been recorded as an equivalent and was not: the test asserted the URL and the
+word `failed` but never asserted the reason, so swapping the ternary changed nothing
+that was being checked. One assertion, `assertStringNotContainsString` on the
+placeholder, killed it.
+
+The suppression that is allowed is by **mutator name, at the line**:
+`// @infection-ignore CastString`. `@infection-ignore-all` is not used, because it
+silences every mutant on a node and its children, which is a claim no line makes.
+
+Two escapes needed no suppression at all. Both `ReturnRemoval` mutants in
+`HeaderCollector` existed because the same `return strlen($line)` appeared three
+times, so a removed copy fell through to an identical one. Removing the duplication
+deleted the mutants; the surviving early return is now load-bearing, and the reason
+phrase colon test proves it.
+
 ---
 
 ## Layer 0: app entry
