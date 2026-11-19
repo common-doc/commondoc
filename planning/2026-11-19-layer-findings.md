@@ -235,6 +235,59 @@ link is unchanged at `/concepts/address/#the-index-rule`, the permalinks still r
 the table of contents points at the same plain slugs, and no `content-` id remains
 anywhere in the output. The corpus test asserts the id rather than only the href.
 
+## The heading inventory
+
+An id a consumer can construct from a heading is only half of section linking. The other
+half is finding the headings: whoever writes a `fragment` into a navigation options array
+has to name a section, and until now the only way to learn a document's sections was to
+build the site and read the HTML.
+
+### Resolution
+
+**D40. A document's headings are collected as link targets, read from the id the renderer
+emits.** `View\HeadingListener` runs on the parsed event at priority `-200` and puts a
+`View\Heading` (level, label, fragment) into `PageContext::sections()` for each heading.
+
+Three things about it are deliberate rather than incidental:
+
+- **The fragment is read from `attributes/id`, not derived from the text.** That is the
+  same value the renderer writes to the heading's `id` attribute, so a fragment cannot
+  drift from the anchor it has to reach. Deriving the slug a second time would be a second
+  implementation of a rule that belongs to the permalink extension.
+- **The label comes from `StringContainerHelper` with raw markup excluded**, which is the
+  reduction the permalink extension itself applies. Label and slug then agree: a heading
+  whose slug names `set()` is not labelled without it, and a heading containing
+  `<span>` is not labelled with the tag.
+- **A heading with no id is skipped, not refused.** Ids come from an extension, and a
+  deployment without the permalink extension still builds a valid site; it simply has no
+  sections to link to. Refusing would turn a rendering choice into a failed build.
+
+The listeners are ordered explicitly rather than by addition: this one must run after the
+permalink extension, which runs at `-100`, and a listener at equal priority would be
+decided by registration order instead (`#38`).
+
+The inventory is not handed to the layout. Nothing renders a per-page table of contents
+today, and the consumer that needs fragments is the navigation side, which builds its
+options outside this package. Adding a template variable for a reader that does not exist
+would be a second unfinished edge, so the read is `PageContext::sections()` and the
+consumer is yet to be written.
+
+### Two gaps mutation testing found in the tests, not the code
+
+Both escapes were in `HeadingListenerTest` being too kind to the code:
+
+- `UnwrapTrim` survived, so nothing proved the label is trimmed. A literal space at the
+  end of an ATX heading is stripped by the block parser, so the trim looked unreachable.
+  It is reachable: `## &#32;Entity space` decodes the entity after the block parse, and
+  the text node begins with a space that survives.
+- `ArrayItemRemoval` on the exclude list survived, so nothing proved raw markup is
+  dropped. `## foo <span>bar</span>` has to label as `foo bar` and slug as `foo-bar`.
+
+A third escape, `MethodCallRemoval` on the listener registration in `EnvironmentFactory`,
+was a genuine hole: the listener was constructed in the test's container stub but no test
+dispatched the event through the factory's environment, so deleting the registration would
+have passed the suite.
+
 ## Test tooling: two traps the HTTP tests hit
 
 Both were measured while landing the transport tests (`#33`), and both had been

@@ -16,6 +16,7 @@ namespace CommonDoc\Container;
 
 use CommonDoc\CommonMarkEvent;
 use CommonDoc\View\DocumentViewRenderer;
+use CommonDoc\View\HeadingListener;
 use CommonDoc\View\PageContextListener;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use League\CommonMark\Environment\Environment;
@@ -109,6 +110,15 @@ final readonly class EnvironmentFactory implements FactoryInterface
         $environment->addEventListener(
             CommonMarkEvent::DocumentParsed->value,
             $container->get(PageContextListener::class),
+        );
+        // Below the page listener and below the extensions, so every heading already
+        // carries the id the renderer will emit. Its own priority rather than addition
+        // order, because an extension registering at the same priority would be decided by
+        // registration order instead of by intent.
+        $environment->addEventListener(
+            CommonMarkEvent::DocumentParsed->value,
+            $container->get(HeadingListener::class),
+            HeadingListener::PRIORITY,
         );
 
         return $environment;

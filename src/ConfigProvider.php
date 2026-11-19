@@ -27,6 +27,7 @@ use CommonDoc\Container\DocumentViewRendererFactory;
 use CommonDoc\Container\EnvironmentFactory;
 use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Container\ExtensionPluginManagerFactory;
+use CommonDoc\Container\HeadingListenerFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
@@ -40,6 +41,7 @@ use CommonDoc\Middleware\AssetCopyMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\DocumentViewRenderer;
+use CommonDoc\View\HeadingListener;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
@@ -212,6 +214,7 @@ final readonly class ConfigProvider
                 DocumentViewRenderer::class      => DocumentViewRendererFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
                 ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
+                HeadingListener::class           => HeadingListenerFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 PageContext::class               => PageContextFactory::class,
                 PageContextListener::class       => PageContextListenerFactory::class,
