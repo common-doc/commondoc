@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDocTest;
 
-use CommonDoc\Record\Outcome;
+use CommonDoc\Record\Progress;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -29,16 +29,16 @@ use function array_keys;
  * the invariant that every discovered path is accounted for, and that cannot hold
  * until the last phase has run, so the merge must be a merge and not a mutation.
  */
-#[CoversClass(Outcome::class)]
-#[CoversMethod(Outcome::class, '__construct')]
-#[CoversMethod(Outcome::class, 'none')]
-#[CoversMethod(Outcome::class, 'and')]
-final class OutcomeTest extends TestCase
+#[CoversClass(Progress::class)]
+#[CoversMethod(Progress::class, '__construct')]
+#[CoversMethod(Progress::class, 'none')]
+#[CoversMethod(Progress::class, 'and')]
+final class ProgressTest extends TestCase
 {
     #[Test]
     public function appendsTheLaterPhaseOutput(): void
     {
-        $merged = new Outcome(output: ['site.css'])->and(new Outcome(output: ['index.md']));
+        $merged = new Progress(output: ['site.css'])->and(new Progress(output: ['index.md']));
 
         // Sorted, not concatenated, so a report does not reorder itself between
         // runs.
@@ -48,7 +48,7 @@ final class OutcomeTest extends TestCase
     #[Test]
     public function doesNothingBeforeAnyPhaseHasRun(): void
     {
-        $none = Outcome::none();
+        $none = Progress::none();
 
         static::assertSame([], $none->output);
         static::assertSame([], $none->failed);
@@ -57,8 +57,8 @@ final class OutcomeTest extends TestCase
     #[Test]
     public function keepsTheLaterReasonForAPathBothPhasesReported(): void
     {
-        $merged = new Outcome(failed: ['site.css' => 'first'])
-            ->and(new Outcome(failed: ['site.css' => 'second']));
+        $merged = new Progress(failed: ['site.css' => 'first'])
+            ->and(new Progress(failed: ['site.css' => 'second']));
 
         static::assertSame(['site.css' => 'second'], $merged->failed);
     }
@@ -69,7 +69,7 @@ final class OutcomeTest extends TestCase
         // A contradiction, not something to resolve here: `BuildRecord` refuses a
         // path that is both written and failed, and merging it away would hide a
         // defect behind a merge rule.
-        $merged = new Outcome(output: ['site.css'])->and(new Outcome(failed: ['site.css' => 'disk full']));
+        $merged = new Progress(output: ['site.css'])->and(new Progress(failed: ['site.css' => 'disk full']));
 
         static::assertSame(['site.css'], $merged->output);
         static::assertSame(['site.css' => 'disk full'], $merged->failed);
@@ -78,8 +78,8 @@ final class OutcomeTest extends TestCase
     #[Test]
     public function leavesTheReceiverUnchanged(): void
     {
-        $first  = new Outcome(output: ['index.md']);
-        $merged = $first->and(new Outcome(output: ['site.css']));
+        $first  = new Progress(output: ['index.md']);
+        $merged = $first->and(new Progress(output: ['site.css']));
 
         static::assertSame(['index.md'], $first->output);
         static::assertNotSame($first, $merged);
@@ -88,8 +88,8 @@ final class OutcomeTest extends TestCase
     #[Test]
     public function sortsTheMergedFailuresByPath(): void
     {
-        $merged = new Outcome(failed: ['site.css' => 'disk full'])
-            ->and(new Outcome(failed: ['images/d.png' => 'not readable']));
+        $merged = new Progress(failed: ['site.css' => 'disk full'])
+            ->and(new Progress(failed: ['images/d.png' => 'not readable']));
 
         // Ordered by path so an operator reads one list, not two phases.
         static::assertSame(['images/d.png', 'site.css'], array_keys($merged->failed));

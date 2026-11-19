@@ -19,7 +19,7 @@ use CommonDoc\Exception\LogicException;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Scan;
 use CommonDoc\Middleware\AssetCopyMiddleware;
-use CommonDoc\Record\Outcome;
+use CommonDoc\Record\Progress;
 use CommonDocTest\Support\AbstractTemporaryTree;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -39,7 +39,7 @@ use function mkdir;
  * The asset pass is a phase, and this is where it runs.
  *
  * Copying has to finish before the first document is rendered, and what it did has
- * to reach the record, so it hands an `Outcome` forward on the message rather than
+ * to reach the record, so it hands an `Progress` forward on the message rather than
  * reporting for itself.
  */
 #[CoversClass(AssetCopyMiddleware::class)]
@@ -64,7 +64,7 @@ final class AssetCopyMiddlewareTest extends AbstractTemporaryTree
         static::assertInstanceOf(BuildSiteCommand::class, $forwarded);
         // Stopping at the first unreadable asset would name one file, and the
         // operator wants the list.
-        static::assertSame(['images/d.png'], $forwarded->getOutcome()->output);
+        static::assertSame(['images/d.png'], $forwarded->getProgress()->output);
         static::assertTrue(is_file("{$this->output}/images/d.png"));
     }
 
@@ -79,8 +79,8 @@ final class AssetCopyMiddlewareTest extends AbstractTemporaryTree
         // An asset is not translated, so the output file is its own site path.
         static::assertSame('PNG', (string) file_get_contents("{$this->output}/images/d.png"));
         static::assertInstanceOf(BuildSiteCommand::class, $forwarded);
-        static::assertSame(['images/d.png'], $forwarded->getOutcome()->output);
-        static::assertSame([], $forwarded->getOutcome()->failed);
+        static::assertSame(['images/d.png'], $forwarded->getProgress()->output);
+        static::assertSame([], $forwarded->getProgress()->failed);
     }
 
     #[Test]
@@ -120,11 +120,11 @@ final class AssetCopyMiddlewareTest extends AbstractTemporaryTree
 
         static::assertInstanceOf(BuildSiteCommand::class, $forwarded);
 
-        $outcome = $forwarded->getOutcome();
+        $progress = $forwarded->getProgress();
 
-        static::assertSame([], $outcome->output);
-        static::assertSame(['site.css'], array_keys($outcome->failed));
-        static::assertNotSame('', $outcome->failed['site.css']);
+        static::assertSame([], $progress->output);
+        static::assertSame(['site.css'], array_keys($progress->failed));
+        static::assertNotSame('', $progress->failed['site.css']);
     }
 
     #[Test]

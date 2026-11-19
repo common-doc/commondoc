@@ -19,7 +19,7 @@ use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Exception\LogicException;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Scan;
-use CommonDoc\Record\Outcome;
+use CommonDoc\Record\Progress;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -36,10 +36,10 @@ use PHPUnit\Framework\TestCase;
 #[CoversMethod(BuildSiteCommand::class, '__construct')]
 #[CoversMethod(BuildSiteCommand::class, 'getCommandName')]
 #[CoversMethod(BuildSiteCommand::class, 'getOutput')]
-#[CoversMethod(BuildSiteCommand::class, 'getOutcome')]
+#[CoversMethod(BuildSiteCommand::class, 'getProgress')]
 #[CoversMethod(BuildSiteCommand::class, 'getRoots')]
 #[CoversMethod(BuildSiteCommand::class, 'getScan')]
-#[CoversMethod(BuildSiteCommand::class, 'withOutcome')]
+#[CoversMethod(BuildSiteCommand::class, 'withProgress')]
 #[CoversMethod(BuildSiteCommand::class, 'withOutput')]
 #[CoversMethod(BuildSiteCommand::class, 'withScan')]
 #[CoversMethod(BuildSiteCommand::class, 'withRoots')]
@@ -60,13 +60,13 @@ final class BuildSiteCommandTest extends TestCase
         );
 
         $written = $command
-            ->withOutcome(new Outcome(output: ['site.css']))
-            ->withOutcome(new Outcome(failed: ['index.md' => 'disk full']));
+            ->withProgress(new Progress(output: ['site.css']))
+            ->withProgress(new Progress(failed: ['index.md' => 'disk full']));
 
-        static::assertSame(['site.css'], $written->getOutcome()->output);
-        static::assertSame(['index.md' => 'disk full'], $written->getOutcome()->failed);
+        static::assertSame(['site.css'], $written->getProgress()->output);
+        static::assertSame(['index.md' => 'disk full'], $written->getProgress()->failed);
         // More than one phase writes files and the build reports them together, so
-        // an outcome adds to what earlier phases did rather than replacing it.
+        // an progress adds to what earlier phases did rather than replacing it.
         static::assertSame($scan, $written->getScan());
     }
 
@@ -144,17 +144,17 @@ final class BuildSiteCommandTest extends TestCase
     }
 
     #[Test]
-    public function leavesTheOriginalAloneWhenAPhaseAddsItsOutcome(): void
+    public function leavesTheOriginalAloneWhenAPhaseAddsItsProgress(): void
     {
         $command = new BuildSiteCommand(
             roots : [new Root(path: 'docs')],
             output: 'build',
         );
 
-        $written = $command->withOutcome(new Outcome(output: ['site.css']));
+        $written = $command->withProgress(new Progress(output: ['site.css']));
 
-        static::assertSame([], $command->getOutcome()->output);
-        static::assertSame(['site.css'], $written->getOutcome()->output);
+        static::assertSame([], $command->getProgress()->output);
+        static::assertSame(['site.css'], $written->getProgress()->output);
     }
 
     #[Test]
@@ -247,10 +247,10 @@ final class BuildSiteCommandTest extends TestCase
         );
 
         // A build that has written nothing has still done nothing, so an empty
-        // outcome is a state rather than a missing precondition. That is what makes
+        // progress is a state rather than a missing precondition. That is what makes
         // it different from the scan, which refuses.
-        static::assertSame([], $command->getOutcome()->output);
-        static::assertSame([], $command->getOutcome()->failed);
+        static::assertSame([], $command->getProgress()->output);
+        static::assertSame([], $command->getProgress()->failed);
     }
 
     #[Test]

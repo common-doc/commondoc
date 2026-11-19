@@ -41,6 +41,11 @@ use Webware\MessageBus\ResultInterface;
  * The record is the only reporting channel, so the non-record case is a test of
  * its own: printing nothing for an unrecognised result is exactly what let an
  * earlier version report a silent no-op as a successful build.
+ *
+ * The exit code comes from the result's status, not from the record, so the
+ * fixtures pair the two the way the handler pairs them. A fixture that reported a
+ * record with failures as a success would be describing something the build cannot
+ * produce.
  */
 #[CoversClass(BuildCommand::class)]
 #[CoversMethod(BuildCommand::class, '__construct')]
@@ -242,12 +247,19 @@ final class BuildCommandTest extends TestCase
 
     private function runWith(mixed $result): CommandTester
     {
+        // The status is derived the way the handler derives it, so the fixture
+        // cannot present a pairing the handler would never produce: a record with
+        // failures reported as a success.
+        $status = $result instanceof BuildRecord && ! $result->complete()
+            ? MessageStatus::Failure
+            : MessageStatus::Success;
+
         $bus = $this->stubBus(new CommandResult(
             command: new BuildSiteCommand(
                 roots : [new Root(path: 'docs')],
                 output: 'out',
             ),
-            status : MessageStatus::Success,
+            status : $status,
             result : $result,
         ));
 
