@@ -20,7 +20,6 @@ use Psl\Filesystem;
 use function array_keys;
 use function is_string;
 use function ksort;
-use function rtrim;
 use function sprintf;
 
 use const SORT_STRING;
@@ -45,8 +44,6 @@ use const SORT_STRING;
 final readonly class Scan
 {
     private const string SEPARATOR = '/';
-
-    private const string SEPARATORS = '/\\';
 
     /**
      * @param array<non-empty-string, non-empty-string> $sources   Site path to the file that holds it
@@ -80,13 +77,20 @@ final readonly class Scan
         $sources = [];
 
         foreach ($roots as $root) {
-            $directory = self::directoryOf($root);
+            // Root guarantees the directory carries no trailing separator, so the
+            // join here has one rule rather than a defensive second normalisation
+            // that no caller could reach.
+            $directory = $root->directory();
 
             foreach (Tree::at($directory)->paths() as $path) {
-                $sources[$root->mountPath($path)] = self::join($directory, $path);
+                $sources[$root->mountPath($path)] = sprintf('%s%s%s', $directory, self::SEPARATOR, $path);
             }
         }
 
+        // Sorted rather than in configuration order: two roots are walked
+        // separately, so the merged list would otherwise depend on how the site was
+        // written down, and a report that reordered itself between runs would be
+        // useless to diff.
         ksort($sources, SORT_STRING);
 
         $paths     = array_keys($sources);
@@ -100,28 +104,6 @@ final readonly class Scan
                 documents: $documents,
             ),
         );
-    }
-
-    /**
-     * The directory to walk, without a trailing separator.
-     *
-     * @return non-empty-string
-     */
-    private static function directoryOf(Root $root): string
-    {
-        $trimmed = rtrim($root->directory(), characters: self::SEPARATORS);
-
-        return '' === $trimmed ? self::SEPARATOR : $trimmed;
-    }
-
-    /**
-     * Two path fragments joined with one separator, whatever the first had.
-     *
-     * @return non-empty-string
-     */
-    private static function join(string $directory, string $path): string
-    {
-        return sprintf('%s%s%s', rtrim($directory, characters: self::SEPARATORS), self::SEPARATOR, $path);
     }
 
     /**

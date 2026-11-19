@@ -16,7 +16,9 @@ namespace CommonDocTest;
 
 use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\Exception\InvalidArgumentException;
+use CommonDoc\Exception\LogicException;
 use CommonDoc\Input\Root;
+use CommonDoc\Input\Scan;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -34,10 +36,55 @@ use PHPUnit\Framework\TestCase;
 #[CoversMethod(BuildSiteCommand::class, 'getCommandName')]
 #[CoversMethod(BuildSiteCommand::class, 'getOutput')]
 #[CoversMethod(BuildSiteCommand::class, 'getRoots')]
+#[CoversMethod(BuildSiteCommand::class, 'getScan')]
 #[CoversMethod(BuildSiteCommand::class, 'withOutput')]
+#[CoversMethod(BuildSiteCommand::class, 'withScan')]
 #[CoversMethod(BuildSiteCommand::class, 'withRoots')]
 final class BuildSiteCommandTest extends TestCase
 {
+    #[Test]
+    public function carriesTheScanForwardAndKeepsTheRest(): void
+    {
+        $scan = new Scan(
+            sources  : [],
+            documents: [],
+            assets   : [],
+        );
+        $command = new BuildSiteCommand(
+            roots : [new Root(path: 'docs')],
+            output: 'build',
+        );
+
+        $scanned = $command->withScan($scan);
+
+        static::assertSame($scan, $scanned->getScan());
+        static::assertSame('build', $scanned->getOutput());
+        static::assertCount(1, $scanned->getRoots());
+    }
+
+    #[Test]
+    public function dropsTheScanWhenTheRootsChange(): void
+    {
+        $scan = new Scan(
+            sources  : [],
+            documents: [],
+            assets   : [],
+        );
+        $scanned = new BuildSiteCommand(
+            roots : [new Root(path: 'docs')],
+            output: 'build',
+        )->withScan($scan);
+
+        // What was found beneath the old roots says nothing about the new ones, so a
+        // request that kept it would build from a discovery it did not make.
+        $this->expectException(LogicException::class);
+
+        $scanned->withRoots([new Root(
+            path : 'other',
+            mount: '/other/',
+        )])->getScan();
+    }
+
     #[Test]
     public function exposesItsRootsAndOutput(): void
     {
@@ -49,6 +96,23 @@ final class BuildSiteCommandTest extends TestCase
 
         static::assertSame([$root], $command->getRoots());
         static::assertSame('build', $command->getOutput());
+    }
+
+    #[Test]
+    public function keepsTheScanWhenOnlyTheOutputChanges(): void
+    {
+        $scan = new Scan(
+            sources  : [],
+            documents: [],
+            assets   : [],
+        );
+        $scanned = new BuildSiteCommand(
+            roots : [new Root(path: 'docs')],
+            output: 'build',
+        )->withScan($scan);
+
+        // Writing somewhere else does not invalidate what was found.
+        static::assertSame($scan, $scanned->withOutput('elsewhere')->getScan());
     }
 
     #[Test]
@@ -97,6 +161,20 @@ final class BuildSiteCommandTest extends TestCase
             roots : [],
             output: 'build',
         );
+    }
+
+    #[Test]
+    public function refusesToReportAScanThatHasNotRun(): void
+    {
+        // A coordinator that also discovered is the arrangement the pipeline
+        // replaces, so the phase order is enforced by the type rather than by a
+        // comment in the handler.
+        $this->expectException(LogicException::class);
+
+        new BuildSiteCommand(
+            roots : [new Root(path: 'docs')],
+            output: 'build',
+        )->getScan();
     }
 
     #[Test]
