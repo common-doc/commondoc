@@ -390,6 +390,23 @@ phase after the handler. `BuildSiteHandler` then holds the encode loops and the
 record, and nothing else. This is the change that makes multi-root a config entry
 instead of a handler rewrite, and it is the precondition for P2 being small.
 
+**Landed, in part.** The scan is now a phase. `Input\Scan` is its result: the
+site-path-to-file map, the documents and the assets, all produced by one walk per
+root. `SourceLoadingMiddleware` runs it and hands it forward with
+`BuildSiteCommand::withScan()`, and the handler calls `getScan()` instead of
+walking. Discovery no longer appears in the handler at all.
+
+Two things learned:
+
+- `getScan()` refuses rather than returning null. A coordinator that also
+  discovered is exactly the arrangement this replaces, so the phase order is
+  enforced by the type rather than by a comment.
+- `withRoots()` drops the scan, because what was found beneath the old roots says
+  nothing about the new ones. A request that kept a stale scan would build from a
+  discovery it did not make.
+
+Still in the handler: asset copying and the record. Reporting has not moved.
+
 **P2. Turn `LinkRewriter` into a `ConfigurableExtensionInterface`.** One addition
 deletes four compensations: the second mode of `MarkdownConverterFactory`, the
 `ServiceLocatorInterface` coercion inside it, the `ServiceLocatorInterface` in the

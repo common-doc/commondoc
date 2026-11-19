@@ -20,6 +20,7 @@ use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\Exception\RuntimeException;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Input\Root;
+use CommonDoc\Input\Scan;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\View\Page;
@@ -330,9 +331,12 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
 
     private function command(): BuildSiteCommand
     {
+        $roots = [new Root(path: $this->source)];
+
         return new BuildSiteCommand(
-            roots : [new Root(path: $this->source)],
+            roots : $roots,
             output: $this->output,
+            scan  : Scan::of($roots),
         );
     }
 
