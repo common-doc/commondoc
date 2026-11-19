@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDoc\Output;
 
+use CommonDoc\DocumentData;
 use CommonDoc\Exception\RuntimeException;
 use CommonDoc\View\Page;
 use Dflydev\DotAccessData\Exception\InvalidPathException;
@@ -228,7 +229,7 @@ final readonly class LinkRewriter
         $document = $event->getDocument();
 
         /** @var mixed $page */
-        $page = $document->data->get('commondoc.page', default: null);
+        $page = $document->data->get(DocumentData::Page->value, default: null);
 
         if (! $page instanceof Page) {
             return;
