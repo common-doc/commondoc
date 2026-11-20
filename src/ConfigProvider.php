@@ -256,13 +256,22 @@ final readonly class ConfigProvider
         ];
     }
 
-    /** @return ViewConfig */
+    /**
+     * The templates a site renders with when it supplies none of its own.
+     *
+     * `default` is the directory name because it is also the theme name the resolver
+     * falls back to, so a site's own theme directory is a sibling of this one rather
+     * than a second naming convention. The addresses carry the package name instead,
+     * because that is the namespace a consumer overrides in, whatever theme is active.
+     *
+     * @return ViewConfig
+     */
     public function getViewConfig(): array
     {
         return [
             'map'    => [
-                'commondoc::document' => dirname(__DIR__) . '/templates/commondoc/document.phtml',
-                'commondoc::layout'   => dirname(__DIR__) . '/templates/commondoc/layout.phtml',
+                'commondoc::document' => dirname(__DIR__) . '/templates/default/document.phtml',
+                'commondoc::layout'   => dirname(__DIR__) . '/templates/default/layout.phtml',
             ],
             'layout' => 'commondoc::layout',
         ];
