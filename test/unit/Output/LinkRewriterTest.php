@@ -208,6 +208,49 @@ final class LinkRewriterTest extends TestCase
     }
 
     #[Test]
+    public function refusesAnAbsoluteTargetThatIsNotInTheScanEvenWhenTheRootHasARepository(): void
+    {
+        // A leading slash is relative to the site root, so it says nothing about the
+        // repository. Falling back to the source for it would answer a question the
+        // document never asked.
+        $link = new Link('/missing.md');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('is neither a document nor an asset the scan found');
+
+        $this->dispatch(
+            [$link],
+            sourcePath: 'message-bus/v2/guide/setup.md',
+            origins: ['/message-bus/v2/' => new Source(
+                'https://github.com/example/message-bus',
+                'abc123',
+                'docs/2.0',
+            )],
+        );
+    }
+
+    #[Test]
+    public function refusesATargetThatClimbsAboveTheRepositoryItself(): void
+    {
+        // A repository is the outermost space there is. A target that leaves it names
+        // no file anywhere, so there is nothing to link to and the refusal stands.
+        $link = new Link('../../../../outside.md');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('leaves the source root');
+
+        $this->dispatch(
+            [$link],
+            sourcePath: 'message-bus/v2/benchmark-results.md',
+            origins: ['/message-bus/v2/' => new Source(
+                'https://github.com/example/message-bus',
+                'abc123',
+                'docs/2.0',
+            )],
+        );
+    }
+
+    #[Test]
     public function refusesATargetThatStaysInsideTheMountButIsNotInTheScan(): void
     {
         // The repository branch must not swallow a genuine broken link: a target that

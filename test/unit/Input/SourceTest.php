@@ -85,6 +85,20 @@ final class SourceTest extends TestCase
     }
 
     #[Test]
+    public function readsTheUrlSpellingOfAnSshRemote(): void
+    {
+        // A checkout may carry either spelling of the same remote, and the published
+        // link must not depend on which one the person who cloned it used.
+        $source = Source::fromRemote(
+            remote: 'ssh://git@github.com/example/repo.git',
+            ref   : 'abc123',
+        );
+
+        static::assertInstanceOf(Source::class, $source);
+        static::assertSame('https://github.com/example/repo', $source->url);
+    }
+
+    #[Test]
     public function refusesAHostItCannotLinkTo(): void
     {
         // A `/blob/<ref>/<path>` URL only exists on a host that serves one, so a
@@ -97,5 +111,18 @@ final class SourceTest extends TestCase
             remote: '/some/local/path',
             ref   : 'abc123',
         ));
+    }
+
+    #[Test]
+    public function skipsAnEmptySegmentInThePath(): void
+    {
+        // A path with a doubled or trailing separator names the same file, and the
+        // empty segment would otherwise become an empty element in the URL.
+        $source = new Source('https://github.com/example/repo', 'abc123');
+
+        static::assertSame(
+            'https://github.com/example/repo/blob/abc123/benchmarks/run.php',
+            $source->at('/benchmarks//run.php'),
+        );
     }
 }

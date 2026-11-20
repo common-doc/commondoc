@@ -16,27 +16,18 @@ namespace CommonDocTest\Input;
 
 use CommonDoc\Input\Source;
 use CommonDoc\Input\SourceReader;
-use FilesystemIterator;
+use CommonDocTest\Support\GitCheckout;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use SplFileInfo;
 
-use function chmod;
-use function exec;
+use function chdir;
 use function file_put_contents;
-use function implode;
-use function is_dir;
-use function is_writable;
+use function getcwd;
 use function mkdir;
-use function rmdir;
-use function sprintf;
 use function sys_get_temp_dir;
 use function uniqid;
-use function unlink;
 
 use const DIRECTORY_SEPARATOR;
 
@@ -54,6 +45,38 @@ use const DIRECTORY_SEPARATOR;
 final class SourceReaderTest extends TestCase
 {
     private string $directory;
+
+    #[Test]
+    public function answersNoPrefixForADirectoryItCannotPlaceBeneathTheTopLevel(): void
+    {
+        // The reader is handed a path git cannot describe, which is what a relative root
+        // looks like from outside the process. Guessing a prefix would point every link
+        // at the wrong file, so the refusal is empty and the caller keeps its own.
+        $repository = $this->repository();
+        $previous   = getcwd();
+
+        static::assertIsString($previous);
+
+        try {
+            chdir($repository);
+
+            $source = new SourceReader()->read('.');
+        } finally {
+            chdir($previous);
+        }
+
+        static::assertInstanceOf(Source::class, $source);
+        static::assertSame('', $source->prefix);
+    }
+
+    #[Test]
+    public function answersNullForAnEmptyDirectory(): void
+    {
+        // `ask()` refuses an empty working directory rather than handing it to the
+        // shell, because a shell started in one would answer for wherever the process
+        // happens to be running instead of for the root that was asked about.
+        static::assertNull(new SourceReader()->read(''));
+    }
 
     #[Test]
     public function answersNullWhenTheDirectoryIsNotACheckout(): void
@@ -110,60 +133,20 @@ final class SourceReaderTest extends TestCase
 
     /**
      * One git command in the fixture, which must succeed.
+     *
+     * @param string ...$values Further sprintf values for the command
      */
-    private function git(string $arguments): void
+    private function git(string $arguments, string ...$values): void
     {
-        $output = [];
-        $code   = 0;
-
-        exec(
-            command    : sprintf('git -C "%s" %s 2>&1', $this->directory, $arguments),
-            output     : $output,
-            result_code: $code,
-        );
-
-        static::assertSame(0, $code, sprintf('git %s failed: %s', $arguments, implode("\n", $output)));
+        GitCheckout::run($this->directory, $arguments, ...$values);
     }
 
     /**
-     * Removes the fixture, clearing the read-only bit first.
-     *
-     * Git marks the objects it writes read-only, and Windows refuses to delete a file
-     * carrying that bit. The existing tests never met it because they remove build
-     * output rather than a repository.
+     * Removes the fixture.
      */
     private function remove(string $directory): void
     {
-        if (! is_dir($directory)) {
-            return;
-        }
-
-        $entries = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST,
-        );
-
-        /** @var SplFileInfo $entry */
-        foreach ($entries as $entry) {
-            $path = $entry->getPathname();
-
-            if (! is_writable($path)) {
-                chmod(
-                    filename   : $path,
-                    permissions: 0o777,
-                );
-            }
-
-            if ($entry->isDir()) {
-                rmdir($path);
-
-                continue;
-            }
-
-            unlink($path);
-        }
-
-        rmdir($directory);
+        GitCheckout::remove($directory);
     }
 
     /**
@@ -171,20 +154,8 @@ final class SourceReaderTest extends TestCase
      */
     private function repository(): string
     {
-        $repository = $this->directory;
+        GitCheckout::create($this->directory);
 
-        file_put_contents(
-            filename: "{$repository}/README.md",
-            data    : "# Fixture\n",
-        );
-
-        $this->git('init --quiet');
-        $this->git('remote add origin https://github.com/example/fixture.git');
-        $this->git('config user.email fixture@example.com');
-        $this->git('config user.name Fixture');
-        $this->git('add README.md');
-        $this->git('commit --quiet -m fixture');
-
-        return $repository;
+        return $this->directory;
     }
 }
