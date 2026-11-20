@@ -227,6 +227,7 @@ These are known gaps rather than behaviour to rely on:
 
 ## Related
 
+- [Extensions](extensions.md) lists what loads by default and how a site adds its own
 - [Site configuration](configuration.md) covers composition, mounts and targets
 - [Documents](../concepts/document.md) defines what counts as a document
 - [Addresses and files](../concepts/address.md) covers what a path becomes
