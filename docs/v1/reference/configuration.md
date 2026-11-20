@@ -4,9 +4,15 @@ A build is described by one section, keyed by `CommonDoc\SiteConfig::class`, so 
 deployment states its own values in its own autoload file and this package never
 names one.
 
+One key is not in that section. The base path is stated as
+`view_helper_config.base_path`, because that is the value Laminas view's
+`BasePath` helper answers with when a template composes a link. Reading it in one
+place is what stops the addresses a build writes from drifting away from the
+addresses a template emits. A site section that states `basePath` is refused rather
+than read, and the refusal names the key that is used instead.
+
 | Key | Meaning |
 | --- | --- |
-| `basePath` | The path the site is served at, such as `/` or `/commondoc/` |
 | `pathType` | `Directory` publishes `guide/setup.md` at `/guide/setup/`, served by an `index.html` inside it. `File` publishes it at `/guide/setup.html` |
 | `output` | The directory a build writes to |
 | `target` | Where a repository keeps its documentation, relative to that repository's root |
@@ -14,6 +20,25 @@ names one.
 | `projectName` | The display name every page carries, or empty for none |
 | `projectSlug` | The identifier every page carries, or empty for none |
 | `versionLabel` | The version this build documents, or empty for none |
+
+The base path is the applied address space, so it is stated once at the top of the
+configuration rather than in this section:
+
+```php
+return [
+    'view_helper_config' => [
+        // A project site publishes under its repository name.
+        'base_path' => '/commondoc/',
+    ],
+    CommonDoc\SiteConfig::class => [
+        'output' => 'build',
+        'roots'  => [
+            ['repository' => '.', 'mount' => '/'],
+        ],
+    ],
+];
+```
+
 
 ## Composition
 
@@ -35,7 +60,7 @@ target, and several repositories can share a target.
 followed by its path inside that root, so once the mount is applied everything
 downstream sees one address space.
 
-With `basePath` at `/`:
+With `base_path` at `/`:
 
 | Entry | Publishes |
 | --- | --- |

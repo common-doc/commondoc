@@ -40,10 +40,14 @@ final class SiteConfigFactoryTest extends TestCase
 {
     /**
      * @param array<array-key, mixed> $section
+     * @param array<array-key, mixed> $viewHelperConfig
      */
-    private static function config(array $section): array
+    private static function config(array $section, array $viewHelperConfig = ['base_path' => '/']): array
     {
-        return [SiteConfig::class => $section];
+        return [
+            SiteConfig::class    => $section,
+            'view_helper_config' => $viewHelperConfig,
+        ];
     }
 
     /**
@@ -63,15 +67,20 @@ final class SiteConfigFactoryTest extends TestCase
 
     /**
      * @param array<array-key, mixed> $section
+     * @param array<array-key, mixed> $viewHelperConfig
      */
-    private static function site(array $section = []): SiteConfig
-    {
+    private static function site(
+        array $section = [],
+        array $viewHelperConfig = ['base_path' => '/'],
+    ): SiteConfig {
         return new SiteConfigFactory()(
-            self::container(self::config([
-                'basePath' => '/',
-                'pathType' => PathType::Directory,
-                ...$section,
-            ])),
+            self::container(self::config(
+                section         : [
+                    'pathType' => PathType::Directory,
+                    ...$section,
+                ],
+                viewHelperConfig: $viewHelperConfig,
+            )),
             SiteConfig::class,
         );
     }
@@ -160,7 +169,7 @@ final class SiteConfigFactoryTest extends TestCase
         // A deployment with one wrong key should still build, so a section that
         // does not match the shape is replaced rather than refused.
         $site = new SiteConfigFactory()(
-            self::container(self::config(['basePath' => 42])),
+            self::container(self::config([], ['base_path' => 42])),
             SiteConfig::class,
         );
 
@@ -178,15 +187,17 @@ final class SiteConfigFactoryTest extends TestCase
     }
 
     #[Test]
-    public function readsTheAddressSpaceAndTheIdentityFromOneSection(): void
+    public function readsTheAddressSpaceFromTheViewHelperConfigAndTheIdentityFromTheSiteSection(): void
     {
-        $site = self::site([
-            'basePath'     => '/repo/',
-            'pathType'     => PathType::File,
-            'projectName'  => 'CommonDoc',
-            'projectSlug'  => 'commondoc',
-            'versionLabel' => '1.0',
-        ]);
+        $site = self::site(
+            section         : [
+                'pathType'     => PathType::File,
+                'projectName'  => 'CommonDoc',
+                'projectSlug'  => 'commondoc',
+                'versionLabel' => '1.0',
+            ],
+            viewHelperConfig: ['base_path' => '/repo/'],
+        );
 
         static::assertSame('/repo/', $site->documentRoot->basePath);
         static::assertSame(PathType::File, $site->documentRoot->pathType);
@@ -215,6 +226,18 @@ final class SiteConfigFactoryTest extends TestCase
     }
 
     #[Test]
+    public function refusesABasePathStatedInTheSiteSection(): void
+    {
+        // Two sources for one address space drift, and the loser is invisible: the
+        // build writes one prefix while a template emits another. Naming where the
+        // value moved is the only way an operator can find out.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/view_helper_config\.base_path/');
+
+        self::site(section: ['basePath' => '/repo/']);
+    }
+
+    #[Test]
     public function refusesABasePathThatCannotPrefixAnAddress(): void
     {
         // The fallback above covers a section it cannot read. This is a section it
@@ -222,7 +245,7 @@ final class SiteConfigFactoryTest extends TestCase
         // that owns the rule rather than to the reader.
         $this->expectException(InvalidArgumentException::class);
 
-        self::site(['basePath' => 'repo']);
+        self::site(viewHelperConfig: ['base_path' => 'repo']);
     }
 
     #[Test]
