@@ -27,11 +27,13 @@ uses:
 
 This package registers both in Laminas view's template map and sets
 `templates.layout` to `commondoc::layout`, so a site with no theme configured gets
-the built-in templates.
+the built-in templates from `templates/default/`.
 
 ## Replacing a template
 
-A site states its templates under the `theme` key, one map per theme name:
+A site states its templates under the `theme` key, one map per theme name. The map
+below is the sibling directory described in
+[Where the built-in templates live](#where-the-built-in-templates-live):
 
 ```php
 return [
@@ -192,13 +194,30 @@ a null check rather than assuming it:
 It receives nothing else, and it is rendered for any page the renderer wraps, so it
 must not assume a page exists.
 
+## Where the built-in templates live
+
+This package ships `templates/default/`, holding `document.phtml` and `layout.phtml`.
+The directory is named for the theme the resolver falls back to, so a site's own
+theme directory is a sibling:
+
+```
+templates/
+  default/
+    document.phtml
+    layout.phtml
+  webware/
+    document.phtml
+    layout.phtml
+```
+
+A site does not edit anything under `default/`. It adds its own directory beside it
+and states that directory in `theme.themes`, which is why the two can be upgraded
+independently.
+
 ## Not settled yet
 
 These are known gaps rather than behaviour to rely on:
 
-- The built-in templates are at `templates/commondoc/`. They are intended to move
-  to `templates/default/` so a site's theme is a sibling directory rather than a
-  second naming convention.
 - The built-in templates render a bare page with a title and no stylesheet. The
   default is intended to be a styled theme in its own right.
 - There is no landing page template. A composed site's root page is a document like
