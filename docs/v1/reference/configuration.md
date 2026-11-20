@@ -156,6 +156,7 @@ nothing renders a per-page table of contents.
 
 ## Related
 
+- [Extensions](extensions.md) lists what loads by default and how a site adds its own
 - [Theme and templates](theme.md) covers how a site supplies its own templates and assets
 - [Documents](../concepts/document.md) defines what counts as a document
 - [Addresses and files](../concepts/address.md) covers what a path becomes

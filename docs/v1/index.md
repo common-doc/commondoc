@@ -26,6 +26,8 @@ conversion.
 - [Site configuration](reference/configuration.md) covers composition, mounts and targets.
 - [Theme and templates](reference/theme.md) covers how a site supplies its own
   templates and assets.
+- [Extensions](reference/extensions.md) lists what loads by default and how a site
+  adds its own.
 - [Command reference](reference/cli.md) lists the arguments and exit codes.
 - [GitHub action](reference/action.md) builds the site from a workflow with no
   toolchain on the runner.
