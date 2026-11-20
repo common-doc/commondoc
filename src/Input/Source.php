@@ -34,7 +34,7 @@ use function substr;
  * unpublishable without editing it.
  *
  * This type is what those links resolve against. It carries the repository URL,
- * the ref that was read, and the path from the repository root to the source
+ * the commit that was read, and the path from the repository root to the source
  * root, because a target written inside a document is relative to that root and
  * has to be resolved against the repository to be meaningful.
  *
@@ -58,7 +58,7 @@ final readonly class Source
 
     /**
      * @param string $url    The repository URL, without a trailing `.git` or slash
-     * @param string $ref    The branch or tag that was read, such as `2.0.x`
+     * @param string $ref    The git ref the link addresses, normally the commit that was read
      * @param string $prefix The path from the repository root to the source root, such as
      *                       `docs/2.0`, or an empty string when the root is the repository
      */
@@ -76,7 +76,7 @@ final readonly class Source
      * either way and the documentation being built should not depend on which.
      *
      * @param string $remote The output of `git remote get-url origin`
-     * @param string $ref    The branch or tag that was read
+     * @param string $ref    The git ref the link addresses, normally the commit that was read
      * @param string $prefix The path from the repository root to the source root
      *
      * @return self|null Null when the remote is not a GitHub repository this type can build
