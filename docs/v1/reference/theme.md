@@ -153,10 +153,11 @@ so a site served under a prefix composes the two in its template:
 ```
 
 `basePath()` reads `view_helper_config.base_path` and returns it with a trailing
-slash removed, so `/commondoc/` and `/commondoc` are the same value. Nothing wires
-that key from the site's `basePath`, so a site served under a prefix states it in
-both places: `basePath` decides the addresses the build writes, and
-`view_helper_config.base_path` decides what a template's `basePath()` call returns.
+slash removed, so `/commondoc/` and `/commondoc` are the same value. That is also
+where the build reads its address space, so the site states the prefix once and both
+sides follow it. Measured: setting `base_path` to `/commondoc/` publishes a page at
+`/commondoc/getting-started/` and makes `basePath()` return `/commondoc`, which
+composes with an asset address without a doubled or missing slash.
 
 ## What the templates receive
 

@@ -24,6 +24,11 @@ declare(strict_types=1);
  * the build emits is made from it, so a wrong value produces a site that looks
  * right on disk and resolves nothing once served.
  *
+ * It is stated once, as `view_helper_config.base_path`, because that is the value
+ * the `BasePath` helper answers with when a template composes a link. The site
+ * section does not state it: one value decides both the addresses a build writes
+ * and the addresses a template emits, so the two cannot drift.
+ *
  * `roots` is the site's composition: each entry names a repository and the prefix it
  * publishes at. An entry may also name its own `target`, which is where that
  * repository keeps its documentation; the site-level `target` is the answer for every
@@ -46,9 +51,11 @@ use CommonDoc\Output\PathType;
 use CommonDoc\SiteConfig;
 
 return [
+    // A project site publishes under its repository name, e.g. '/commondoc/'.
+    'view_helper_config' => [
+        'base_path' => '/',
+    ],
     SiteConfig::class => [
-        // A project site publishes under its repository name, e.g. '/commondoc/'.
-        'basePath'     => '/',
         'pathType'     => PathType::Directory,
         'output'       => 'build',
         // Where a repository keeps its documentation, relative to its root. A composed

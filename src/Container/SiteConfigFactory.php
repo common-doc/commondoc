@@ -26,8 +26,10 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
+use function array_key_exists;
 use function is_array;
 use function is_string;
+use function sprintf;
 
 /**
  * Construction seam for the site, and the only reader of its section.
@@ -45,6 +47,13 @@ use function is_string;
  * Reading the roots is `RootReader`'s job, because reading a list is a different
  * job from reading a scalar.
  *
+ * One key is not read from this section at all. The base path belongs to
+ * `view_helper_config.base_path`, because the `BasePath` helper answers with that
+ * value when a template composes a link, and a second copy here would let the
+ * addresses a build writes drift away from the addresses a template emits. A site
+ * section that still states `basePath` is refused rather than read, so the stale key
+ * cannot be silently beaten by a value the operator has forgotten about.
+ *
  * @internal
  */
 final readonly class SiteConfigFactory implements FactoryInterface
@@ -52,6 +61,38 @@ final readonly class SiteConfigFactory implements FactoryInterface
     private const string DEFAULT_BASE_PATH = '/';
 
     private const string DEFAULT_OUTPUT = 'build';
+
+    /** Where Laminas view keeps the helper configuration. */
+    private const string VIEW_HELPER_CONFIG = 'view_helper_config';
+
+    /** The key `BasePath` answers with, inside {@see self::VIEW_HELPER_CONFIG}. */
+    private const string BASE_PATH = 'base_path';
+
+    /**
+     * The address space, read from the view helper configuration.
+     *
+     * The base path is stated once, as `view_helper_config.base_path`, because that is
+     * the value Laminas view's `BasePath` helper answers with when a template composes
+     * a link. Reading it here rather than keeping a second copy in the site section is
+     * what stops the addresses a build writes from drifting away from the addresses a
+     * template emits: one value decides both.
+     *
+     * Laminas view declares the key with a `null` default, and a null is not an address,
+     * so it is answered with `/` like any other unreadable value.
+     */
+    private static function basePath(mixed $config): string
+    {
+        /** @var mixed $helperConfig */
+        $helperConfig = is_array($config) ? $config[self::VIEW_HELPER_CONFIG] ?? null : null;
+
+        $helperConfig = is_array($helperConfig) ? $helperConfig : [];
+
+        return self::text(
+            section: $helperConfig,
+            key    : self::BASE_PATH,
+            default: self::DEFAULT_BASE_PATH,
+        );
+    }
 
     /**
      * The output layout, or the directory layout when the configured value is not
@@ -78,18 +119,24 @@ final readonly class SiteConfigFactory implements FactoryInterface
      *
      * @return array{roots: list<Root>, basePath: string, pathType: PathType, output: string, projectName: string, projectSlug: string, versionLabel: string}
      *
-     * @throws InvalidArgumentException When a configured mount cannot prefix an address
+     * @throws InvalidArgumentException When a configured mount cannot prefix an address,
+     *         or when the site section states a base path that belongs in the view
+     *         helper configuration
      */
     private static function section(mixed $config): array
     {
         $section = self::sectionOf($config);
 
+        if (array_key_exists('basePath', $section)) {
+            throw new InvalidArgumentException(sprintf(
+                'The site section states "basePath", which is read from "%s.%s" instead, because one value has to decide both the addresses a build writes and the addresses a template emits.',
+                self::VIEW_HELPER_CONFIG,
+                self::BASE_PATH,
+            ));
+        }
+
         return [
-            'basePath'     => self::text(
-                section: $section,
-                key    : 'basePath',
-                default: self::DEFAULT_BASE_PATH,
-            ),
+            'basePath'     => self::basePath($config),
             'pathType'     => self::pathType(section: $section),
             'output'       => self::text(
                 section: $section,
