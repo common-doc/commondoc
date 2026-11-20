@@ -105,11 +105,23 @@ template. It is not caught here, because a missing body template is a configurat
 
 ## Continuous integration
 
-This repository has no `.github/workflows` directory. `webware-ci.json` is the parameter
-contract for the required workflow hosted in `webinertia/.github`, which applies to
-repositories in that organization only, so nothing reads it here today. A workflow of this
-repository's own has to be added, or `webware-ci.json` removed, when that decision is taken.
-No workflow file is provided by this repository today.
+Two workflows run here, and they come from different places.
+
+`.github/workflows/publish-image.yml` is this repository's own. It builds
+`docker/Dockerfile` once, asserts the built image carries the build command, renders a
+document, and only then pushes, so the artifact asserted is the artifact published. It
+runs on a version tag or by manual dispatch.
+
+Everything else, the test matrix, Mago, mutation testing and Codecov, is supplied by the
+organization ruleset `Continuous Integration` rather than by a file in this repository.
+`webware-ci.json` at the root is the parameter contract that workflow reads.
+
+## Roadmap
+
+What is left before a release, including the decisions still open, is tracked in the
+[commondoc roadmap](https://github.com/orgs/common-doc/projects/1). Its readme is the
+durable record of ordering and blockers; check it rather than inferring current state
+from a branch.
 
 ## Quality gates
 
