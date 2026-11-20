@@ -294,6 +294,7 @@ final class BuildCorpusTest extends TestCase
                     'reference/action.md',
                     'reference/cli.md',
                     'reference/configuration.md',
+                    'reference/theme.md',
                 ],
                 $raw->output,
             );
@@ -310,6 +311,7 @@ final class BuildCorpusTest extends TestCase
                     'reference/action/index.html',
                     'reference/cli/index.html',
                     'reference/configuration/index.html',
+                    'reference/theme/index.html',
                 ],
                 $this->written($output),
             );

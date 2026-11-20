@@ -24,6 +24,8 @@ conversion.
 - [Getting started](getting-started.md) explains how to run a build.
 - [Concepts](concepts/index.md) covers the two ideas the whole tool rests on.
 - [Site configuration](reference/configuration.md) covers composition, mounts and targets.
+- [Theme and templates](reference/theme.md) covers how a site supplies its own
+  templates and assets.
 - [Command reference](reference/cli.md) lists the arguments and exit codes.
 - [GitHub action](reference/action.md) builds the site from a workflow with no
   toolchain on the runner.
