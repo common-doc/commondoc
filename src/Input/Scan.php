@@ -49,11 +49,13 @@ final readonly class Scan
      * @param array<non-empty-string, non-empty-string> $sources   Site path to the file that holds it
      * @param list<non-empty-string>                    $documents The site paths that are documents
      * @param list<non-empty-string>                    $assets    The site paths that are not
+     * @param array<non-empty-string, Source>           $origins   Site path prefix to the repository that holds it
      */
     public function __construct(
         public array $sources,
         public array $documents,
         public array $assets,
+        public array $origins = [],
     ) {}
 
     /**
@@ -75,12 +77,20 @@ final readonly class Scan
     public static function of(array $roots): self
     {
         $sources = [];
+        $origins = [];
+        $reader  = new SourceReader();
 
         foreach ($roots as $root) {
             // Root guarantees the directory carries no trailing separator, so the
             // join here has one rule rather than a defensive second normalisation
             // that no caller could reach.
             $directory = $root->directory();
+
+            $source = $reader->read($directory);
+
+            if (null !== $source) {
+                $origins[$root->mount] = $source;
+            }
 
             foreach (Tree::at($directory)->paths() as $path) {
                 $sources[$root->mountPath($path)] = sprintf('%s%s%s', $directory, self::SEPARATOR, $path);
@@ -103,6 +113,7 @@ final readonly class Scan
                 paths    : $paths,
                 documents: $documents,
             ),
+            origins  : $origins,
         );
     }
 

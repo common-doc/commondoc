@@ -14,9 +14,12 @@ declare(strict_types=1);
 
 namespace CommonDocTest\Output;
 
+use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\LinkRewriter;
 use CommonDoc\Output\PathType;
+use CommonDoc\Output\SourceLinks;
+use CommonDoc\Output\SourcePath;
 use CommonDoc\View\Page;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\Node\Inline\AbstractWebResource;
@@ -40,6 +43,8 @@ use RuntimeException;
  * target unchanged would pass every happy-path test and still ship a dead site.
  */
 #[CoversClass(LinkRewriter::class)]
+#[CoversClass(SourceLinks::class)]
+#[CoversClass(SourcePath::class)]
 #[CoversMethod(LinkRewriter::class, '__construct')]
 #[CoversMethod(LinkRewriter::class, '__invoke')]
 final class LinkRewriterTest extends TestCase
@@ -125,6 +130,28 @@ final class LinkRewriterTest extends TestCase
     }
 
     #[Test]
+    public function keepsTheSuffixWhenATargetResolvesToTheRepository(): void
+    {
+        // The target climbs out of the source root but stays inside the repository,
+        // so the URL has to be composed from the repository path rather than from
+        // the site path it resolved to.
+        $link = new Link('../../contributing.md#the-rule');
+
+        static::assertSame(
+            'https://github.com/example/message-bus/blob/abc123/docs/contributing.md#the-rule',
+            $this->targetOf(
+                $link,
+                from: 'message-bus/v2/guide/setup.md',
+                origins: ['/message-bus/v2/' => new Source(
+                    'https://github.com/example/message-bus',
+                    'abc123',
+                    'docs/2.0',
+                )],
+            ),
+        );
+    }
+
+    #[Test]
     public function keepsTheSuffixWhileMappingAnAsset(): void
     {
         // An asset goes through the second translation, and that branch has to
@@ -181,6 +208,22 @@ final class LinkRewriterTest extends TestCase
     }
 
     #[Test]
+    public function refusesATargetThatStaysInsideTheMountButIsNotInTheScan(): void
+    {
+        // The repository branch must not swallow a genuine broken link: a target that
+        // never left the mount is still a dead link on the published site.
+        $link = new Link('missing.md');
+
+        $this->expectException(RuntimeException::class);
+
+        $this->dispatch(
+            [$link],
+            sourcePath: 'message-bus/v2/guide/setup.md',
+            origins: ['/message-bus/v2/' => new Source('https://github.com/example/message-bus', 'abc123')],
+        );
+    }
+
+    #[Test]
     public function resolvesACurrentDirectorySegment(): void
     {
         $link = new Link('./intro.md');
@@ -216,6 +259,65 @@ final class LinkRewriterTest extends TestCase
     }
 
     #[Test]
+    public function rewritesATargetAboveTheMountToTheRepositoryItCameFrom(): void
+    {
+        // A document may point at a directory the site does not publish: a benchmark
+        // note names `benchmarks/`, a contributing guide names a workflow file. Those
+        // are links to the source, and refusing them would make a repository's own
+        // documentation unpublishable without editing it.
+        $link = new Link('../../benchmarks/');
+
+        static::assertSame(
+            'https://github.com/example/message-bus/blob/abc123/benchmarks',
+            $this->targetOf(
+                $link,
+                from: 'message-bus/v2/benchmark-results.md',
+                origins: ['/message-bus/v2/' => new Source(
+                    'https://github.com/example/message-bus',
+                    'abc123',
+                    'docs/2.0',
+                )],
+            ),
+        );
+    }
+
+    #[Test]
+    public function rewritesATargetThatClimbsAboveARootMountedAtTheSiteRoot(): void
+    {
+        // A site that mounts a repository's docs directory at `/` is only as deep as
+        // that directory, so a link written against the repository leaves the site on
+        // its second parent segment. The repository is still the space it names, and
+        // the climb is why the site-space answer cannot be the only one consulted.
+        $link = new Link('../../benchmarks/');
+
+        static::assertSame(
+            'https://github.com/example/message-bus/blob/abc123/benchmarks',
+            $this->targetOf(
+                $link,
+                from: 'benchmark-results.md',
+                origins: ['/' => new Source(
+                    'https://github.com/example/message-bus',
+                    'abc123',
+                    'docs/2.0',
+                )],
+            ),
+        );
+    }
+
+    #[Test]
+    public function stillRefusesATargetAboveTheMountWhenTheRootHasNoRepository(): void
+    {
+        // A `path` root assembled outside a repository has no source to point at, so
+        // the refusal is the honest answer rather than a link to nowhere.
+        $link = new Link('../../benchmarks/');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('is neither a document nor an asset the scan found');
+
+        $this->dispatch([$link], sourcePath: 'message-bus/v2/benchmark-results.md');
+    }
+
+    #[Test]
     public function usesTheFileLayoutWhenTheRootPublishesFiles(): void
     {
         $link = new Link('intro.md');
@@ -228,16 +330,20 @@ final class LinkRewriterTest extends TestCase
 
     /**
      * @param list<AbstractWebResource> $nodes
+     *
+     * @param array<non-empty-string, Source> $origins
      */
     private function dispatch(
         array $nodes,
         ?string $sourcePath,
         PathType $pathType = PathType::Directory,
+        array $origins = [],
     ): void {
         $rewriter = new LinkRewriter(
             new DocumentRoot('/repo/', $pathType),
             self::DOCUMENTS,
             self::ASSETS,
+            $origins,
         );
 
         $rewriter(new DocumentParsedEvent(self::document($sourcePath, $nodes)));
@@ -246,13 +352,16 @@ final class LinkRewriterTest extends TestCase
     /**
      * Runs the listener over one document and returns the rewritten target of
      * the node under test.
+     *
+     * @param array<non-empty-string, Source> $origins
      */
     private function targetOf(
         AbstractWebResource $node,
         string $from,
         PathType $pathType = PathType::Directory,
+        array $origins = [],
     ): string {
-        $this->dispatch([$node], $from, $pathType);
+        $this->dispatch([$node], $from, $pathType, $origins);
 
         return $node->getUrl();
     }

@@ -53,6 +53,8 @@ final readonly class Root
      * The mount prefix, with exactly one trailing slash.
      *
      * `/` for a root that is the site, `/guide/` for one published beneath it.
+     *
+     * @var non-empty-string A mount always starts with a slash, so it is never empty
      */
     public string $mount;
 
@@ -72,6 +74,8 @@ final readonly class Root
     /**
      * A mount prefix with exactly one trailing slash.
      *
+     * @return non-empty-string A mount always starts with a slash, so it is never empty
+     *
      * @throws InvalidArgumentException When the value cannot prefix an address
      */
     private static function normalize(string $mount): string
@@ -90,6 +94,7 @@ final readonly class Root
             ));
         }
 
+        /** @var non-empty-string $mount A leading slash was required above, so this cannot be empty */
         return str_ends_with($mount, self::SEPARATOR) ? $mount : "{$mount}/";
     }
 

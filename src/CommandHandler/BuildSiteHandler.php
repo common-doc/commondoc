@@ -158,6 +158,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
                 $this->services->build(ConverterInterface::class, [
                     'documents' => $documents,
                     'assets'    => $assets,
+                    'origins'   => $scan->origins,
                 ]),
             );
 
