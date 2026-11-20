@@ -33,7 +33,7 @@ use function is_string;
  * one with `build()`, which the service manager never caches, and passes only
  * what differs per document: its local path and its label. Everything shared by
  * every page in a deployment (the project name, the slug, the version label) comes
- * from `SiteConfig`, and the address is derived from the translation that site
+ * from `SiteConfig`, and the published path is derived from the translation that site
  * carries rather than accepted, so a page cannot carry a URL that disagrees with
  * the file the write pass produces for the same document.
  *
@@ -92,7 +92,7 @@ final readonly class PageFactory implements FactoryInterface
 
         // The site carries the translation, so it is read once here rather than
         // fetched again: a second fetch could only return the same object, and a
-        // second source for an address is a second rule.
+        // second source for a path is a second rule.
         $site = Type\instance_of(SiteConfig::class)->coerce($container->get(SiteConfig::class));
 
         return new Page(

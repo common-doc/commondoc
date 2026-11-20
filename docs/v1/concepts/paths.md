@@ -1,13 +1,13 @@
-# Addresses and files
+# Paths and files
 
 A document has two locations, and they are not the same string:
 
 | | Document | Asset |
 | --- | --- | --- |
-| Address on the site | base path, then the path with `index` folded | base path, then the path |
-| File in the output directory | the address with `index.html` | the path, unchanged |
+| Path on the site | base path, then the path with `index` folded | base path, then the path |
+| File in the output directory | the path with `index.html` | the path, unchanged |
 
-The asymmetry is deliberate. The address carries the base path, because that is
+The asymmetry is deliberate. The published path carries the base path, because that is
 how the site is reached. The file does not, because the output directory is
 mounted at the base path rather than containing it.
 
@@ -16,7 +16,7 @@ mounted at the base path rather than containing it.
 A document named `index` is the index of its own directory, not a directory of
 its own. One rule produces every case:
 
-| Source path | Address | Output file |
+| Source path | Published path | Output file |
 | --- | --- | --- |
 | `index.md` | `/` | `index.html` |
 | `guide/index.md` | `/guide/` | `guide/index.html` |
@@ -27,15 +27,15 @@ directory would have no index at all.
 
 ## Two path types
 
-The default writes `index.html` inside a directory, so addresses end in a slash.
+The default writes `index.html` inside a directory, so published paths end in a slash.
 The alternative writes one file per document, so the file name is visible in the
-address:
+path:
 
-| Source path | Address (directory) | Address (file) |
+| Source path | Path (directory) | Path (file) |
 | --- | --- | --- |
 | `guide/setup.md` | `/guide/setup/` | `/guide/setup.html` |
 
-Either way, the address and the file serving it come from one translation, so
+Either way, the published path and the file serving it come from one translation, so
 they cannot drift apart.
 
 ## The base path
@@ -53,7 +53,7 @@ It must start with a slash and must not carry more than one trailing slash.
 
 ## Assets
 
-An asset is not translated. It is copied where it sits, so its address is the
+An asset is not translated. It is copied where it sits, so its published path is the
 base path followed by its own path, and its output file is its own path:
 
 - `assets/site.css` is published at `/assets/site.css` and written to

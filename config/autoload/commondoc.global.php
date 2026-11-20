@@ -20,14 +20,14 @@ declare(strict_types=1);
  * is, because the branch would be a copy of the base path.
  *
  * The base path is configuration only and cannot be passed on a command line. It
- * describes how the site is served rather than how it is built, and every address
+ * describes how the site is served rather than how it is built, and every path
  * the build emits is made from it, so a wrong value produces a site that looks
  * right on disk and resolves nothing once served.
  *
  * It is stated once, as `view_helper_config.base_path`, because that is the value
  * the `BasePath` helper answers with when a template composes a link. The site
- * section does not state it: one value decides both the addresses a build writes
- * and the addresses a template emits, so the two cannot drift.
+ * section does not state it: one value decides both the paths a build writes
+ * and the paths a template emits, so the two cannot drift.
  *
  * `roots` is the site's composition: each entry names a repository and the prefix it
  * publishes at. An entry may also name its own `target`, which is where that
@@ -35,7 +35,7 @@ declare(strict_types=1);
  * entry that states none. The default here is this repository's own documentation, so
  * a run with no arguments builds this site; a deployment states its own. Mounts must
  * be exclusive, and `SiteConfig` refuses a combination where one root's files would
- * be published at an address belonging to another.
+ * be published at a path belonging to another.
  *
  * The target is why nothing here hard-codes `docs/v1`. A repository migrating from
  * DocBook keeps its sources in `docs/book`, and that is a value the operator supplies

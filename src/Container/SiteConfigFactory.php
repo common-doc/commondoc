@@ -43,14 +43,14 @@ use function sprintf;
  * with one typo should still build, and it costs one setting instead of all of them.
  * The refusals that matter are left to the types that own them: `DocumentRoot`
  * rejects a base path it cannot prefix with, `Root` rejects a mount it cannot prefix
- * with, and `SiteConfig` rejects two roots that would publish at one address.
+ * with, and `SiteConfig` rejects two roots that would publish at one path.
  * Reading the roots is `RootReader`'s job, because reading a list is a different
  * job from reading a scalar.
  *
  * One key is not read from this section at all. The base path belongs to
  * `view_helper_config.base_path`, because the `BasePath` helper answers with that
  * value when a template composes a link, and a second copy here would let the
- * addresses a build writes drift away from the addresses a template emits. A site
+ * paths a build writes drift away from the paths a template emits. A site
  * section that still states `basePath` is refused rather than read, so the stale key
  * cannot be silently beaten by a value the operator has forgotten about.
  *
@@ -69,15 +69,15 @@ final readonly class SiteConfigFactory implements FactoryInterface
     private const string BASE_PATH = 'base_path';
 
     /**
-     * The address space, read from the view helper configuration.
+     * The path space, read from the view helper configuration.
      *
      * The base path is stated once, as `view_helper_config.base_path`, because that is
      * the value Laminas view's `BasePath` helper answers with when a template composes
      * a link. Reading it here rather than keeping a second copy in the site section is
-     * what stops the addresses a build writes from drifting away from the addresses a
+     * what stops the paths a build writes from drifting away from the paths a
      * template emits: one value decides both.
      *
-     * Laminas view declares the key with a `null` default, and a null is not an address,
+     * Laminas view declares the key with a `null` default, and a null is not a path,
      * so it is answered with `/` like any other unreadable value.
      */
     private static function basePath(mixed $config): string
@@ -119,7 +119,7 @@ final readonly class SiteConfigFactory implements FactoryInterface
      *
      * @return array{roots: list<Root>, basePath: string, pathType: PathType, output: string, projectName: string, projectSlug: string, versionLabel: string}
      *
-     * @throws InvalidArgumentException When a configured mount cannot prefix an address,
+     * @throws InvalidArgumentException When a configured mount cannot prefix a path,
      *         or when the site section states a base path that belongs in the view
      *         helper configuration
      */
@@ -129,7 +129,7 @@ final readonly class SiteConfigFactory implements FactoryInterface
 
         if (array_key_exists('basePath', $section)) {
             throw new InvalidArgumentException(sprintf(
-                'The site section states "basePath", which is read from "%s.%s" instead, because one value has to decide both the addresses a build writes and the addresses a template emits.',
+                'The site section states "basePath", which is read from "%s.%s" instead, because one value has to decide both the paths a build writes and the paths a template emits.',
                 self::VIEW_HELPER_CONFIG,
                 self::BASE_PATH,
             ));
@@ -211,8 +211,8 @@ final readonly class SiteConfigFactory implements FactoryInterface
      *
      * @throws ContainerExceptionInterface When the config service cannot be fetched
      * @throws InvalidArgumentException When the configured base path cannot prefix a path,
-     *         when a configured mount cannot prefix an address, or when two configured
-     *         roots would publish at one address
+     *         when a configured mount cannot prefix a path, or when two configured
+     *         roots would publish at one path
      * @throws NotFoundExceptionInterface When the config service is not registered
      */
     #[Override]

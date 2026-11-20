@@ -1,7 +1,7 @@
 # Documents
 
 A document is a file whose name ends in `.md`. That is the whole definition, and
-it is decided in one place, so the scan and the address translation cannot
+it is decided in one place, so the scan and the path translation cannot
 disagree about what counts.
 
 ## Discovery
@@ -49,5 +49,5 @@ The target must resolve to something the scan found. A document that links to a
 file which does not exist fails the build and names both sides of the link,
 because publishing it would put a dead link on the site.
 
-See [Addresses and files](address.md#the-index-rule) for what a target becomes,
+See [Paths and files](paths.md#the-index-rule) for what a target becomes,
 and [Getting started](../getting-started.md) for how to run a build.

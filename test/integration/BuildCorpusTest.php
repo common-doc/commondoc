@@ -82,7 +82,7 @@ final class BuildCorpusTest extends TestCase
     private const string CORPUS = __DIR__ . '/../../docs/v1';
 
     #[Test]
-    public function composesTwoRepositoriesIntoOneAddressSpace(): void
+    public function composesTwoRepositoriesIntoOnePathSpace(): void
     {
         // The capability the whole layer exists for: two source directories, each
         // published beneath its own mount, producing one site. The relative links
@@ -141,7 +141,7 @@ final class BuildCorpusTest extends TestCase
                 relative : 'two/concepts/document/index.html',
             );
 
-            static::assertStringContainsString('href="/two/concepts/address/#the-index-rule"', $document);
+            static::assertStringContainsString('href="/two/concepts/paths/#the-index-rule"', $document);
             static::assertStringContainsString('href="/two/getting-started/"', $document);
         } finally {
             $this->removeDirectory($source);
@@ -229,14 +229,14 @@ final class BuildCorpusTest extends TestCase
 
             // A target relative to the document's own directory, carrying a
             // fragment that survives the rewrite untouched.
-            static::assertStringContainsString('href="/concepts/address/#the-index-rule"', $document);
+            static::assertStringContainsString('href="/concepts/paths/#the-index-rule"', $document);
 
             // And the fragment resolves, because the heading carries the plain slug
             // as its own id. A prefix on the id would leave the authored fragment
             // pointing at nothing, and would force every link builder to learn it.
             $target = $this->read(
                 directory: $output,
-                relative : 'concepts/address/index.html',
+                relative : 'concepts/paths/index.html',
             );
 
             static::assertStringContainsString('<h2 id="the-index-rule">', $target);
@@ -254,21 +254,21 @@ final class BuildCorpusTest extends TestCase
             static::assertStringContainsString('href="/concepts/"', $index);
             static::assertStringContainsString('href="/reference/cli/"', $index);
 
-            $address = $this->read(
+            $published = $this->read(
                 directory: $output,
-                relative : 'concepts/address/index.html',
+                relative : 'concepts/paths/index.html',
             );
 
-            // Two assets, addressed where they are copied.
-            static::assertStringContainsString('href="/assets/site.css"', $address);
-            static::assertStringContainsString('src="/assets/flow.svg"', $address);
+            // Two assets, published where they are copied.
+            static::assertStringContainsString('href="/assets/site.css"', $published);
+            static::assertStringContainsString('src="/assets/flow.svg"', $published);
         } finally {
             $this->removeDirectory($output);
         }
     }
 
     #[Test]
-    public function writesTheCorpusAtTheAddressesItsSourcesImply(): void
+    public function writesTheCorpusAtThePathsItsSourcesImply(): void
     {
         $output = $this->temporaryDirectory();
 
@@ -286,9 +286,9 @@ final class BuildCorpusTest extends TestCase
                 [
                     'assets/flow.svg',
                     'assets/site.css',
-                    'concepts/address.md',
                     'concepts/document.md',
                     'concepts/index.md',
+                    'concepts/paths.md',
                     'getting-started.md',
                     'index.md',
                     'reference/action.md',
@@ -304,9 +304,9 @@ final class BuildCorpusTest extends TestCase
                 [
                     'assets/flow.svg',
                     'assets/site.css',
-                    'concepts/address/index.html',
                     'concepts/document/index.html',
                     'concepts/index.html',
+                    'concepts/paths/index.html',
                     'getting-started/index.html',
                     'index.html',
                     'reference/action/index.html',

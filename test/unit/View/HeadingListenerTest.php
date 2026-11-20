@@ -44,9 +44,9 @@ final class HeadingListenerTest extends TestCase
     #[Test]
     public function collectsEveryHeadingWithTheIdTheRendererEmits(): void
     {
-        $context = $this->convert("# Addresses\n\ntext\n\n## The index rule\n\n### Deep\n");
+        $context = $this->convert("# Paths\n\ntext\n\n## The index rule\n\n### Deep\n");
 
-        static::assertSame(['addresses', 'the-index-rule', 'deep'], $this->fragments($context));
+        static::assertSame(['paths', 'the-index-rule', 'deep'], $this->fragments($context));
         static::assertSame([1, 2, 3], $this->levels($context));
     }
 

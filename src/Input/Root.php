@@ -29,13 +29,13 @@ use function str_starts_with;
  * repositories. Rather than inventing a second kind of build, each repository is
  * a root with a mount prefix, and the prefix is the whole mechanism: a file is
  * published at the prefix followed by its path inside that root. Once the mount
- * is applied, everything downstream sees one address space and one set of paths,
+ * is applied, everything downstream sees one path space and one set of paths,
  * exactly as a single-root build did.
  *
  * Mounts must be exclusive. Two roots at `/a/` and `/a/b/` would both claim
  * `/a/b/x.md`, and which one won would depend on iteration order, so
  * `SiteConfig` refuses the combination rather than letting a build publish a file
- * from one repository at an address belonging to another.
+ * from one repository at a path belonging to another.
  *
  * The directory is deliberately not checked here. Whether a directory exists is
  * a filesystem question, and the walk answers it with the path in the message;
@@ -62,7 +62,7 @@ final readonly class Root
      * @param string $path  The directory holding this root's files
      * @param string $mount The prefix it is published at
      *
-     * @throws InvalidArgumentException When the mount cannot prefix an address
+     * @throws InvalidArgumentException When the mount cannot prefix a path
      */
     public function __construct(
         public string $path,
@@ -76,7 +76,7 @@ final readonly class Root
      *
      * @return non-empty-string A mount always starts with a slash, so it is never empty
      *
-     * @throws InvalidArgumentException When the value cannot prefix an address
+     * @throws InvalidArgumentException When the value cannot prefix a path
      */
     private static function normalize(string $mount): string
     {
@@ -127,7 +127,7 @@ final readonly class Root
     }
 
     /**
-     * Whether this root and another would publish at overlapping addresses.
+     * Whether this root and another would publish at overlapping paths.
      *
      * Equality is included because two roots at one mount is the same ambiguity
      * as one mount beneath another: a path would have two owners.

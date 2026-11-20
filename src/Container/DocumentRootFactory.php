@@ -26,7 +26,7 @@ use Psr\Container\NotFoundExceptionInterface;
 /**
  * Serves the site's translation under its own name.
  *
- * The root is the address space of the site, so it belongs to `SiteConfig` and is
+ * The root is the path space of the site, so it belongs to `SiteConfig` and is
  * read from configuration once. Collaborators that only translate a path ask for
  * this rather than for the whole site, which keeps a page factory from depending on
  * the site identity it does not use.

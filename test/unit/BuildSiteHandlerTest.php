@@ -178,7 +178,7 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
     }
 
     #[Test]
-    public function refusesTwoDocumentsThatPublishAtOneAddress(): void
+    public function refusesTwoDocumentsThatPublishAtOnePath(): void
     {
         $this->writeFile('source/guide/setup.md', contents: "# Setup\n");
         $this->writeFile('source/guide/setup/index.md', contents: "# Nested\n");

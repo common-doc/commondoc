@@ -27,8 +27,8 @@ use PHPUnit\Framework\TestCase;
  * The site holds what is constant for one deployment.
  *
  * The invariant worth its own test is that mounts are exclusive. Two roots whose
- * addresses overlap leave the owner of a path to iteration order, and the result is
- * a file from one repository published at an address belonging to another, which
+ * paths overlap leave the owner of a path to iteration order, and the result is
+ * a file from one repository published at a path belonging to another, which
  * nobody can diagnose from the site.
  */
 #[CoversClass(SiteConfig::class)]
@@ -56,7 +56,7 @@ final class SiteConfigTest extends TestCase
     }
 
     #[Test]
-    public function holdsTheAddressSpaceTheRootsAndTheIdentity(): void
+    public function holdsThePathSpaceTheRootsAndTheIdentity(): void
     {
         $documentRoot = new DocumentRoot('/repo/');
         $root         = new Root(path: 'docs');

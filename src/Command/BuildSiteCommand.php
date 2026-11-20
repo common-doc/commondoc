@@ -32,7 +32,7 @@ use Webware\MessageBus\Command\NamedCommandInterface;
  *
  * The roots are a list because a site may be composed from more than one
  * repository. Each is mounted at a prefix, and the prefix is the whole mechanism
- * that turns several repositories into one address space.
+ * that turns several repositories into one path space.
  *
  * Immutable, so a phase that needs to hand something forward returns a new
  * instance rather than writing to this one. `PipelineHandlerInterface::handle()`

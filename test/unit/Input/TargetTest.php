@@ -74,8 +74,8 @@ final class TargetTest extends TestCase
     {
         // The whole point of the type: DocBook sources, a per-major directory, anything.
         static::assertSame(
-            'checkouts/address/docs/book',
-            new Target('docs/book')->at(repositoryRoot: 'checkouts/address'),
+            'checkouts/example/docs/book',
+            new Target('docs/book')->at(repositoryRoot: 'checkouts/example'),
         );
     }
 
@@ -211,8 +211,8 @@ final class TargetTest extends TestCase
     public function resolvesAgainstARepositoryRoot(): void
     {
         static::assertSame(
-            'checkouts/address/docs/v1',
-            new Target()->at(repositoryRoot: 'checkouts/address'),
+            'checkouts/example/docs/v1',
+            new Target()->at(repositoryRoot: 'checkouts/example'),
         );
     }
 

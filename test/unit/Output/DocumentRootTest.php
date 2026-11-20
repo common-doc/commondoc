@@ -38,7 +38,7 @@ final class DocumentRootTest extends TestCase
     }
 
     #[Test]
-    public function keepsTheFileRelativeWhileTheAddressCarriesThePrefix(): void
+    public function keepsTheFileRelativeWhileThePublishedPathCarriesThePrefix(): void
     {
         $root = new DocumentRoot('/repo/');
 
@@ -47,7 +47,7 @@ final class DocumentRootTest extends TestCase
     }
 
     #[Test]
-    public function publishesADocumentAsADirectoryAddress(): void
+    public function publishesADocumentAsADirectoryPath(): void
     {
         $root = new DocumentRoot('/');
 
@@ -81,9 +81,9 @@ final class DocumentRootTest extends TestCase
     {
         $root = new DocumentRoot('/repo/');
 
-        // An asset has no suffix to map and no index to imply, so the address is
+        // An asset has no suffix to map and no index to imply, so the path is
         // the base path and the path. Anything else would publish an image at an
-        // address the copy pass does not write it to.
+        // path the copy pass does not write it to.
         static::assertSame('/repo/images/diagram.png', $root->asset('images/diagram.png'));
         static::assertSame('/repo/diagram.png', $root->asset('diagram.png'));
     }

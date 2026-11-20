@@ -17,10 +17,10 @@ output is written; the file itself never becomes a page on the site.
 
 ## What a build asks for
 
-The renderer asks for a template by address, and these are the addresses a build
+The renderer asks for a template by name, and these are the names a build
 uses:
 
-| Address | Renders |
+| Name | Renders |
 | --- | --- |
 | `commondoc::document` | One document's body |
 | `commondoc::layout` | The shell wrapped around every document |
@@ -49,13 +49,13 @@ return [
 ];
 ```
 
-`theme.active` names the theme in use. A map is keyed by the exact address the
+`theme.active` names the theme in use. A map is keyed by the exact name the
 renderer asks for, so a hit is a lookup and nothing touches the filesystem.
 
-### Fallback is per address
+### Fallback is per name
 
-The `default` theme is the fallback for every other theme, resolved address by
-address rather than as a whole. With `theme.active` set to `webware`, the address
+The `default` theme is the fallback for every other theme, resolved one name at a
+time rather than as a whole. With `theme.active` set to `webware`, the name
 `commondoc::document` renders the first of these that exists:
 
 1. `theme.themes.webware['commondoc::document']`
@@ -72,7 +72,7 @@ beginning with a hyphen or underscore, is refused when the helper is built.
 ## Ordering the resolver
 
 The theme is consulted before the template map, which is what lets a site's file
-win over the identical address this package registered. That ordering is declared
+win over the identical name this package registered. That ordering is declared
 by the theme package rather than left to the order of a provider list, so a site
 does not have to arrange its own `config.php` to get it. It does require that
 config is aggregated by a manager that understands provider ordering, such as
@@ -81,8 +81,8 @@ provider last.
 
 ## Assets
 
-Asset names are declared per theme, and the helper turns a relative value into an
-address under the theme that defined it:
+Asset names are declared per theme, and the helper turns a relative value into a
+path under the theme that defined it:
 
 ```php
 'theme' => [
@@ -109,7 +109,7 @@ With `webware` active, measured in a build:
 | `$this->asset('bootstrap')` | `https://cdn.example/bootstrap.min.css` |
 
 The `default` theme's values are laid in first and the active theme's over them, so
-a name the active theme does not declare is served from `default`, and the address
+a name the active theme does not declare is served from `default`, and the path
 names `default` because that is the theme that defined it.
 
 A value beginning with `https://`, `http://` or `//` is passed through unchanged.
@@ -121,9 +121,9 @@ base of the merged map, so a site that already declares assets there keeps worki
 
 ### Publishing the files
 
-The helper returns an address; it does not copy anything. For
+The helper returns a path; it does not copy anything. For
 `/theme/webware/css/theme.css` to resolve on the published site, the file has to be
-published at that address. It already is, provided the theme directory sits inside
+published at that path. It already is, provided the theme directory sits inside
 the site's own source root:
 
 ```
@@ -139,7 +139,7 @@ Wrote theme/webware/css/theme.css
 ```
 
 Only `.md` files become documents, so the theme's CSS, JavaScript and images are
-copied unchanged by the ordinary asset pass, at the address the helper emits. There
+copied unchanged by the ordinary asset pass, at the path the helper emits. There
 is nothing to configure for this and no second root to add: a root mounted at
 `/theme/` alongside a root at `/` is refused as overlapping, and it would say the
 same thing twice anyway. A theme directory belongs in the repository that builds the
@@ -156,10 +156,10 @@ so a site served under a prefix composes the two in its template:
 
 `basePath()` reads `view_helper_config.base_path` and returns it with a trailing
 slash removed, so `/commondoc/` and `/commondoc` are the same value. That is also
-where the build reads its address space, so the site states the prefix once and both
+where the build reads its path space, so the site states the prefix once and both
 sides follow it. Measured: setting `base_path` to `/commondoc/` publishes a page at
 `/commondoc/getting-started/` and makes `basePath()` return `/commondoc`, which
-composes with an asset address without a doubled or missing slash.
+composes with an asset path without a doubled or missing slash.
 
 ## What the templates receive
 
@@ -230,4 +230,4 @@ These are known gaps rather than behaviour to rely on:
 - [Extensions](extensions.md) lists what loads by default and how a site adds its own
 - [Site configuration](configuration.md) covers composition, mounts and targets
 - [Documents](../concepts/document.md) defines what counts as a document
-- [Addresses and files](../concepts/address.md) covers what a path becomes
+- [Paths and files](../concepts/paths.md) covers what a path becomes

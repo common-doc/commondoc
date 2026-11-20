@@ -45,7 +45,7 @@ php vendor/bin/webware commondoc:build C:\docs C:\out
 ## Where a build writes
 
 The output directory is created as needed. A document is written to the file its
-address implies, and an asset is copied to its own relative path. Neither
+published path implies, and an asset is copied to its own relative path. Neither
 operation overwrites anything outside the output directory.
 
 ## Building this repository's own docs
@@ -55,5 +55,5 @@ php vendor/bin/webware commondoc:build "$PWD\docs\v1" --output "$PWD\build"
 ```
 
 The `assets` in that tree exist so the asset pass and the link rewriter are both
-exercised by a normal build. See [Assets](concepts/address.md) for how an asset
-address differs from a document address.
+exercised by a normal build. See [Paths and files](concepts/paths.md) for how an
+asset path differs from a document path.

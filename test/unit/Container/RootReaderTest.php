@@ -145,10 +145,10 @@ final class RootReaderTest extends TestCase
     }
 
     #[Test]
-    public function refusesAMountThatCannotPrefixAnAddress(): void
+    public function refusesAMountThatCannotPrefixAPath(): void
     {
         // A mount is not a typo in the same sense as a missing path: publishing at
-        // an address the operator did not write is worse than refusing to start.
+        // a path the operator did not write is worse than refusing to start.
         $this->expectException(InvalidArgumentException::class);
 
         new RootReader()->read([['path' => 'docs', 'mount' => 'docs']]);

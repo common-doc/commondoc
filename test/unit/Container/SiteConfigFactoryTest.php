@@ -28,7 +28,7 @@ use Psr\Container\ContainerInterface;
  * The site is read from one section, and a section that does not fit is replaced
  * rather than refused.
  *
- * Both halves matter. Reading it once is what stops the address space and the
+ * Both halves matter. Reading it once is what stops the path space and the
  * identity from being described in two places that can drift. Falling back is what
  * keeps a deployment with one misspelled key buildable, while the value that
  * genuinely cannot work is still refused by `DocumentRoot`, which is where the
@@ -187,7 +187,7 @@ final class SiteConfigFactoryTest extends TestCase
     }
 
     #[Test]
-    public function readsTheAddressSpaceFromTheViewHelperConfigAndTheIdentityFromTheSiteSection(): void
+    public function readsThePathSpaceFromTheViewHelperConfigAndTheIdentityFromTheSiteSection(): void
     {
         $site = self::site(
             section         : [
@@ -228,7 +228,7 @@ final class SiteConfigFactoryTest extends TestCase
     #[Test]
     public function refusesABasePathStatedInTheSiteSection(): void
     {
-        // Two sources for one address space drift, and the loser is invisible: the
+        // Two sources for one path space drift, and the loser is invisible: the
         // build writes one prefix while a template emits another. Naming where the
         // value moved is the only way an operator can find out.
         $this->expectException(InvalidArgumentException::class);
@@ -238,7 +238,7 @@ final class SiteConfigFactoryTest extends TestCase
     }
 
     #[Test]
-    public function refusesABasePathThatCannotPrefixAnAddress(): void
+    public function refusesABasePathThatCannotPrefixAPath(): void
     {
         // The fallback above covers a section it cannot read. This is a section it
         // can read, holding a value that cannot work, and that belongs to the type

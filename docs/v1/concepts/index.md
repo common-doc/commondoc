@@ -5,7 +5,7 @@ Two ideas carry the whole tool. Everything else is a consequence of them.
 | Concept | Question it answers | Page |
 | --- | --- | --- |
 | Document | What is a document, and how is it found? | [Documents](document.md) |
-| Address | Where does a document live, on disk and on the site? | [Addresses and files](address.md) |
+| Path | Where does a document live, on disk and on the site? | [Paths and files](paths.md) |
 
 ## Why the split matters
 

@@ -29,9 +29,9 @@ use function is_array;
  * entry means is `RootEntryReader`'s job, for the same reason one level down.
  *
  * An entry that cannot name a directory is treated as a typo and dropped, so one wrong
- * entry costs itself rather than the whole list. A mount that cannot prefix an address
+ * entry costs itself rather than the whole list. A mount that cannot prefix a path
  * is not a typo in the same sense: `Root` refuses it with the value in the message,
- * because a build that published at an address the operator did not write would be
+ * because a build that published at a path the operator did not write would be
  * worse than one that refused to start.
  *
  * @internal
@@ -67,8 +67,8 @@ final readonly class RootReader
      *
      * @return list<Root>
      *
-     * @throws InvalidArgumentException When an entry names a mount that cannot prefix an
-     *                                  address, or a repository whose documentation is not
+     * @throws InvalidArgumentException When an entry names a mount that cannot prefix a
+     *                                  path, or a repository whose documentation is not
      *                                  at its target
      */
     public function read(mixed $configured, ?Target $fallback = null): array
