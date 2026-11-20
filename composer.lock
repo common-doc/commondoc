@@ -5605,16 +5605,16 @@
         },
         {
             "name": "webware/webware-theme",
-            "version": "1.0.0-alpha.6",
+            "version": "1.0.0-alpha.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/webware-theme.git",
-                "reference": "d11b5769ccf92fbe47c9cb50b04765a6bf7d3990"
+                "reference": "b1a04ce0e6526c77be78f70812c7f7703ec8cc26"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/webware-theme/zipball/d11b5769ccf92fbe47c9cb50b04765a6bf7d3990",
-                "reference": "d11b5769ccf92fbe47c9cb50b04765a6bf7d3990",
+                "url": "https://api.github.com/repos/webinertia/webware-theme/zipball/b1a04ce0e6526c77be78f70812c7f7703ec8cc26",
+                "reference": "b1a04ce0e6526c77be78f70812c7f7703ec8cc26",
                 "shasum": ""
             },
             "require": {
@@ -5629,6 +5629,7 @@
                 "phpunit/phpunit": "^13.4.4",
                 "roave/backward-compatibility-check": "^8.21.0",
                 "roave/security-advisories": "dev-master",
+                "webware/webware-configmanager": "^1.0.0-alpha.4",
                 "webware/webware-tools": "^1.0.0-rc.14"
             },
             "type": "library",
@@ -5662,10 +5663,10 @@
             ],
             "support": {
                 "issues": "https://github.com/webinertia/webware-theme/issues",
-                "source": "https://github.com/webinertia/webware-theme/tree/1.0.0-alpha.6"
+                "source": "https://github.com/webinertia/webware-theme/tree/1.0.0-alpha.7"
             },
-            "time": "2026-11-14T02:06:31+00:00",
-            "published-time": "2026-11-14T02:10:52+00:00"
+            "time": "2026-11-20T02:05:51+00:00",
+            "published-time": "2026-11-20T02:09:02+00:00"
         }
     ],
     "packages-dev": [

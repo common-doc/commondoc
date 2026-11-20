@@ -131,6 +131,7 @@ nothing renders a per-page table of contents.
 
 ## Related
 
+- [Theme and templates](theme.md) covers how a site supplies its own templates and assets
 - [Documents](../concepts/document.md) defines what counts as a document
 - [Addresses and files](../concepts/address.md) covers what a path becomes
 - [Command reference](cli.md) lists the arguments and exit codes
