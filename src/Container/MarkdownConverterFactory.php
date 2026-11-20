@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace CommonDoc\Container;
 
 use CommonDoc\CommonMarkEvent;
+use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\LinkRewriter;
 use Laminas\ServiceManager\Factory\FactoryInterface;
@@ -28,6 +29,8 @@ use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
+
+use function is_array;
 
 /**
  * Construction seam for the Markdown converter, in its two modes.
@@ -62,18 +65,48 @@ final readonly class MarkdownConverterFactory implements FactoryInterface
      *
      * @param ?array<array-key, mixed> $options
      *
-     * @return null|array{documents: list<non-empty-string>, assets: list<non-empty-string>}
+     * @return null|array{documents: list<non-empty-string>, assets: list<non-empty-string>, origins?: array<non-empty-string, Source>}
      *
      * @throws Type\Exception\ExceptionInterface When a shape key holds the wrong type
      */
     private static function scanFrom(?array $options): ?array
     {
-        $spec = Type\shape([
+        if (! is_array($options)) {
+            return null;
+        }
+
+        $lists = Type\shape([
             'documents' => Type\vec(Type\non_empty_string()),
             'assets'    => Type\vec(Type\non_empty_string()),
         ]);
 
-        return $spec->matches($options) ? $spec->coerce($options) : null;
+        // Validated over a narrowed array rather than over the whole options
+        // argument: `Type\shape` refuses an unknown key, so pointing it at the
+        // options would make every caller that passes a third value look like "no
+        // scan" and silently drop the rewriter. Narrowing keeps the two lists
+        // strict and lets the map be optional.
+        $narrowed = [
+            'documents' => $options['documents'] ?? null,
+            'assets'    => $options['assets'] ?? null,
+        ];
+
+        if (! $lists->matches($narrowed)) {
+            return null;
+        }
+
+        $scan = $lists->coerce($narrowed);
+
+        /** @var mixed $origins Deliberately untyped: the shape below decides what it is */
+        $origins = $options['origins'] ?? [];
+
+        $origins = Type\dict(Type\non_empty_string(), Type\instance_of(Source::class))
+            ->coerce(is_array($origins) ? $origins : []);
+
+        return [
+            'documents' => $scan['documents'],
+            'assets'    => $scan['assets'],
+            'origins'   => $origins,
+        ];
     }
 
     /**
@@ -111,7 +144,7 @@ final readonly class MarkdownConverterFactory implements FactoryInterface
 
         $environment->addEventListener(
             CommonMarkEvent::DocumentParsed->value,
-            new LinkRewriter($root, $scan['documents'], $scan['assets']),
+            new LinkRewriter($root, $scan['documents'], $scan['assets'], $scan['origins'] ?? []),
         );
 
         return new MarkdownConverter($environment);

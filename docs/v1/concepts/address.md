@@ -74,9 +74,39 @@ it:
 - every other target is relative to the directory holding the document, which is
   what makes a source tree renamable
 
-Both `.` and `..` are resolved. A target that climbs above the source root is
-refused, because it names a file that cannot be published, and clamping it would
-silently publish a link to something else.
+Both `.` and `..` are resolved. A target that climbs above the source root names
+a file that cannot be published, and clamping it would silently publish a link to
+something else, so the climb is refused rather than clamped. The one exception is
+a root that came from a repository, which can resolve it; see below.
 
 A fragment or query suffix is preserved: `document.md#discovery` becomes the
-document's address with `#discovery` appended.
+document's published path with `#discovery` appended.
+
+## Links to the source
+
+Documentation links to things it does not publish: a benchmark result, a workflow
+file, a directory of examples. Those targets have no published path, but they are
+in the repository the root was read from, so the build points at that instead of
+failing.
+
+| Target | Written in | Becomes |
+| --- | --- | --- |
+| `../../benchmarks/` | `docs/2.0/benchmark-results.md` | `https://github.com/<owner>/<repo>/blob/<commit>/benchmarks` |
+| `../../.github/workflows/ci.yml` | `docs/2.0/contributing.md` | `https://github.com/<owner>/<repo>/blob/<commit>/.github/workflows/ci.yml` |
+
+The commit that was read is used rather than a branch name, so a published site
+keeps pointing at the tree it was built from.
+
+The same applies to a target that climbs above the site root, which is the case
+whenever a root mounted at `/` is shallower than the repository holding it: the
+site is only as deep as the mount, so a link written against the repository
+legitimately reaches past it.
+
+Three things are never rewritten to the source, and keep the refusal instead:
+
+- a target in a root that is not a git checkout, has no `origin`, or whose remote
+  is not a GitHub URL
+- a target that still resolves inside the root that was walked, because that is a
+  genuinely dead link rather than a link to the source
+- a target beginning with `/`, because it is relative to the site root and says
+  nothing about the repository

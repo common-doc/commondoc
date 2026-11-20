@@ -16,6 +16,7 @@ namespace CommonDoc\Output;
 
 use CommonDoc\DocumentData;
 use CommonDoc\Exception\RuntimeException;
+use CommonDoc\Input\Source;
 use CommonDoc\View\Page;
 use Dflydev\DotAccessData\Exception\InvalidPathException;
 use InvalidArgumentException;
@@ -24,10 +25,6 @@ use League\CommonMark\Extension\CommonMark\Node\Inline\AbstractWebResource;
 
 use function array_fill_keys;
 use function array_key_exists;
-use function array_pop;
-use function dirname;
-use function explode;
-use function implode;
 use function preg_match;
 use function sprintf;
 use function str_starts_with;
@@ -70,26 +67,24 @@ final readonly class LinkRewriter
     /** The characters that end the path part of a target. */
     private const string SUFFIX_START = '#?';
 
-    private const string SEPARATOR = '/';
-
-    private const string CURRENT = '.';
-
-    private const string PARENT = '..';
-
     /** @var array<non-empty-string, true> */
     private array $documents;
 
     /** @var array<non-empty-string, true> */
     private array $assets;
 
+    private SourceLinks $links;
+
     /**
-     * @param list<non-empty-string> $documents Every document the scan discovered
-     * @param list<non-empty-string> $assets    Every path that is not a document
+     * @param list<non-empty-string>          $documents Every document the scan discovered
+     * @param list<non-empty-string>          $assets    Every path that is not a document
+     * @param array<non-empty-string, Source> $origins   Site path prefix to the repository holding it
      */
     public function __construct(
         private DocumentRoot $root,
         array $documents,
         array $assets,
+        array $origins = [],
     ) {
         $this->documents = array_fill_keys(
             keys : $documents,
@@ -99,61 +94,7 @@ final readonly class LinkRewriter
             keys : $assets,
             value: true,
         );
-    }
-
-    /**
-     * The local path a target names, with every `.` and `..` removed.
-     *
-     * An absolute target is relative to the source root, because the published
-     * site begins at the root and that is the only absolute space a reader
-     * knows about. Everything else is relative to the directory holding the
-     * document, which is what makes a source tree renamable: `../images/d.png`
-     * keeps working wherever the document that writes it is moved.
-     *
-     * @throws RuntimeException when the path climbs above the source root
-     */
-    private function candidate(string $path, string $from): string
-    {
-        $base = str_starts_with($path, self::SEPARATOR) ? '' : dirname($from);
-
-        return $this->normalize($base . self::SEPARATOR . $path);
-    }
-
-    /**
-     * The path with empty, current and parent segments resolved.
-     *
-     * A path that leaves the root is refused rather than clamped: it names a
-     * file that cannot be published, and a clamp would silently publish a link
-     * to something else.
-     *
-     * @throws RuntimeException when a parent segment would climb above the root
-     */
-    private function normalize(string $path): string
-    {
-        $segments = [];
-
-        foreach (explode(self::SEPARATOR, $path) as $segment) {
-            if ('' === $segment || self::CURRENT === $segment) {
-                continue;
-            }
-
-            if (self::PARENT !== $segment) {
-                $segments[] = $segment;
-
-                continue;
-            }
-
-            if ([] === $segments) {
-                throw new RuntimeException(sprintf(
-                    'The path "%s" leaves the source root.',
-                    $path,
-                ));
-            }
-
-            array_pop($segments);
-        }
-
-        return implode(self::SEPARATOR, $segments);
+        $this->links = new SourceLinks($origins);
     }
 
     /**
@@ -190,14 +131,54 @@ final readonly class LinkRewriter
             return $target;
         }
 
-        $candidate = $this->candidate($path, $from);
+        $published = null;
+
+        try {
+            $published = $this->servedAt($path, $target, $from);
+        } catch (RuntimeException $refused) {
+            // Where the target still resolves inside the repository the root came
+            // from, it is a link to the source: a document may point at a directory
+            // or a file it does not publish, and refusing that would make a
+            // repository's own documentation unpublishable without editing it.
+            $above = $this->links->at($path, $from);
+
+            if (null === $above) {
+                throw $refused;
+            }
+
+            return $above . $suffix;
+        }
+
+        return $published . $suffix;
+    }
+
+    /**
+     * The published path the build serves a target at.
+     *
+     * Recomputation can produce a path for anything, so only the discovered sets can
+     * say the target is real. A target that resolves to nothing is refused here rather
+     * than reported as missing later, because a link to a file that does not exist is
+     * a build failure and not something to publish.
+     *
+     * @param string $path   The target with its query and fragment removed
+     * @param string $target The target exactly as the document wrote it, for the refusal
+     * @param string $from   The local path of the document holding the link
+     *
+     * @throws InvalidArgumentException from the translation, which the membership
+     *         check makes unreachable; it is declared because the translation declares it
+     * @throws RuntimeException when the target resolves to nothing the scan found, or
+     *         climbs above the site root
+     */
+    private function servedAt(string $path, string $target, string $from): string
+    {
+        $candidate = SourcePath::resolve($path, $from);
 
         if (array_key_exists($candidate, $this->documents)) {
-            return $this->root->published($candidate) . $suffix;
+            return $this->root->published($candidate);
         }
 
         if (array_key_exists($candidate, $this->assets)) {
-            return $this->root->asset($candidate) . $suffix;
+            return $this->root->asset($candidate);
         }
 
         throw new RuntimeException(sprintf(

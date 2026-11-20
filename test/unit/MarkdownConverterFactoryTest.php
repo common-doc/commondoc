@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace CommonDocTest;
 
 use CommonDoc\Container\MarkdownConverterFactory;
+use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
@@ -68,6 +69,26 @@ final class MarkdownConverterFactoryTest extends TestCase
 
         static::assertStringNotContainsString('/guide/intro/', $html);
         static::assertStringContainsString('intro.md', $html);
+    }
+
+    #[Test]
+    public function keepsTheRewriterWhenTheScanCarriesOrigins(): void
+    {
+        // `Type\shape` refuses an unknown key, so validating the whole options array
+        // with it made a third key look like "no scan" and silently dropped the
+        // rewriter: every link then shipped exactly as written and the build
+        // reported success. This pins that a scan with origins still rewrites.
+        $converter = new MarkdownConverterFactory()(
+            $this->container(),
+            MarkdownConverter::class,
+            [
+                'documents' => ['guide/intro.md'],
+                'assets'    => [],
+                'origins'   => ['/' => new Source('https://github.com/example/repo', 'abc123')],
+            ],
+        );
+
+        static::assertStringContainsString('/guide/intro/', (string) $converter->convert('[intro](intro.md)'));
     }
 
     #[Test]

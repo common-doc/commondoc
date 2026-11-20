@@ -17,23 +17,18 @@ namespace CommonDocTest\Input;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Scan;
+use CommonDocTest\Support\GitCheckout;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use SplFileInfo;
 
 use function array_keys;
 use function bin2hex;
 use function file_put_contents;
-use function is_dir;
 use function mkdir;
 use function random_bytes;
-use function rmdir;
 use function sys_get_temp_dir;
-use function unlink;
 
 use const DIRECTORY_SEPARATOR;
 
@@ -130,6 +125,34 @@ final class ScanTest extends TestCase
     }
 
     #[Test]
+    public function recordsTheRepositoryARootCameFrom(): void
+    {
+        // Origins are how a link that leaves the site is resolved, and the scan is the
+        // only place they are read, so a root that was walked without its repository
+        // being asked would silently cost every source link in the build.
+        $tree = $this->temporaryTree();
+
+        try {
+            GitCheckout::create($tree);
+
+            file_put_contents(
+                filename: "{$tree}/index.md",
+                data    : "# Index\n",
+            );
+
+            $scan = Scan::of([new Root(
+                path : $tree,
+                mount: '/docs/',
+            )]);
+
+            static::assertSame(['/docs/'], array_keys($scan->origins));
+            static::assertSame('https://github.com/example/fixture', $scan->origins['/docs/']->url);
+        } finally {
+            $this->removeDirectory($tree);
+        }
+    }
+
+    #[Test]
     public function refusesAPathTheScanDidNotFind(): void
     {
         // A miss is a defect in this package, not something a deployment can cause.
@@ -185,27 +208,7 @@ final class ScanTest extends TestCase
 
     private function removeDirectory(string $directory): void
     {
-        if (! is_dir($directory)) {
-            return;
-        }
-
-        $entries = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST,
-        );
-
-        /** @var SplFileInfo $entry */
-        foreach ($entries as $entry) {
-            if ($entry->isDir()) {
-                rmdir($entry->getPathname());
-
-                continue;
-            }
-
-            unlink($entry->getPathname());
-        }
-
-        rmdir($directory);
+        GitCheckout::remove($directory);
     }
 
     private function temporaryTree(): string
