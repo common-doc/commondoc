@@ -1,0 +1,46 @@
+name: 'CommonDoc Build'
+description: 'Build a multi-repository Markdown documentation site on the caller checkout.'
+author: 'common-doc'
+
+# The action runs the runtime image built by docker/Dockerfile, which the
+# publish workflow pushes to GHCR. GitHub mounts the calling repository at
+# /github/workspace and runs the container with that as its working directory,
+# but the console entry point inside the image changes directory to its own
+# project root (/app) before it does anything. Every path below is therefore
+# absolute: a relative one would resolve under /app and not under the checkout.
+#
+# The image's own entrypoint is the command, and it has one command to offer
+# (commondoc:build), so the arguments here are that command's arguments. An
+# empty `source` is ignored by the command, which is what makes the
+# configuration the site definition: leaving `source` empty builds the roots the
+# configuration names, and setting it builds one directory alone at "/".
+#
+# A composed site supplies its own configuration through COMMONDOC_CONFIG in the
+# step's `env:`, because `commondoc:build` has no `--config` option: the
+# configuration is aggregated before any command runs. The image is public, so
+# pulling it needs no credentials.
+
+inputs:
+  source:
+    description: >
+      Absolute path to one directory to build alone, published at "/". Leave
+      empty to build the site the configuration describes, which is what a
+      composed multi-repository site does.
+    required: false
+    default: ''
+  output:
+    description: 'Absolute path of the directory that receives the rendered site.'
+    required: false
+    default: '/github/workspace/build'
+
+runs:
+  using: 'docker'
+  image: 'docker://ghcr.io/common-doc/commondoc:1'
+  args:
+    - ${{ inputs.source }}
+    - '--output'
+    - ${{ inputs.output }}
+
+branding:
+  icon: 'book-open'
+  color: 'blue'

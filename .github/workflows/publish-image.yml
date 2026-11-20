@@ -1,0 +1,149 @@
+name: Publish image
+
+# Builds the runtime image from docker/Dockerfile and pushes it to GHCR, which
+# is where the container action in action.yml pulls it from:
+#
+#   docker://ghcr.io/common-doc/commondoc:1
+#
+# Only docker/Dockerfile is publishable. The root Dockerfile is the interactive
+# dev toolchain image: it carries Mago, Xdebug, PCOV, and the dev dependencies,
+# none of which belong in an image a third party pulls.
+#
+# The guard is structural rather than advisory. The image is built exactly once,
+# loaded into the local daemon, asserted to carry no dev toolchain, and only
+# then tagged and pushed from that same local image. There is no second build,
+# so the artifact that is asserted is by construction the artifact that is
+# published. Pointing the build at the root Dockerfile fails the assertions and
+# nothing is pushed.
+#
+# Two assertions run against the built image rather than against the source. The
+# first is that the console offers `commondoc:build`, which catches an image
+# whose configuration or autoloader did not make it in. The second renders a
+# document and looks for the section id, which is the package's published
+# contract and the one thing a site consumer depends on.
+#
+# A release tag publishes the full version, the `1` major alias the action
+# references, and `latest`. A manual dispatch publishes the same tags from the
+# dispatched ref, so dispatch a tag (`gh workflow run publish-image.yml --ref
+# 1.0.0`) rather than a branch: from a branch there is no version to derive and
+# only `latest` would move.
+#
+# The major alias is derived with `type=match`, not `type=semver,pattern={{major}}`.
+# metadata-action suppresses semver major and minor tags for prerelease
+# versions by design, so on `1.0.0-alpha.3` the semver form publishes
+# `1.0.0-alpha.3` and `latest` only, and the action's `:1` pull fails with a
+# missing manifest. Matching the leading number off the tag produces `1` for
+# both `1.0.0-alpha.3` and `1.0.0`.
+#
+# The package must be public for third parties to pull the image without
+# credentials. Visibility is a package setting, not something GITHUB_TOKEN can
+# change, so it is set once in the package settings after the first push:
+# Package settings, Danger Zone, Change visibility, Public.
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build and push the runtime image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Derive the image tags
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=match,pattern=^(\d+),group=1
+            type=raw,value=latest
+      - name: Build the runtime image locally
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          load: true
+          push: false
+          tags: commondoc-runtime:assert
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Assert the runtime image carries no dev toolchain
+        run: |
+          set -eu
+          docker run --rm --entrypoint sh commondoc-runtime:assert -c '
+            set -eu
+            found=""
+            for path in \
+              /app/vendor/bin/phpunit \
+              /app/vendor/bin/infection \
+              /app/vendor/bin/phpbench \
+              /usr/local/bin/mago
+            do
+              if [ -e "${path}" ]; then
+                found="${found} ${path}"
+              fi
+            done
+            if [ -n "${found}" ]; then
+              echo "::error::the runtime image carries dev tooling:${found}. Publish must not ship the dev toolchain; check that file: is docker/Dockerfile."
+              exit 1
+            fi
+            echo "The runtime image carries no phpunit, infection, phpbench, or mago."
+          '
+      - name: Assert the console offers the build command
+        run: |
+          set -eu
+          docker run --rm --entrypoint sh commondoc-runtime:assert -c '
+            set -eu
+            if ! php /app/vendor/bin/webware list --raw | grep -q "^commondoc:build"; then
+              echo "::error::the image does not offer commondoc:build. The configuration or the autoloader did not make it into the image."
+              exit 1
+            fi
+            echo "The image offers commondoc:build."
+          '
+      - name: Assert a build renders a document and its section anchor
+        run: |
+          set -eu
+          docker run --rm --entrypoint sh commondoc-runtime:assert -c '
+            set -eu
+            src="$(mktemp -d)"
+            out="$(mktemp -d)"
+            printf "# Smoke\n\n## The index rule\n" > "${src}/index.md"
+            /usr/local/bin/entrypoint.sh "${src}" --output "${out}"
+            test -f "${out}/index.html"
+            grep -q "id=\"the-index-rule\"" "${out}/index.html"
+            echo "The entrypoint renders a document and gives its section an addressable id."
+          '
+      - name: Tag and push the asserted image
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -eu
+          printf '%s\n' "$TAGS" | while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            docker tag commondoc-runtime:assert "$tag"
+            docker push "$tag"
+          done
+          printf '%s\n' "$TAGS"
