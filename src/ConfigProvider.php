@@ -103,9 +103,9 @@ use function dirname;
  *
  * The view configuration is contributed here rather than in an autoload file for
  * the same reason: a host that overrides a local file still aggregates this
- * provider, so the body and layout addresses always resolve. Both are map
+ * provider, so the body and layout names always resolve. Both are map
  * entries, which is the override seam a site uses when it wants a different body
- * without a code change: adding the same address to its own `templates.map`
+ * without a code change: adding the same name to its own `templates.map`
  * replaces the entry, and the map outranks the path stack.
  *
  * The extension plugin manager is wired here in both halves: its factory entry
@@ -261,7 +261,7 @@ final readonly class ConfigProvider
      *
      * `default` is the directory name because it is also the theme name the resolver
      * falls back to, so a site's own theme directory is a sibling of this one rather
-     * than a second naming convention. The addresses carry the package name instead,
+     * than a second naming convention. The names carry the package name instead,
      * because that is the namespace a consumer overrides in, whatever theme is active.
      *
      * @return ViewConfig

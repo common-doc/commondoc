@@ -50,7 +50,7 @@ final readonly class RootEntryReader
      *
      * @param mixed $entry Deliberately untyped: this class decides what it is
      *
-     * @throws InvalidArgumentException When the entry's mount cannot prefix an address, or
+     * @throws InvalidArgumentException When the entry's mount cannot prefix a path, or
      *                                  its repository holds no documentation at its target
      *
      * @infection-ignore-all The `is_array` guard is reported as an equivalent mutant
@@ -82,7 +82,7 @@ final readonly class RootEntryReader
      *
      * @param array<array-key, mixed> $entry
      *
-     * @throws InvalidArgumentException When the entry's mount cannot prefix an address
+     * @throws InvalidArgumentException When the entry's mount cannot prefix a path
      */
     private function fromPath(array $entry, string $mount): ?Root
     {

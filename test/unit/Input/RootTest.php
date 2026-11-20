@@ -25,7 +25,7 @@ use PHPUnit\Framework\TestCase;
  * A root is a source directory and the prefix it publishes at.
  *
  * The prefix is the whole mechanism that turns several repositories into one
- * address space: once it is applied, a path is relative to the site, so nothing
+ * path space: once it is applied, a path is relative to the site, so nothing
  * downstream has to know the site was composed.
  */
 #[CoversClass(Root::class)]
@@ -68,7 +68,7 @@ final class RootTest extends TestCase
     }
 
     #[Test]
-    public function refusesAMountThatCannotPrefixAnAddress(): void
+    public function refusesAMountThatCannotPrefixAPath(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
@@ -99,7 +99,7 @@ final class RootTest extends TestCase
         );
 
         // A file at `guide/x.md` in the root mounted at `/` and the same path in the
-        // root mounted at `/guide/` would publish at one address.
+        // root mounted at `/guide/` would publish at one path.
         static::assertTrue($site->overlaps($inner));
         static::assertTrue($inner->overlaps($site));
     }

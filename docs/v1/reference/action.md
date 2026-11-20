@@ -71,7 +71,7 @@ the `1` major alias the action references, and `latest`. The image carries PHP,
 the three extensions the package requires, the runtime dependencies, and the
 console entry point. It does not carry Mago, Xdebug, PCOV, PHPUnit, Infection or
 the dev dependencies; the workflow asserts that before it pushes, and asserts
-that a build renders a document and gives its section an addressable `id`.
+that a build renders a document and gives its headings a linkable `id`.
 
 The image is public, so pulling it needs no credentials. Your workflow's own
 `GITHUB_TOKEN` is never passed to the container by the action: the only

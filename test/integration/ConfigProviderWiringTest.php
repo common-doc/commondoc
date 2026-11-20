@@ -73,7 +73,7 @@ final class ConfigProviderWiringTest extends TestCase
     }
 
     #[Test]
-    public function buildsAPageThroughTheContainerWithADerivedAddress(): void
+    public function buildsAPageThroughTheContainerWithADerivedPath(): void
     {
         $container = $this->container();
 
@@ -84,7 +84,7 @@ final class ConfigProviderWiringTest extends TestCase
 
         static::assertInstanceOf(Page::class, $page);
         static::assertSame('guide/setup.md', $page->sourcePath);
-        // The address comes from the DocumentRoot the container built, so the
+        // The published path comes from the DocumentRoot the container built, so the
         // page cannot disagree with the file the write pass will produce.
         static::assertSame(
             $container->get(DocumentRoot::class)->published('guide/setup.md'),

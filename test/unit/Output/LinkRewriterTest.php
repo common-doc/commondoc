@@ -34,7 +34,7 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 /**
- * The rewriter answers one question per link: what address does this target have
+ * The rewriter answers one question per link: what path does this target have
  * on the published site. Each test therefore builds a document that holds the
  * page identifying it, runs the listener, and asserts on the node that came out.
  *
@@ -156,7 +156,7 @@ final class LinkRewriterTest extends TestCase
     {
         // An asset goes through the second translation, and that branch has to
         // carry the suffix through too. Without this case the difference between
-        // publishing the address and publishing the address with its fragment is
+        // publishing the path and publishing the path with its fragment is
         // invisible, and both halves of the concatenation survive mutation.
         $image = new Image('../images/d.png#zoom');
 
@@ -200,7 +200,7 @@ final class LinkRewriterTest extends TestCase
     }
 
     #[Test]
-    public function publishesAnImageAtItsOwnAddress(): void
+    public function publishesAnImageAtItsOwnPath(): void
     {
         $image = new Image('../images/d.png');
 

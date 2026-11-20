@@ -49,8 +49,8 @@ final class PageContextTest extends TestCase
         $context->set(self::page('Reference page'));
         $context->setSections([new Heading(
             level   : 1,
-            label   : 'Addresses',
-            fragment: 'addresses',
+            label   : 'Paths',
+            fragment: 'paths',
         )]);
 
         $context->clear();
@@ -89,8 +89,8 @@ final class PageContextTest extends TestCase
         $sections = [
             new Heading(
                 level   : 1,
-                label   : 'Addresses',
-                fragment: 'addresses',
+                label   : 'Paths',
+                fragment: 'paths',
             ),
             new Heading(
                 level   : 2,

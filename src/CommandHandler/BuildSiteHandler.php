@@ -200,13 +200,13 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     }
 
     /**
-     * Register one route per document, named by local path and addressed by
-     * published path.
+     * Register one route per document, named by local path and published at its
+     * own path.
      *
      * Registration happens before the first render, so a link to a document the
-     * loop has not reached yet still has an address. The collector refuses a
+     * loop has not reached yet still has a route. The collector refuses a
      * duplicate name or path, which is how two local paths that publish at one
-     * address are caught: nothing here re-implements that check.
+     * path are caught: nothing here re-implements that check.
      *
      * @param list<non-empty-string> $documents
      *

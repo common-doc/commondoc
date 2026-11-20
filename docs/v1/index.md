@@ -14,7 +14,7 @@ conversion.
 1. Walk the source root and read every path beneath it.
 2. Partition those paths into documents and assets. A document is a Markdown
    file. Everything else is an asset, copied unchanged.
-3. Register an address for every document, so a link to a document the build has
+3. Register a route for every document, so a link to a document the build has
    not reached yet still resolves.
 4. Convert each document and write it to the output directory.
 5. Copy each asset to the same relative path in the output directory.
@@ -57,4 +57,4 @@ docs/v1/
 ```
 
 The rule that produces the left column from the right is described in
-[Addresses and files](concepts/address.md).
+[Paths and files](concepts/paths.md).

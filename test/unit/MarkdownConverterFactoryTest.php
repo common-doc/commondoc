@@ -39,7 +39,7 @@ use RuntimeException;
  * the scan mode, so these tests use a real `ServiceManager`. The assertions are
  * behavioural rather than about identity: without a scan a converter has no
  * rewriter, so `[intro](intro.md)` keeps the target exactly as written, and with
- * a scan it becomes the published address. Identity would prove less, because a
+ * a scan it becomes the published path. Identity would prove less, because a
  * fresh environment that happened to be empty would pass it too.
  */
 #[CoversClass(MarkdownConverterFactory::class)]

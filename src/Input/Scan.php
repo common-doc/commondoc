@@ -32,11 +32,11 @@ use const SORT_STRING;
  * is a pass of its own, and this is that pass's result.
  *
  * A path here is relative to the site, not to the repository it came from. The mount
- * was applied while walking, so everything downstream sees one address space and
+ * was applied while walking, so everything downstream sees one path space and
  * nothing below this type knows how many repositories were read.
  *
  * The mapping is the only place a site path and a disk path are related. A document
- * is read from its source and written at its address, and both come from here, so
+ * is read from its source and written at its published path, and both come from here, so
  * they cannot be confused for one another.
  *
  * @api

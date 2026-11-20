@@ -2,7 +2,7 @@
  * Stylesheet for the commondoc documentation site.
  *
  * It exists so a normal build exercises the asset pass and the link rewriter:
- * this file is referenced from a document, resolved to an address, and copied
+ * this file is referenced from a document, resolved to a published path, and copied
  * unchanged to the output directory.
  */
 

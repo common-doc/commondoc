@@ -156,7 +156,7 @@ final class ConfigProviderTest extends TestCase
         static::assertSame(['commondoc::document', 'commondoc::layout'], array_keys($config['map']));
         static::assertSame('commondoc::layout', $config['layout']);
 
-        // The directory is the theme the resolver falls back to; the address keeps the
+        // The directory is the theme the resolver falls back to; the name keeps the
         // package name, because that is the namespace a consumer overrides in.
         foreach ($config['map'] as $name => $path) {
             static::assertStringEndsWith('/default/' . substr($name, strlen('commondoc::')) . '.phtml', $path);

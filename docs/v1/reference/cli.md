@@ -26,7 +26,7 @@ path and the reason:
 ```
 Wrote index.md
 Wrote concepts/document.md
-Failed concepts/address.md: The document "concepts/address.md" links to "nope.md", which resolves to "concepts/nope.md" and is neither a document nor an asset the scan found.
+Failed concepts/paths.md: The document "concepts/paths.md" links to "nope.md", which resolves to "concepts/nope.md" and is neither a document nor an asset the scan found.
 ```
 
 Paths are named as they were discovered, relative to the source root.
@@ -44,7 +44,7 @@ the whole list rather than the first problem.
 ## Related
 
 - [Documents](../concepts/document.md)
-- [Addresses and files](../concepts/address.md)
+- [Paths and files](../concepts/paths.md)
 - [Site configuration](configuration.md)
 - [GitHub action](action.md) wraps this command in a container image
 - The other commands this application provides come from `webware-console`, not

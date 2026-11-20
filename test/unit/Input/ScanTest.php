@@ -60,7 +60,7 @@ final class ScanTest extends TestCase
     }
 
     #[Test]
-    public function namesEveryPathByItsAddressRatherThanItsRepository(): void
+    public function namesEveryPathByItsSitePathRatherThanItsRepository(): void
     {
         $tree = $this->temporaryTree();
 

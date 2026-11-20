@@ -31,7 +31,7 @@ use Psr\Container\ContainerInterface;
  *
  * The caller is what varies per document, so the caller supplies the local path
  * and the label. Everything a deployment shares comes from config, and the
- * address is derived, because a page that carried its own URL could disagree
+ * path is derived, because a page that carried its own URL could disagree
  * with the file the write pass produces for the same document.
  */
 #[CoversClass(PageFactory::class)]
@@ -124,7 +124,7 @@ final class PageFactoryTest extends TestCase
     }
 
     #[Test]
-    public function derivesTheAddressRatherThanAcceptingOne(): void
+    public function derivesThePublishedPathRatherThanAcceptingOne(): void
     {
         $page = self::page(['localPath' => 'guide/setup.md', 'label' => 'Setup']);
 
@@ -176,7 +176,7 @@ final class PageFactoryTest extends TestCase
     #[Test]
     public function refusesOptionsThatDoNotNameADocument(): void
     {
-        // Without a local path there is no address to derive, so this is a
+        // Without a local path there is no path to derive, so this is a
         // construction failure with a message rather than a page with an empty
         // source path that the write pass would then refuse.
         $this->expectException(InvalidArgumentException::class);

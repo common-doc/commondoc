@@ -28,7 +28,7 @@ namespace CommonDoc\Output;
  *
  * The output file follows from the published path: a directory path is served
  * by an `index.html` inside it, and a file path is itself the file. So this
- * decides the address and the file is derived, which is why the name describes
+ * decides the published path and the file is derived, which is why the name describes
  * the path rather than the layout.
  *
  * @api

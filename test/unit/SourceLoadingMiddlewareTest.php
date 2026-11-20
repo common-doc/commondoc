@@ -139,7 +139,7 @@ final class SourceLoadingMiddlewareTest extends TestCase
             $forwarded = $this->forwarded($message);
 
             static::assertInstanceOf(BuildSiteCommand::class, $forwarded);
-            // Named by address rather than by repository: from here on nothing knows
+            // Named by site path rather than by repository: from here on nothing knows
             // the site was composed.
             static::assertSame(['one/index.md', 'two/index.md'], $forwarded->getScan()->documents);
         } finally {

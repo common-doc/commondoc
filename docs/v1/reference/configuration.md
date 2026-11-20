@@ -7,8 +7,8 @@ names one.
 One key is not in that section. The base path is stated as
 `view_helper_config.base_path`, because that is the value Laminas view's
 `BasePath` helper answers with when a template composes a link. Reading it in one
-place is what stops the addresses a build writes from drifting away from the
-addresses a template emits. A site section that states `basePath` is refused rather
+place is what stops the paths a build writes from drifting away from the
+paths a template emits. A site section that states `basePath` is refused rather
 than read, and the refusal names the key that is used instead.
 
 | Key | Meaning |
@@ -21,7 +21,7 @@ than read, and the refusal names the key that is used instead.
 | `projectSlug` | The identifier every page carries, or empty for none |
 | `versionLabel` | The version this build documents, or empty for none |
 
-The base path is the applied address space, so it is stated once at the top of the
+The base path is the applied prefix, so it is stated once at the top of the
 configuration rather than in this section:
 
 ```php
@@ -58,7 +58,7 @@ target, and several repositories can share a target.
 
 `mount` is the prefix a root publishes at. A file is published at the mount
 followed by its path inside that root, so once the mount is applied everything
-downstream sees one address space.
+downstream sees one path space.
 
 With `base_path` at `/`:
 
@@ -72,7 +72,7 @@ its own sources, because link rewriting translates against the mounted path.
 
 Mounts must be exclusive. Two roots at `/a/` and `/a/b/` would both claim
 `/a/b/x.md`, and which one won would depend on iteration order. A file published
-from one repository at an address belonging to another cannot be diagnosed from
+from one repository at a path belonging to another cannot be diagnosed from
 the finished site, so the combination is refused at construction with both mounts
 named.
 
@@ -112,8 +112,8 @@ Both take `mount`. Only `repository` involves a target, because only it names
 something a target can be resolved against.
 
 An entry that cannot name a directory is dropped rather than refusing the build,
-so one typo costs itself instead of the whole list. A mount that cannot prefix an
-address is refused, because publishing at an address the operator did not write
+so one typo costs itself instead of the whole list. A mount that cannot prefix a
+path is refused, because publishing at a path the operator did not write
 would be worse than refusing to start.
 
 ## Verified, not trusted
@@ -140,12 +140,12 @@ Every heading carries its own slug as its `id`, with no prefix:
 ```
 
 This is a contract rather than a cosmetic choice. A link to a section is
-`<address>#<slug>`, and a consumer has to be able to build one from the heading it
+`<path>#<slug>`, and a consumer has to be able to build one from the heading it
 came from. A prefix would force every consumer to learn it, so the prefix is empty and
 the slug is derivable.
 
-An authored cross-document link therefore resolves as written: `address.md#the-index-rule`
-becomes `/concepts/address/#the-index-rule`, and the target page has that anchor.
+An authored cross-document link therefore resolves as written: `paths.md#the-index-rule`
+becomes `/concepts/paths/#the-index-rule`, and the target page has that anchor.
 
 The build also collects each document's headings as it parses it, as a level, a label and
 a fragment. The fragment is the same value as the `id` above, so a heading found this way
@@ -159,5 +159,5 @@ nothing renders a per-page table of contents.
 - [Extensions](extensions.md) lists what loads by default and how a site adds its own
 - [Theme and templates](theme.md) covers how a site supplies its own templates and assets
 - [Documents](../concepts/document.md) defines what counts as a document
-- [Addresses and files](../concepts/address.md) covers what a path becomes
+- [Paths and files](../concepts/paths.md) covers what a path becomes
 - [Command reference](cli.md) lists the arguments and exit codes

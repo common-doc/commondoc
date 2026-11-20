@@ -21,19 +21,19 @@ use function substr;
  * A local source root mounted at a URL prefix.
  *
  * The same relationship a web server has with a document root: a directory on
- * disk serves every file beneath it at exactly one address, and the address is
- * the file's path with the root stripped and the suffix mapped. Nothing else is
- * involved, and no host name is needed, because an address that begins with a
- * slash is complete without one.
+ * disk serves every file beneath it at exactly one published path, and that path
+ * is the file's own path with the root stripped and the suffix mapped. Nothing
+ * else is involved, and no host name is needed, because a path that begins with
+ * a slash is complete without one.
  *
  * This is the single translation. The write pass asks it where a document's file
- * goes, and the render pass asks it what address a link target has. Asking one
- * type twice is what keeps a file and its address from drifting apart.
+ * goes, and the render pass asks it what path a link target has. Asking one type
+ * twice is what keeps a file and its published path from drifting apart.
  *
  * The two answers are not symmetric, and that asymmetry is the point: the
- * published address carries the base path, because that is how the site is
- * reached, while the file is relative to the output directory, because that
- * directory is mounted at the base path rather than containing it.
+ * published path carries the base path, because that is how the site is reached,
+ * while the file is relative to the output directory, because that directory is
+ * mounted at the base path rather than containing it.
  *
  * @api
  */
@@ -52,7 +52,7 @@ final readonly class DocumentRoot
     /**
      * @param string $basePath The prefix this root is mounted at, such as `/` or `/repo`
      *
-     * @throws InvalidArgumentException When the base path cannot prefix an address
+     * @throws InvalidArgumentException When the base path cannot prefix a path
      */
     public function __construct(
         string $basePath,
@@ -66,7 +66,7 @@ final readonly class DocumentRoot
      *
      * A document named `index` is the index of its own directory rather than a
      * directory of its own, so `guide/index.md` becomes `guide` and not
-     * `guide/index`. That single rule is what keeps an address and the file
+     * `guide/index`. That single rule is what keeps a published path and the file
      * serving it in agreement.
      */
     private static function directoryOf(string $relative): string
@@ -90,7 +90,7 @@ final readonly class DocumentRoot
      *
      * @return non-empty-string
      *
-     * @throws InvalidArgumentException When the value cannot prefix an address
+     * @throws InvalidArgumentException When the value cannot prefix a path
      */
     private static function prefix(string $basePath): string
     {
@@ -152,11 +152,11 @@ final readonly class DocumentRoot
     }
 
     /**
-     * The address an asset is published at, such as `/images/diagram.png`.
+     * The path an asset is published at, such as `/images/diagram.png`.
      *
-     * An asset is not translated: it is copied where it sits, so its address is
-     * the base path followed by its own path. That is the whole difference from
-     * a document, whose suffix and index name are implied by the address rather
+     * An asset is not translated: it is copied where it sits, so its published path
+     * is the base path followed by its own path. That is the whole difference from
+     * a document, whose suffix and index name are implied by the path rather
      * than spelled in it. Keeping the two answers here means a link to an image
      * and the file that serves it come from one place, exactly as they do for a
      * document.
@@ -195,7 +195,7 @@ final readonly class DocumentRoot
     }
 
     /**
-     * The address a local path is published at, such as `/guide/setup/`.
+     * The path a local path is published at, such as `/guide/setup/`.
      *
      * @return non-empty-string
      *

@@ -98,7 +98,7 @@ final readonly class LinkRewriter
     }
 
     /**
-     * The address a single target has on the published site.
+     * The published path a single target has on the site.
      *
      * @param string $target The destination exactly as the source wrote it
      * @param string $from   The local path of the document holding the link
