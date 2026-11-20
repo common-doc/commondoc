@@ -46,5 +46,6 @@ the whole list rather than the first problem.
 - [Documents](../concepts/document.md)
 - [Addresses and files](../concepts/address.md)
 - [Site configuration](configuration.md)
+- [GitHub action](action.md) wraps this command in a container image
 - The other commands this application provides come from `webware-console`, not
   from this package. Run `php vendor/bin/webware list` to see them.

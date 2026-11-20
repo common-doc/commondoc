@@ -25,6 +25,8 @@ conversion.
 - [Concepts](concepts/index.md) covers the two ideas the whole tool rests on.
 - [Site configuration](reference/configuration.md) covers composition, mounts and targets.
 - [Command reference](reference/cli.md) lists the arguments and exit codes.
+- [GitHub action](reference/action.md) builds the site from a workflow with no
+  toolchain on the runner.
 
 A build that runs cleanly reports every path it wrote, or why it did not:
 
