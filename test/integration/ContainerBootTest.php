@@ -19,6 +19,7 @@ use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\ConfigProvider;
 use CommonDoc\Console\BuildCommand;
 use CommonDoc\Container\ExtensionPluginManager;
+use CommonDoc\Extension\Admonition\AdmonitionExtension;
 use CommonDoc\Input\Root;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
@@ -219,6 +220,7 @@ final class ContainerBootTest extends TestCase
                 ExternalLinkExtension::class,
                 AutolinkExtension::class,
                 DisallowedRawHtmlExtension::class,
+                AdmonitionExtension::class,
             ],
             array_map(
                 static fn(ExtensionInterface $extension): string => $extension::class,
