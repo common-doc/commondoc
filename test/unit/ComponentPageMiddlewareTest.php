@@ -66,6 +66,31 @@ final class ComponentPageMiddlewareTest extends AbstractTemporaryTree
     }
 
     #[Test]
+    public function listsAnUnreleasedComponentAsACardWithNoVersions(): void
+    {
+        $renderer = $this->createMock(TemplateRendererInterface::class);
+        $renderer
+            ->expects($this->once())
+            ->method('render')
+            ->with(
+                'commondoc::home',
+                [
+                    'cards' => [
+                        ['title' => 'Email', 'latest' => '', 'url' => '/email/', 'versions' => []],
+                    ],
+                ],
+            )
+            ->willReturn('<p>home</p>');
+
+        $this->process($this->command([new Root(
+            path : 'docs',
+            mount: '/email/',
+        )]), $renderer);
+
+        static::assertFalse(is_file("{$this->tree}/build/email/index.html"));
+    }
+
+    #[Test]
     public function neverReplacesADocumentThatPublishesAtTheSiteRoot(): void
     {
         $command = new BuildSiteCommand(

@@ -17,6 +17,7 @@ namespace CommonDoc\View;
 use ArrayIterator;
 use CommonDoc\Exception\LogicException;
 use CommonDoc\Input\Source;
+use CommonDoc\Output\NavigationScope;
 use Laminas\View\Model\ModelInterface;
 use Override;
 use Traversable;
@@ -47,8 +48,9 @@ final readonly class Page implements ModelInterface
      * @param non-empty-string $captureTo
      * @param list<array{label: string, url: string, current: bool}> $versions The versions of
      *        this document's component, newest first, or none when it is not a versioned one
+     * @param non-empty-string $navigation The identifier of the menu this page belongs to
      */
-    // @mago-expect lint:excessive-parameter-list - a page descriptor needs all fifteen inputs.
+    // @mago-expect lint:excessive-parameter-list - a page descriptor needs all sixteen inputs.
     public function __construct(
         public string $label,
         public string $projectName,
@@ -65,6 +67,7 @@ final readonly class Page implements ModelInterface
         public string $template = 'commondoc::page',
         public bool $terminal = false,
         public array $versions = [],
+        public string $navigation = NavigationScope::BASE,
     ) {}
 
     /**

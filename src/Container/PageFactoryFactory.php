@@ -18,6 +18,7 @@ use Closure;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoute;
+use CommonDoc\Output\NavigationScope;
 use CommonDoc\Output\VersionMenu;
 use CommonDoc\SiteConfig;
 use CommonDoc\View\Page;
@@ -71,7 +72,8 @@ final readonly class PageFactoryFactory implements FactoryInterface
             ->coerce($container->get(SiteConfig::class));
         $route = Type\instance_of(DocumentRoute::class)
             ->coerce($container->get(DocumentRoute::class));
-        $menu = new VersionMenu($site->roots);
+        $menu  = new VersionMenu($site->roots);
+        $scope = new NavigationScope($site->roots);
 
         return /**
          * @param non-empty-string $localPath      The document's site path, as the scan produced it
@@ -90,7 +92,7 @@ final readonly class PageFactoryFactory implements FactoryInterface
             string $label,
             ?Source $source = null,
             ?string $repositoryPath = null,
-        ) use ($site, $route, $menu): Page {
+        ) use ($site, $route, $menu, $scope): Page {
             // The page's route name is its URL: the registrar registers each document's
             // route at the URL the pattern yields and names it by that path.
             $url = $route->url($localPath);
@@ -106,6 +108,7 @@ final readonly class PageFactoryFactory implements FactoryInterface
                 source        : $source,
                 repositoryPath: $repositoryPath,
                 versions      : $menu->links($localPath, $route),
+                navigation    : $scope->of($localPath),
             );
         };
     }

@@ -213,16 +213,27 @@ The built-in layout is Bootstrap 5.3 from a pinned CDN version with integrity ha
 
 ## Navigation
 
-The built-in layout renders the site menu with the `navigation` view helper:
+The built-in layout's sidebar has two menus, both rendered with the `navigation` view helper:
 
 ```php
-<?= $this->navigation(\CommonDoc\Output\RouteRegistrar::NAVIGATION)->menu() ?>
+<?= $this->navigation(\CommonDoc\Output\RouteRegistrar::COMPONENTS)->menu() ?>
+<?= $this->navigation($scope)->menu() ?>
 ```
 
-The menu is read from the routing table. A build registers one route per document before
-it renders the first, and each route carries the `navigation`, `label` and `order` options
+- **Components.** One link for each released component, at the component's own address,
+  which redirects to its newest version. It is the same on every page, so a reader can
+  move from one component to another without going back to the home page. It is omitted
+  when the site has no released components.
+- **Pages.** The pages of the component and version being read, and no others. Each root
+  gets a menu of its own, named from its mount by `NavigationScope`, so a page lists
+  `message-bus` v2 and not every version of everything. The document template hands its
+  page's menu to the layout through the `commondoc.scope` placeholder, because the layout
+  renders after it.
+
+The menus are read from the routing table. A build registers the routes before it renders
+the first document, and each route carries the `navigation`, `label` and `order` options
 that `webware-navigation` reads, so every page links to every other page by a URL the
-router generated. A render outside a build has no routes, so the menu is empty.
+router generated. A render outside a build has no routes, so the menus are empty.
 
 Two things follow from a build having no request:
 

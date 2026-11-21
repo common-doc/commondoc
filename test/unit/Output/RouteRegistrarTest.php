@@ -15,8 +15,13 @@ declare(strict_types=1);
 namespace CommonDocTest\Output;
 
 use CommonDoc\Http\Middleware\NotServedMiddleware;
+use CommonDoc\Input\Component;
+use CommonDoc\Input\Release;
+use CommonDoc\Input\Root;
+use CommonDoc\Input\Version;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\DocumentRoute;
+use CommonDoc\Output\NavigationScope;
 use CommonDoc\Output\RouteRegistrar;
 use Mezzio\Helper\UrlHelper;
 use Mezzio\Router\Exception\DuplicateRouteException;
@@ -55,8 +60,8 @@ final class RouteRegistrarTest extends TestCase
         static::assertSame(
             [
                 '/{path}'       => [],
-                '/guide/setup/' => ['navigation' => RouteRegistrar::NAVIGATION, 'label' => 'setup', 'order' => 0],
-                '/'             => ['navigation' => RouteRegistrar::NAVIGATION, 'label' => 'index', 'order' => 1],
+                '/guide/setup/' => ['navigation' => NavigationScope::BASE, 'label' => 'setup', 'order' => 0],
+                '/'             => ['navigation' => NavigationScope::BASE, 'label' => 'index', 'order' => 1],
             ],
             $options,
         );
@@ -69,6 +74,45 @@ final class RouteRegistrarTest extends TestCase
         // is labelled `index` and that is stated rather than hidden.
         static::assertSame('setup', RouteRegistrar::labelFor('guide/setup.md'));
         static::assertSame('index', RouteRegistrar::labelFor('index.md'));
+    }
+
+    #[Test]
+    public function doesNotRegisterASecondRouteForAnUnreleasedComponentsIndex(): void
+    {
+        $collector = $this->collector();
+
+        $this->routes($collector)->register(['email/index.md'], [new Root(
+            path : 'docs',
+            mount: '/email/',
+        )]);
+
+        // Its index is already a document route, and a second at that path would be refused.
+        static::assertCount(2, $collector->getRoutes());
+    }
+
+    #[Test]
+    public function listsEachReleasedComponentAndScopesEachDocumentsMenuToItsVersion(): void
+    {
+        $collector = $this->collector();
+        $roots     = [$this->release(1), $this->release(2)];
+
+        $this->routes($collector)->register(['comp/v1/index.md', 'comp/v2/index.md'], $roots);
+
+        $options = [];
+
+        foreach ($collector->getRoutes() as $route) {
+            $options[$route->getPath()] = $route->getOptions();
+        }
+
+        static::assertSame(
+            [
+                '/{path}'   => [],
+                '/comp/v1/' => ['navigation' => 'commondoc:/comp/v1/', 'label' => 'index', 'order' => 0],
+                '/comp/v2/' => ['navigation' => 'commondoc:/comp/v2/', 'label' => 'index', 'order' => 1],
+                '/comp/'    => ['navigation' => RouteRegistrar::COMPONENTS, 'label' => 'Comp', 'order' => 0],
+            ],
+            $options,
+        );
     }
 
     #[Test]
@@ -117,6 +161,18 @@ final class RouteRegistrarTest extends TestCase
         $this->router = new QueryParamRouter();
 
         return new RouteCollector($this->router);
+    }
+
+    private function release(int $major): Root
+    {
+        return new Root(
+            path   : "/comp/{$major}",
+            mount  : "/comp/v{$major}/",
+            release: new Release(
+                component: new Component('comp'),
+                version  : Version::fromTag("v{$major}.0.0") ?? self::fail('The tag is not a version.'),
+            ),
+        );
     }
 
     private function routes(RouteCollector $collector): RouteRegistrar

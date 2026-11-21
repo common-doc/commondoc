@@ -17,6 +17,7 @@ namespace CommonDoc\Output;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Input\Markdown;
+use CommonDoc\Input\Root;
 use InvalidArgumentException as NativeInvalidArgumentException;
 use Mezzio\Helper\Exception\RuntimeException as HelperException;
 use Mezzio\Router\Exception\DuplicateRouteException;
@@ -43,14 +44,12 @@ final readonly class RouteRegistrar
     private const string SEPARATOR = '/';
 
     /**
-     * The navigation identifier every route this build registers belongs to.
+     * The navigation identifier of the list of components, which every page shows.
      *
-     * A menu is built for one identifier, and a build produces one menu over its own
-     * documents, so one value is enough. It is stated here rather than derived, because
-     * a template has to ask for the same string the routes were written with, and a
-     * derivation in two places is two rules.
+     * A page's own menu is named by `NavigationScope`. This one is the same on every page,
+     * so a reader can move from one component to another without going back to the home page.
      */
-    public const string NAVIGATION = 'commondoc';
+    public const string COMPONENTS = 'commondoc.components';
 
     public function __construct(
         private DocumentRoute $route,
@@ -94,6 +93,8 @@ final readonly class RouteRegistrar
      * not written now cannot be recovered from a document later.
      *
      * @param list<non-empty-string> $documents
+     * @param list<Root>             $roots     The roots the documents came from, which name each
+     *                                          document's menu and the components listed beside it
      *
      * @throws DuplicateRouteException When two documents publish at one path
      * @throws InvalidArgumentException When a local path does not name a document
@@ -101,7 +102,7 @@ final readonly class RouteRegistrar
      * @throws NativeInvalidArgumentException When the helper refuses a malformed fragment. Nothing
      *         here passes a fragment, so this is declared rather than reachable
      */
-    public function register(array $documents): void
+    public function register(array $documents, array $roots = []): void
     {
         $this->collector->route(
             path      : $this->route->pattern(),
@@ -109,6 +110,7 @@ final readonly class RouteRegistrar
             name      : DocumentRoute::NAME,
         );
 
+        $scope = new NavigationScope($roots);
         $order = 0;
 
         foreach ($documents as $document) {
@@ -123,8 +125,49 @@ final readonly class RouteRegistrar
                     middleware: $this->middleware,
                 )
                 ->setOptions([
-                    'navigation' => self::NAVIGATION,
+                    'navigation' => $scope->of($document),
                     'label'      => self::labelFor($document),
+                    'order'      => $order,
+                ]);
+
+            $order++;
+        }
+
+        $this->registerComponents($roots);
+    }
+
+    /**
+     * One route per released component, at the component's own address.
+     *
+     * The address is the page that redirects to the newest version, so it has no document
+     * route of its own to collide with. A component that is not a release is not listed
+     * here: its index is already a document route, and a second route at that path would be
+     * refused as a duplicate.
+     *
+     * @param list<Root> $roots
+     *
+     * @throws DuplicateRouteException When a component's address is already a route
+     * @throws InvalidArgumentException When a component's index is not a document path
+     * @throws HelperException When the pattern route cannot be generated from
+     * @throws NativeInvalidArgumentException When the helper refuses a malformed fragment
+     */
+    private function registerComponents(array $roots): void
+    {
+        $order = 0;
+
+        foreach (new ComponentIndex($roots)->entries() as $entry) {
+            if (null === $entry['segment']) {
+                continue;
+            }
+
+            $this->collector
+                ->route(
+                    path      : $this->route->url($entry['index']),
+                    middleware: $this->middleware,
+                )
+                ->setOptions([
+                    'navigation' => self::COMPONENTS,
+                    'label'      => $entry['title'],
                     'order'      => $order,
                 ]);
 
