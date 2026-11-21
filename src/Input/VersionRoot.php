@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace CommonDoc\Input;
 
 use CommonDoc\Exception\InvalidArgumentException;
+use Psl\Filesystem;
 use Psl\Regex;
 use Psl\Type;
 use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
@@ -54,6 +55,7 @@ final readonly class VersionRoot
      *
      * @throws InvalidArgumentException When a mount cannot prefix a path
      * @throws FileWriterException When a version's files cannot be written
+     * @throws Filesystem\Exception\ExceptionInterface When a previous extraction cannot be cleared
      * @throws Regex\Exception\ExceptionInterface When a tag cannot be matched, which the fixed
      *         pattern makes unreachable
      * @throws Type\Exception\ExceptionInterface When the captured groups are not the shape the
@@ -68,8 +70,9 @@ final readonly class VersionRoot
             return [];
         }
 
-        $segment = new Component(basename($origin->url))->segment;
-        $roots   = [];
+        $component = new Component(basename($origin->url));
+        $segment   = $component->segment;
+        $roots     = [];
 
         foreach ($this->versions->read($repository) as $version) {
             $directory = sprintf('%s/%s/v%d', $workspace, $segment, $version->major);
@@ -85,13 +88,14 @@ final readonly class VersionRoot
             }
 
             $roots[] = new Root(
-                path  : $target->at($directory),
-                mount : sprintf('/%s/v%d/', $segment, $version->major),
-                source: new Source(
+                path   : $target->at($directory),
+                mount  : sprintf('/%s/v%d/', $segment, $version->major),
+                source : new Source(
                     url   : $origin->url,
                     ref   : $version->tag,
                     prefix: $target->location,
                 ),
+                release: new Release($component, $version),
             );
         }
 

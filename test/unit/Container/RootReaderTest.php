@@ -19,6 +19,7 @@ use CommonDoc\Container\RootReader;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Target;
+use CommonDocTest\Support\GitCheckout;
 use DirectoryIterator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
@@ -90,6 +91,33 @@ final class RootReaderTest extends TestCase
     }
 
     #[Test]
+    public function expandsARepositoryThatAsksForItsVersionsIntoARootPerVersion(): void
+    {
+        $repository = $this->temporaryTree([]);
+
+        try {
+            GitCheckout::create($repository);
+            mkdir(
+                directory: "{$repository}/docs/v1",
+                recursive: true,
+            );
+            file_put_contents("{$repository}/docs/v1/index.md", data: "# One\n");
+            GitCheckout::run($repository, arguments: 'add docs');
+            GitCheckout::run($repository, arguments: 'commit --quiet -m docs');
+            GitCheckout::run($repository, arguments: 'tag v1.0.0');
+            GitCheckout::run($repository, arguments: 'tag v2.0.0');
+
+            $roots = new RootReader()->read([['repository' => $repository, 'versions' => true]]);
+        } finally {
+            GitCheckout::remove($repository);
+        }
+
+        static::assertCount(2, $roots);
+        static::assertSame(['/fixture/v1/', '/fixture/v2/'], [$roots[0]->mount, $roots[1]->mount]);
+        static::assertNotNull($roots[0]->release);
+    }
+
+    #[Test]
     public function fallsBackToTheDefaultsWhenNothingWasConfigured(): void
     {
         $defaults = new RootReader()->defaults();
@@ -128,6 +156,16 @@ final class RootReaderTest extends TestCase
 
         static::assertCount(1, $roots);
         static::assertSame('/', $roots[0]->mount);
+    }
+
+    #[Test]
+    public function readsAnEntryAsPlainWhenItAsksForVersionsWithoutNamingARepository(): void
+    {
+        $roots = new RootReader()->read([['path' => 'docs', 'versions' => true]]);
+
+        static::assertCount(1, $roots);
+        static::assertNull($roots[0]->release);
+        static::assertSame('docs', $roots[0]->path);
     }
 
     #[Test]
