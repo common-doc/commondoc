@@ -25,6 +25,7 @@
         "ext-curl": "*",
         "ext-json": "*",
         "ext-mbstring": "*",
+        "composer/semver": "^3.4",
         "laminas/laminas-diactoros": "^3.8",
         "laminas/laminas-servicemanager": "^4.5",
         "laminas/laminas-view": "^3.1",

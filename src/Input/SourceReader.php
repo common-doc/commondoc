@@ -14,8 +14,6 @@ declare(strict_types=1);
 
 namespace CommonDoc\Input;
 
-use Psl\Async;
-use Psl\Shell;
 use Psl\Str;
 
 use function rtrim;
@@ -50,6 +48,10 @@ final readonly class SourceReader
     /** The remote a checkout is expected to name its upstream with. */
     private const string ORIGIN = 'origin';
 
+    public function __construct(
+        private Git $git = new Git(),
+    ) {}
+
     /**
      * The repository this root came from, or null when it cannot be read.
      *
@@ -63,8 +65,8 @@ final readonly class SourceReader
      */
     public function read(string $directory): ?Source
     {
-        $remote = $this->ask($directory, ['remote', 'get-url', self::ORIGIN]);
-        $ref    = $this->ask($directory, ['rev-parse', 'HEAD']);
+        $remote = $this->git->ask($directory, ['remote', 'get-url', self::ORIGIN]);
+        $ref    = $this->git->ask($directory, ['rev-parse', 'HEAD']);
 
         if (null === $remote || null === $ref) {
             return null;
@@ -78,39 +80,6 @@ final readonly class SourceReader
     }
 
     /**
-     * One git question, or null when it cannot be answered.
-     *
-     * `Shell\execute` runs the command with its arguments as separate values, so no
-     * shell ever parses them and a path containing a space or a quote cannot become
-     * part of a command. A non-zero exit is the ordinary "not a repository" answer
-     * here, which is why it is caught rather than allowed to fail the build.
-     *
-     * @param list<string> $arguments
-     */
-    private function ask(string $directory, array $arguments): ?string
-    {
-        if ('' === $directory) {
-            return null;
-        }
-
-        try {
-            $output = Shell\execute(
-                command         : 'git',
-                arguments       : $arguments,
-                workingDirectory: $directory,
-            );
-
-            $output = Str\trim($output);
-        } catch (
-            Shell\Exception\ExceptionInterface|Async\Exception\CancelledException|Str\Exception\InvalidArgumentException
-        ) {
-            return null;
-        }
-
-        return '' === $output ? null : $output;
-    }
-
-    /**
      * The path from the repository root to this directory.
      *
      * Asked of git rather than assembled from the filesystem, because only the
@@ -119,7 +88,7 @@ final readonly class SourceReader
      */
     private function prefix(string $directory): string
     {
-        $top = $this->ask($directory, ['rev-parse', '--show-toplevel']);
+        $top = $this->git->ask($directory, ['rev-parse', '--show-toplevel']);
 
         if (null === $top) {
             return '';
