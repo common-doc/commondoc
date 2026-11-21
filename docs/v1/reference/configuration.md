@@ -116,6 +116,28 @@ so one typo costs itself instead of the whole list. A mount that cannot prefix a
 path is refused, because publishing at a path the operator did not write
 would be worse than refusing to start.
 
+## Versions
+
+A `repository` entry can build every released version of its documentation:
+
+```php
+['repository' => 'checkouts/message-bus', 'versions' => true],
+```
+
+Each git tag that parses as a version is read from the repository's own objects, so the
+checkout is never switched, and the latest tag of each major line is published at
+`/{component}/v{major}/`. The component is the repository's name. The entry's `mount` is
+not read, because the version mounts are what make the versions a set.
+
+- `/{component}/` is a page that redirects to the newest version.
+- Every page of a versioned component lists all of its versions, so a reader can move
+  between them.
+- A tag that has nothing at the target is skipped, because early tags often predate the
+  documentation.
+- The same `target` is read from every tag. The files are written to
+  `commondoc-versions` in the system temporary directory, which is cleared for each
+  version before it is written.
+
 ## Verified, not trusted
 
 A `repository` entry is checked before it becomes a root. A target that matches

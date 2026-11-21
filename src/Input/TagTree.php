@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDoc\Input;
 
+use Psl\Filesystem;
 use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
 use Webware\FileWriter\FileWriter;
 
@@ -48,9 +49,19 @@ final readonly class TagTree
      *         to the caller rather than an empty site
      *
      * @throws FileWriterException When a file cannot be written
+     * @throws Filesystem\Exception\ExceptionInterface When a previous extraction cannot be cleared
      */
     public function extract(string $directory, string $ref, string $path, string $destination): int
     {
+        // Cleared first, so the destination holds exactly what the ref holds and a rebuild
+        // never publishes a file a tag no longer has.
+        if (Filesystem\is_directory($destination)) {
+            Filesystem\delete_directory(
+                directory: $destination,
+                recursive: true,
+            );
+        }
+
         $written = 0;
 
         foreach ($this->git->files($directory, $ref, $path) as $file) {

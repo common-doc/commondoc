@@ -18,10 +18,12 @@ use Closure;
 use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\Exception\ExceptionInterface;
 use CommonDoc\Exception\LogicException;
+use CommonDoc\Input\Root;
 use CommonDoc\Input\Scan;
 use CommonDoc\Input\Source;
-use CommonDoc\Output\DocumentRoot;
+use CommonDoc\Output\DocumentRoute;
 use CommonDoc\Output\RouteRegistrar;
+use CommonDoc\Output\VersionMenu;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\Record\Progress;
 use CommonDoc\Record\Reason;
@@ -43,8 +45,12 @@ use Webware\MessageBus\Command\CommandResultInterface;
 use Webware\MessageBus\CommandHandlerInterface;
 use Webware\MessageBus\MessageStatus;
 
+use function htmlspecialchars;
+use function ltrim;
 use function rtrim;
 use function sprintf;
+
+use const ENT_QUOTES;
 
 /**
  * The coordinator over the passes a build is made of.
@@ -78,6 +84,11 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
 {
     private const string SEPARATOR = '/';
 
+    private const string REDIRECT =
+        '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Redirecting</title>'
+            . '<link rel="canonical" href="%s"><meta http-equiv="refresh" content="0; url=%s"></head>'
+            . '<body><a href="%s">Latest version</a></body></html>';
+
     /**
      * @param Closure(list<non-empty-string> $documents, list<non-empty-string> $assets): ConverterInterface $converters
      *        Builds a converter bound to this build's document and asset lists. Called
@@ -87,7 +98,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      */
     public function __construct(
         private RouteRegistrar $routes,
-        private DocumentRoot $root,
+        private DocumentRoute $route,
         private PageContext $context,
         private Closure $converters,
         private Closure $pages,
@@ -117,6 +128,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      * @throws HelperException When the pattern route cannot be generated from
      * @throws NativeInvalidArgumentException When the helper refuses a malformed fragment. Nothing
      *         here passes a fragment, so this is declared rather than reachable
+     * @throws FileWriterException When a component's redirect page cannot be written
      */
     public function handle(BuildSiteCommand $command): CommandResultInterface
     {
@@ -149,6 +161,12 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
             }
         }
 
+        // The latest version answers for the component's own address, so a link to the
+        // component lands on current documentation while every version stays addressable.
+        foreach (new VersionMenu($command->getRoots())->latest() as $segment => $root) {
+            $this->redirect($segment, $root, $target);
+        }
+
         // The assets were copied by their own phase, so their progress arrives on
         // the message rather than being produced here. Composing rather than
         // re-deciding is the whole point of the split: this method no longer knows
@@ -169,6 +187,31 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
             command: $command,
             status : $record->complete() ? MessageStatus::Success : MessageStatus::Failure,
             result : $record,
+        );
+    }
+
+    /**
+     * Write the page at a component's own address that sends a reader to its latest version.
+     *
+     * A static site has no server to redirect, so the page does it: a refresh for browsers,
+     * a canonical link for search engines, and a plain link for anything that does neither.
+     *
+     * @throws InvalidArgumentException When the version's index is not a document path
+     * @throws HelperException When the pattern route cannot be generated from
+     * @throws NativeInvalidArgumentException When the helper refuses a malformed fragment. Nothing
+     *         here passes a fragment, so this is declared rather than reachable
+     * @throws FileWriterException When the page cannot be written
+     */
+    private function redirect(string $segment, Root $root, string $target): void
+    {
+        $url = htmlspecialchars(
+            string: $this->route->url(ltrim($root->mount, characters: '/') . 'index.md'),
+            flags : ENT_QUOTES,
+        );
+
+        FileWriter::writeTree(
+            self::join($target, "{$segment}/index.html"),
+            sprintf(self::REDIRECT, $url, $url, $url),
         );
     }
 
@@ -222,6 +265,6 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
             $this->context->clear();
         }
 
-        FileWriter::writeTree(self::join($target, $this->root->file($document)), $html);
+        FileWriter::writeTree(self::join($target, $this->route->file($document)), $html);
     }
 }

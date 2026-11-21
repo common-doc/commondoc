@@ -46,6 +46,21 @@ final class TagTreeTest extends TestCase
     private string $destination;
 
     #[Test]
+    public function clearsWhatAPreviousExtractionLeftBehind(): void
+    {
+        $this->repository();
+        mkdir(
+            directory: "{$this->destination}/docs",
+            recursive: true,
+        );
+        file_put_contents("{$this->destination}/docs/stale.md", data: "# Gone\n");
+
+        new TagTree()->extract($this->directory, ref: 'v1.0.0', path: 'docs', destination: $this->destination);
+
+        static::assertFalse(is_file("{$this->destination}/docs/stale.md"));
+    }
+
+    #[Test]
     public function leavesOutASubmoduleBecauseItHoldsNoContent(): void
     {
         $this->repository();

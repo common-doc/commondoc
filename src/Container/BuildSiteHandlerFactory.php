@@ -18,7 +18,6 @@ use Closure;
 use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Input\Source;
-use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\DocumentRoute;
 use CommonDoc\Output\RouteRegistrar;
 use CommonDoc\View\Page;
@@ -67,19 +66,18 @@ final readonly class BuildSiteHandlerFactory implements FactoryInterface
         $pages = Type\instance_of(Closure::class)
             ->coerce($container->get(PageFactoryFactory::class));
 
-        $root = Type\instance_of(DocumentRoot::class)
-            ->coerce($container->get(DocumentRoot::class));
+        $route = Type\instance_of(DocumentRoute::class)
+            ->coerce($container->get(DocumentRoute::class));
 
         return new BuildSiteHandler(
             routes    : new RouteRegistrar(
-                route     : Type\instance_of(DocumentRoute::class)
-                    ->coerce($container->get(DocumentRoute::class)),
+                route     : $route,
                 collector : Type\instance_of(RouteCollectorInterface::class)
                     ->coerce($container->get(RouteCollectorInterface::class)),
                 middleware: Type\instance_of(NotServedMiddleware::class)
                     ->coerce($container->get(NotServedMiddleware::class)),
             ),
-            root      : $root,
+            route     : $route,
             context   : Type\instance_of(PageContext::class)
                 ->coerce($container->get(PageContext::class)),
             converters: $converters,

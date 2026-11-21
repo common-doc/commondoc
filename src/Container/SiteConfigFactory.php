@@ -22,9 +22,13 @@ use CommonDoc\Output\PathType;
 use CommonDoc\SiteConfig;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Override;
+use Psl\Filesystem;
+use Psl\Regex;
+use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
+use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
 
 use function array_key_exists;
 use function is_array;
@@ -122,6 +126,12 @@ final readonly class SiteConfigFactory implements FactoryInterface
      * @throws InvalidArgumentException When a configured mount cannot prefix a path,
      *         or when the site section states a base path that belongs in the view
      *         helper configuration
+     * @throws FileWriterException When a version's files cannot be written
+     * @throws Filesystem\Exception\ExceptionInterface When a previous extraction cannot be cleared
+     * @throws Regex\Exception\ExceptionInterface When a tag cannot be matched, which the fixed
+     *         pattern makes unreachable
+     * @throws Type\Exception\ExceptionInterface When the captured groups are not the shape the
+     *         pattern promises, which the fixed pattern makes unreachable
      */
     private static function section(mixed $config): array
     {
@@ -214,6 +224,12 @@ final readonly class SiteConfigFactory implements FactoryInterface
      *         when a configured mount cannot prefix a path, or when two configured
      *         roots would publish at one path
      * @throws NotFoundExceptionInterface When the config service is not registered
+     * @throws FileWriterException When a version's files cannot be written
+     * @throws Filesystem\Exception\ExceptionInterface When a previous extraction cannot be cleared
+     * @throws Regex\Exception\ExceptionInterface When a tag cannot be matched, which the fixed
+     *         pattern makes unreachable
+     * @throws Type\Exception\ExceptionInterface When the captured groups are not the shape the
+     *         pattern promises, which the fixed pattern makes unreachable
      */
     #[Override]
     public function __invoke(

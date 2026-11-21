@@ -63,6 +63,7 @@ final readonly class Root
      * @param string  $mount  The prefix it is published at
      * @param ?Source $source The repository the files belong to, when it cannot be read from
      *                        the directory: a tree extracted from a tag is not a checkout
+     * @param ?Release $release The component and version the files are, when they are a tag
      *
      * @throws InvalidArgumentException When the mount cannot prefix a path
      */
@@ -70,6 +71,7 @@ final readonly class Root
         public string $path,
         string $mount = self::SEPARATOR,
         public ?Source $source = null,
+        public ?Release $release = null,
     ) {
         $this->mount = self::normalize($mount);
     }

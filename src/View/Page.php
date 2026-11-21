@@ -45,8 +45,10 @@ final readonly class Page implements ModelInterface
      *
      * @param list<Page> $children
      * @param non-empty-string $captureTo
+     * @param list<array{label: string, url: string, current: bool}> $versions The versions of
+     *        this document's component, newest first, or none when it is not a versioned one
      */
-    // @mago-expect lint:excessive-parameter-list - a page descriptor needs all fourteen inputs.
+    // @mago-expect lint:excessive-parameter-list - a page descriptor needs all fifteen inputs.
     public function __construct(
         public string $label,
         public string $projectName,
@@ -62,6 +64,7 @@ final readonly class Page implements ModelInterface
         public array $children = [],
         public string $template = 'commondoc::page',
         public bool $terminal = false,
+        public array $versions = [],
     ) {}
 
     /**

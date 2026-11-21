@@ -49,6 +49,18 @@ final readonly class DocumentRoute
     ) {}
 
     /**
+     * The file a local path is written to, relative to the output directory.
+     *
+     * @return non-empty-string
+     *
+     * @throws InvalidArgumentException When the local path does not name a document
+     */
+    public function file(string $localPath): string
+    {
+        return $this->root->file($localPath);
+    }
+
+    /**
      * The pattern the route is registered with, such as `/repo/{path}`.
      *
      * @return non-empty-string

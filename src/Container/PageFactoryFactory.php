@@ -18,11 +18,13 @@ use Closure;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoute;
+use CommonDoc\Output\VersionMenu;
 use CommonDoc\SiteConfig;
 use CommonDoc\View\Page;
 use InvalidArgumentException as NativeInvalidArgumentException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Mezzio\Helper\Exception\RuntimeException as HelperException;
+use Mezzio\Router\Exception\RuntimeException as RouterException;
 use Override;
 use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
@@ -69,6 +71,7 @@ final readonly class PageFactoryFactory implements FactoryInterface
             ->coerce($container->get(SiteConfig::class));
         $route = Type\instance_of(DocumentRoute::class)
             ->coerce($container->get(DocumentRoute::class));
+        $menu = new VersionMenu($site->roots);
 
         return /**
          * @param non-empty-string $localPath      The document's site path, as the scan produced it
@@ -79,6 +82,7 @@ final readonly class PageFactoryFactory implements FactoryInterface
          * @throws InvalidArgumentException When the local path does not name a relative markdown path
          * @throws HelperException When the route for this document cannot be generated from, which
          *         means the build did not register it
+         * @throws RouterException When the route for this document cannot be generated from
          * @throws NativeInvalidArgumentException When the helper refuses a malformed fragment. Nothing
          *         here passes a fragment, so this is declared rather than reachable
          */ static function (
@@ -86,7 +90,7 @@ final readonly class PageFactoryFactory implements FactoryInterface
             string $label,
             ?Source $source = null,
             ?string $repositoryPath = null,
-        ) use ($site, $route): Page {
+        ) use ($site, $route, $menu): Page {
             // The page's route name is its URL: the registrar registers each document's
             // route at the URL the pattern yields and names it by that path.
             $url = $route->url($localPath);
@@ -101,6 +105,7 @@ final readonly class PageFactoryFactory implements FactoryInterface
                 routeName     : $url,
                 source        : $source,
                 repositoryPath: $repositoryPath,
+                versions      : $menu->links($localPath, $route),
             );
         };
     }
