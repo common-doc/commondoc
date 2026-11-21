@@ -23,7 +23,8 @@ use CommonDoc\Input\Root;
 use CommonDoc\Input\Scan;
 use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
-use CommonDoc\Output\DocumentRoutes;
+use CommonDoc\Output\DocumentRoute;
+use CommonDoc\Output\RouteRegistrar;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\Record\Progress;
 use CommonDoc\View\Page;
@@ -32,15 +33,16 @@ use CommonDocTest\Support\AbstractTemporaryTree;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Node\Block\Document;
 use League\CommonMark\Output\RenderedContentInterface;
+use Mezzio\Helper\UrlHelper;
 use Mezzio\Router\RouteCollector;
 use Mezzio\Router\RouteCollectorInterface;
-use Mezzio\Router\RouterInterface;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use TypeError;
 use Webware\MessageBus\MessageStatus;
+use Webware\Router\QueryParamRouter;
 
 use function is_file;
 use function mkdir;
@@ -61,6 +63,8 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
     private string $source = '';
     private string $output = '';
 
+    private ?QueryParamRouter $router = null;
+
     /**
      * The function the handler calls to get the page for one document.
      *
@@ -71,14 +75,14 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
      *
      * @return Closure(non-empty-string $localPath, string $label, ?Source $source, ?string $repositoryPath): Page
      */
-    private static function pages(DocumentRoot $root, ?Closure $onPage = null): Closure
+    private static function pages(DocumentRoute $route, ?Closure $onPage = null): Closure
     {
         return static function (
             string $localPath,
             string $label,
             ?Source $source = null,
             ?string $repositoryPath = null,
-        ) use ($root, $onPage): Page {
+        ) use ($route, $onPage): Page {
             if (null !== $onPage) {
                 $onPage($localPath, $label);
             }
@@ -88,9 +92,9 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
                 projectName   : 'CommonDoc',
                 projectSlug   : 'commondoc',
                 sourcePath    : $localPath,
-                url           : $root->published($localPath),
+                url           : $route->url($localPath),
                 versionLabel  : '1.0',
-                routeName     : $root->published($localPath),
+                routeName     : $route->url($localPath),
                 source        : $source,
                 repositoryPath: $repositoryPath,
             );
@@ -304,7 +308,9 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
 
     private function collector(): RouteCollectorInterface
     {
-        return new RouteCollector($this->createStub(RouterInterface::class));
+        $this->router ??= new QueryParamRouter();
+
+        return new RouteCollector($this->router);
     }
 
     private function command(?Progress $progress = null): BuildSiteCommand
@@ -352,7 +358,10 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         ?Closure $onPage = null,
         ?Closure $onConverter = null,
     ): BuildSiteHandler {
-        $root = new DocumentRoot('/');
+        $root         = new DocumentRoot('/');
+        $this->router ??= new QueryParamRouter();
+        $collector    ??= $this->collector();
+        $route        = new DocumentRoute($root, new UrlHelper($this->router));
 
         if (null === $converter) {
             $converter = $this->createStub(ConverterInterface::class);
@@ -360,9 +369,9 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         }
 
         return new BuildSiteHandler(
-            routes    : new DocumentRoutes(
-                root      : $root,
-                collector : $collector ?? $this->collector(),
+            routes    : new RouteRegistrar(
+                route     : $route,
+                collector : $collector,
                 middleware: new NotServedMiddleware(),
             ),
             root      : $root,
@@ -377,7 +386,7 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
 
                 return $converter;
             },
-            pages     : self::pages($root, $onPage),
+            pages     : self::pages($route, $onPage),
         );
     }
 }

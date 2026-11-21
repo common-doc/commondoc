@@ -19,10 +19,10 @@ use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
+use CommonDoc\Output\DocumentRoute;
 use CommonDoc\SiteConfig;
 use CommonDoc\View\Page;
 use Mezzio\Helper\UrlHelper;
-use Mezzio\Router\Exception\RuntimeException as RouterException;
 use Mezzio\Router\Route;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -72,9 +72,9 @@ final class PageFactoryFactoryTest extends TestCase
             ->method('get')
             ->willReturnCallback(
                 static fn(string $id): mixed => match ($id) {
-                    SiteConfig::class => $siteConfig,
-                    UrlHelper::class  => self::url($root),
-                    default           => null,
+                    SiteConfig::class    => $siteConfig,
+                    DocumentRoute::class => self::url($root),
+                    default              => null,
                 },
             );
 
@@ -89,7 +89,7 @@ final class PageFactoryFactoryTest extends TestCase
      * Every document these tests build a page for is registered the way a build
      * registers one: at its published path, with no name.
      */
-    private static function url(DocumentRoot $root): UrlHelper
+    private static function url(DocumentRoot $root): DocumentRoute
     {
         $middleware = new class implements MiddlewareInterface {
             #[Override]
@@ -102,12 +102,13 @@ final class PageFactoryFactoryTest extends TestCase
         };
 
         $router = new QueryParamRouter();
+        $router->addRoute(new Route(
+            path      : "{$root->basePath}{path}",
+            middleware: $middleware,
+            name      : DocumentRoute::NAME,
+        ));
 
-        foreach (['guide/setup.md', 'guide/index.md', 'index.md'] as $document) {
-            $router->addRoute(new Route($root->published($document), $middleware));
-        }
-
-        return new UrlHelper($router);
+        return new DocumentRoute($root, new UrlHelper($router));
     }
 
     #[Test]
@@ -182,20 +183,6 @@ final class PageFactoryFactoryTest extends TestCase
         static::assertSame('', $page->projectSlug);
         static::assertSame('', $page->versionLabel);
         static::assertSame('/', $page->url);
-    }
-
-    #[Test]
-    public function refusesADocumentTheBuildDidNotRegister(): void
-    {
-        // The URL comes from the routing table, so a document with no route has no URL.
-        // That is a defect in the build's order, not in the document, and it must not be
-        // answered with an address composed here.
-        $this->expectException(RouterException::class);
-
-        self::pages()(
-            localPath: 'unregistered.md',
-            label    : 'Unregistered',
-        );
     }
 
     #[Test]

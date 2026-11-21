@@ -16,6 +16,7 @@ namespace CommonDocTest\Output;
 
 use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
+use CommonDoc\Output\DocumentRoute;
 use CommonDoc\Output\LinkRewriter;
 use CommonDoc\Output\PathType;
 use CommonDoc\Output\SourcePath;
@@ -128,7 +129,7 @@ final class LinkRewriterTest extends TestCase
      * would answer with whatever the test expected and would pass even if the route the
      * build registers could not be generated from.
      */
-    private static function url(DocumentRoot $root): UrlHelper
+    private static function url(DocumentRoot $root): DocumentRoute
     {
         $middleware = new class implements MiddlewareInterface {
             #[Override]
@@ -141,14 +142,13 @@ final class LinkRewriterTest extends TestCase
         };
 
         $router = new QueryParamRouter();
+        $router->addRoute(new Route(
+            path      : "{$root->basePath}{path}",
+            middleware: $middleware,
+            name      : DocumentRoute::NAME,
+        ));
 
-        foreach (self::DOCUMENTS as $document) {
-            // Registered the way the build registers them: at the published path, with no
-            // name, so the router derives one from that path.
-            $router->addRoute(new Route($root->published($document), $middleware));
-        }
-
-        return new UrlHelper($router);
+        return new DocumentRoute($root, new UrlHelper($router));
     }
 
     #[Test]

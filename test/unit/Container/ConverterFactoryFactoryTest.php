@@ -18,6 +18,7 @@ use Closure;
 use CommonDoc\Container\ConverterFactoryFactory;
 use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Output\DocumentRoot;
+use CommonDoc\Output\DocumentRoute;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\HeadingListener;
 use CommonDoc\View\Page;
@@ -59,7 +60,7 @@ final class ConverterFactoryFactoryTest extends TestCase
      * The real helper over the real router, with one route for the document the tests link
      * to, registered the way a build registers one: at its published path, with no name.
      */
-    private static function url(DocumentRoot $root): UrlHelper
+    private static function url(DocumentRoot $root): DocumentRoute
     {
         $middleware = new class implements MiddlewareInterface {
             #[Override]
@@ -72,9 +73,13 @@ final class ConverterFactoryFactoryTest extends TestCase
         };
 
         $router = new QueryParamRouter();
-        $router->addRoute(new Route($root->published('guide/intro.md'), $middleware));
+        $router->addRoute(new Route(
+            path      : "{$root->basePath}{path}",
+            middleware: $middleware,
+            name      : DocumentRoute::NAME,
+        ));
 
-        return new UrlHelper($router);
+        return new DocumentRoute($root, new UrlHelper($router));
     }
 
     #[Test]
@@ -174,7 +179,7 @@ final class ConverterFactoryFactoryTest extends TestCase
             PageContextListener::class    => new PageContextListener($context),
             HeadingListener::class        => new HeadingListener($context),
             DocumentRoot::class           => $root,
-            UrlHelper::class              => self::url($root),
+            DocumentRoute::class          => self::url($root),
         ];
 
         $container = $this->createStub(ContainerInterface::class);

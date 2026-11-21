@@ -22,7 +22,6 @@ use InvalidArgumentException;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\Node\Inline\AbstractWebResource;
 use Mezzio\Helper\Exception\RuntimeException as HelperException;
-use Mezzio\Helper\UrlHelper;
 
 use function array_fill_keys;
 use function array_key_exists;
@@ -46,8 +45,8 @@ use function substr;
  *
  * Three collaborators, each answering one question:
  *
- * - `DocumentRoot` says what a local path is published at. It is a pure
- *   function, so it needs no table and no cache to be asked once per link.
+ * - `DocumentRoute` says what URL a document is served at, composed by the router
+ *   from its one pattern. `DocumentRoot` still says where an asset is copied.
  * - The two lists say whether a target exists, and which of the two translations
  *   applies. Recomputation can produce a path for anything; only the discovered
  *   sets can say the target is real, and a link to a document that does not
@@ -80,7 +79,7 @@ final readonly class LinkRewriter
      */
     public function __construct(
         private DocumentRoot $root,
-        private UrlHelper $url,
+        private DocumentRoute $route,
         array $documents,
         array $assets,
     ) {
@@ -195,12 +194,10 @@ final readonly class LinkRewriter
         $candidate = SourcePath::resolve($path, $page->sourcePath);
 
         if (array_key_exists($candidate, $this->documents)) {
-            // A document is a route, so its URL comes from the router. The route was
-            // registered at the document's published path and carries no name of its own,
-            // so the published path is also the name to generate from. This is the only
-            // place a document's address is produced, so a link and the page it targets
-            // cannot disagree.
-            return $this->url->generate(routeName: $this->root->published($candidate));
+            // A document is a route, so its URL comes from the router, generated from the
+            // one pattern route. This is the only place a link's address is produced, so a
+            // link and the page it targets cannot disagree.
+            return $this->route->url($candidate);
         }
 
         if (array_key_exists($candidate, $this->assets)) {

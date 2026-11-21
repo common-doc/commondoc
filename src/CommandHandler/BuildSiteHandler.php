@@ -21,16 +21,18 @@ use CommonDoc\Exception\LogicException;
 use CommonDoc\Input\Scan;
 use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
-use CommonDoc\Output\DocumentRoutes;
+use CommonDoc\Output\RouteRegistrar;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\Record\Progress;
 use CommonDoc\Record\Reason;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
+use InvalidArgumentException as NativeInvalidArgumentException;
 use InvalidArgumentException;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Exception\CommonMarkException;
 use League\Config\Exception\ConfigurationExceptionInterface;
+use Mezzio\Helper\Exception\RuntimeException as HelperException;
 use Mezzio\Router\Exception\DuplicateRouteException;
 use Psl\Exception\ExceptionInterface as PslExceptionInterface;
 use Psl\File;
@@ -84,7 +86,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      *        Builds the page for one document. Called once per document.
      */
     public function __construct(
-        private DocumentRoutes $routes,
+        private RouteRegistrar $routes,
         private DocumentRoot $root,
         private PageContext $context,
         private Closure $converters,
@@ -112,6 +114,9 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      *         defect in this package rather than in the documentation
      * @throws LogicException When the scan phase has not run
      * @throws DuplicateRouteException When two documents publish at one path
+     * @throws HelperException When the pattern route cannot be generated from
+     * @throws NativeInvalidArgumentException When the helper refuses a malformed fragment. Nothing
+     *         here passes a fragment, so this is declared rather than reachable
      */
     public function handle(BuildSiteCommand $command): CommandResultInterface
     {
@@ -206,7 +211,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     ): void {
         $this->context->set(($this->pages)(
             localPath     : $document,
-            label         : DocumentRoutes::labelFor($document),
+            label         : RouteRegistrar::labelFor($document),
             source        : $scan->ownerOf($document),
             repositoryPath: $scan->repositoryPathOf($document),
         ));

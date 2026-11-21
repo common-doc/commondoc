@@ -19,7 +19,8 @@ use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
-use CommonDoc\Output\DocumentRoutes;
+use CommonDoc\Output\DocumentRoute;
+use CommonDoc\Output\RouteRegistrar;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use Laminas\ServiceManager\Factory\FactoryInterface;
@@ -70,8 +71,9 @@ final readonly class BuildSiteHandlerFactory implements FactoryInterface
             ->coerce($container->get(DocumentRoot::class));
 
         return new BuildSiteHandler(
-            routes    : new DocumentRoutes(
-                root      : $root,
+            routes    : new RouteRegistrar(
+                route     : Type\instance_of(DocumentRoute::class)
+                    ->coerce($container->get(DocumentRoute::class)),
                 collector : Type\instance_of(RouteCollectorInterface::class)
                     ->coerce($container->get(RouteCollectorInterface::class)),
                 middleware: Type\instance_of(NotServedMiddleware::class)

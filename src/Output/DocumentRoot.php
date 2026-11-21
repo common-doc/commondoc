@@ -27,13 +27,17 @@ use function substr;
  * a slash is complete without one.
  *
  * This is the single translation. The write pass asks it where a document's file
- * goes, and the render pass asks it what path a link target has. Asking one type
- * twice is what keeps a file and its published path from drifting apart.
+ * goes, and the route pass asks it what `{path}` a document publishes under. Asking one
+ * type twice is what keeps a file and its published path from drifting apart.
  *
- * The two answers are not symmetric, and that asymmetry is the point: the
- * published path carries the base path, because that is how the site is reached,
- * while the file is relative to the output directory, because that directory is
- * mounted at the base path rather than containing it.
+ * It does not compose a URL. The router does, from a route's pattern and the value
+ * `pathOf()` answers, so the base path is read by the one route that carries it and not
+ * prefixed here and again by whoever links.
+ *
+ * The two answers are not symmetric, and that asymmetry is the point: the published
+ * path sits beneath the base path, because that is how the site is reached, while the
+ * file is relative to the output directory, because that directory is mounted at the
+ * base path rather than containing it.
  *
  * @api
  */
@@ -195,22 +199,25 @@ final readonly class DocumentRoot
     }
 
     /**
-     * The path a local path is published at, such as `/guide/setup/`.
+     * The value of the route's `{path}` parameter for a local path, such as `guide/setup/`.
      *
-     * @return non-empty-string
+     * Not a URL: it carries no base path and no leading slash, and it is empty for the root
+     * document. The router composes the URL from the route's own pattern and this value, so
+     * the fold lives here, beside `file()`, and nowhere else. The two share one rule, and
+     * asking one type is what keeps an output file and the path that serves it together.
      *
      * @throws InvalidArgumentException When the local path does not name a document
      */
-    public function published(string $localPath): string
+    public function pathOf(string $localPath): string
     {
         $relative = self::relativeOf($localPath);
 
         if (PathType::File === $this->pathType) {
-            return $this->basePath . "{$relative}.html";
+            return "{$relative}.html";
         }
 
         $directory = self::directoryOf($relative);
 
-        return '' === $directory ? $this->basePath : "{$this->basePath}{$directory}/";
+        return '' === $directory ? '' : "{$directory}/";
     }
 }
