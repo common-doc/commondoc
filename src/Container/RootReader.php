@@ -15,11 +15,15 @@ declare(strict_types=1);
 namespace CommonDoc\Container;
 
 use CommonDoc\Exception\InvalidArgumentException;
+use CommonDoc\Exception\RuntimeException;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Target;
+use InvalidArgumentException as NativeInvalidArgumentException;
 use Psl\Filesystem;
+use Psl\Json;
 use Psl\Regex;
 use Psl\Type;
+use Psr\Http\Client\ClientExceptionInterface;
 use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
 
 use function array_push;
@@ -77,6 +81,10 @@ final readonly class RootReader
      *                                  at its target
      * @throws FileWriterException When a version's files cannot be written
      * @throws Filesystem\Exception\ExceptionInterface When a previous extraction cannot be cleared
+     * @throws ClientExceptionInterface When an organization search cannot be sent
+     * @throws RuntimeException When GitHub refuses an organization search
+     * @throws Json\Exception\DecodeException When GitHub's answer is not JSON
+     * @throws NativeInvalidArgumentException When a search request cannot be composed
      * @throws Regex\Exception\ExceptionInterface When a tag cannot be matched, which the fixed
      *         pattern makes unreachable
      * @throws Type\Exception\ExceptionInterface When the captured groups are not the shape the
@@ -94,10 +102,13 @@ final readonly class RootReader
 
         /** @var mixed $entry Deliberately untyped: the entry reader decides what it is */
         foreach ($configured as $entry) {
-            $versioned = new VersionEntryReader()->read($entry, $target);
+            // An entry that expands into several roots: a repository's versions, or every
+            // repository of an organization that opts in.
+            $expanded = new VersionEntryReader()->read($entry, $target)
+                ?? new OrganizationEntryReader()->read($entry, $target);
 
-            if (null !== $versioned) {
-                array_push($roots, ...$versioned);
+            if (null !== $expanded) {
+                array_push($roots, ...$expanded);
 
                 continue;
             }
