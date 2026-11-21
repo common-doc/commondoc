@@ -223,7 +223,8 @@ The built-in layout's sidebar has two menus, both rendered with the `navigation`
 - **Components.** One link for each released component, at the component's own address,
   which redirects to its newest version. It is the same on every page, so a reader can
   move from one component to another without going back to the home page. It is omitted
-  when the site has no released components.
+  when the site has no released components. Components that are not released versions
+  are not listed; see [Not settled yet](#not-settled-yet).
 - **Pages.** The pages of the component and version being read, and no others. Each root
   gets a menu of its own, named from its mount by `NavigationScope`, so a page lists
   `message-bus` v2 and not every version of everything. The document template hands its
@@ -270,10 +271,14 @@ independently.
 
 These are known gaps rather than behaviour to rely on:
 
-- The built-in templates render a bare page with a title and no stylesheet. The
-  default is intended to be a styled theme in its own right.
-- There is no landing page template. A composed site's root page is a document like
-  any other, and what a landing page receives is undecided.
+- Components that are not released versions are not in the Components menu. A release
+  gets its own route at the component's address, but an unversioned component's index
+  page is already a document route, and a second route at that path would be refused as
+  a duplicate. They do get a card on the home page. Listing them would mean tagging that
+  existing route for both menus, which would show its label as `index` rather than the
+  component's name.
+- The home page is written only for a site with components. A site made of one root
+  mounted at `/` has none, because its own index page is the home page.
 - A per-page table of contents is not rendered. The headings are collected and
   available in process, but nothing passes them to a template.
 
