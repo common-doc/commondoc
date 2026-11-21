@@ -16,11 +16,10 @@ namespace CommonDoc\Input;
 
 use Psl\Async;
 use Psl\Shell;
-use Psl\Str;
 
-use function array_filter;
-use function array_values;
 use function explode;
+use function str_contains;
+use function trim;
 
 /**
  * Asks git a question of one checkout.
@@ -56,11 +55,7 @@ final readonly class Git
             return null;
         }
 
-        try {
-            $output = Str\trim($output);
-        } catch (Str\Exception\InvalidArgumentException) {
-            return null;
-        }
+        $output = trim($output);
 
         return '' === $output ? null : $output;
     }
@@ -79,13 +74,24 @@ final readonly class Git
      */
     public function files(string $directory, string $ref, string $path): array
     {
-        $output = $this->run($directory, ['ls-tree', '-r', '-z', '--name-only', $ref, '--', $path]);
+        $output = $this->run($directory, ['ls-tree', '-r', '-z', $ref, '--', $path]);
 
         if (null === $output) {
             return [];
         }
 
-        return array_values(array_filter(explode("\0", $output), static fn(string $file): bool => '' !== $file));
+        $files = [];
+
+        foreach (explode("\0", $output) as $entry) {
+            [$meta, $file] = explode("\t", $entry, limit: 2) + [1 => ''];
+
+            // Only blobs hold content: a submodule is listed as a commit and has none.
+            if ('' !== $file && str_contains($meta, ' blob ')) {
+                $files[] = $file;
+            }
+        }
+
+        return $files;
     }
 
     /**

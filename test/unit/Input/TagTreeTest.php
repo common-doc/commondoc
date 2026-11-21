@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDocTest\Input;
 
+use CommonDoc\Input\Git;
 use CommonDoc\Input\TagTree;
 use CommonDocTest\Support\GitCheckout;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -43,6 +44,31 @@ final class TagTreeTest extends TestCase
     private string $directory;
 
     private string $destination;
+
+    #[Test]
+    public function leavesOutASubmoduleBecauseItHoldsNoContent(): void
+    {
+        $this->repository();
+
+        $sha = (string) new Git()->ask($this->directory, ['rev-parse', 'HEAD']);
+        GitCheckout::run(
+            $this->directory,
+            arguments: 'update-index --add --cacheinfo 160000,%s,docs/vendored',
+            values: $sha,
+        );
+        GitCheckout::run($this->directory, arguments: 'commit --quiet -m submodule');
+        GitCheckout::run($this->directory, arguments: 'tag v2.0.0');
+
+        $written = new TagTree()->extract(
+            $this->directory,
+            ref: 'v2.0.0',
+            path: 'docs',
+            destination: $this->destination,
+        );
+
+        static::assertSame(2, $written);
+        static::assertFalse(is_file("{$this->destination}/docs/vendored"));
+    }
 
     #[Test]
     public function leavesOutWhatIsOutsideTheDocumentationDirectory(): void

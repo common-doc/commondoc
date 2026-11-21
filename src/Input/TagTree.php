@@ -54,11 +54,7 @@ final readonly class TagTree
         $written = 0;
 
         foreach ($this->git->files($directory, $ref, $path) as $file) {
-            $content = $this->git->show($directory, $ref, $file);
-
-            if (null === $content) {
-                continue;
-            }
+            $content = $this->git->show($directory, ref: $ref, path: $file) ?? '';
 
             FileWriter::writeTree(rtrim($destination, characters: '/\\') . DIRECTORY_SEPARATOR . $file, $content);
 
