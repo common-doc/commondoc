@@ -89,7 +89,7 @@ final readonly class Scan
             // that no caller could reach.
             $directory = $root->directory();
 
-            $source = $reader->read($directory);
+            $source = $root->source ?? $reader->read($directory);
 
             foreach (Tree::at($directory)->paths() as $path) {
                 $sitePath           = $root->mountPath($path);
