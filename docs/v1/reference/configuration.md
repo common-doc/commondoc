@@ -140,7 +140,11 @@ not read, because the version mounts are what make the versions a set.
 - Every page of a versioned component lists all of its versions, so a reader can move
   between them.
 - A tag that has nothing at the target is skipped, because early tags often predate the
-  documentation.
+  documentation. So is a tag whose target holds files but no Markdown document, such as one
+  that kept only an earlier format: a version with nothing to read is not a version.
+- Where a version has no `index.md`, the first document in sorted order is its landing page.
+  The component redirect, the home page card and the version switcher all lead there, so
+  none of them points at a page that does not exist.
 - The `target` may be a list of directories, tried in order for each tag, so a
   repository whose layout changed between releases reads each tag from the first one it
   holds: `['docs/{major}.0', 'docs/v{major}']`.

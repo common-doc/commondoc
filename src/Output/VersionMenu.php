@@ -21,7 +21,6 @@ use InvalidArgumentException as NativeInvalidArgumentException;
 use Mezzio\Helper\Exception\RuntimeException as HelperException;
 use Mezzio\Router\Exception\RuntimeException as RouterException;
 
-use function ltrim;
 use function sprintf;
 use function str_starts_with;
 use function usort;
@@ -37,7 +36,7 @@ use function usort;
  * A root that is not a released version is ignored, which is the ordinary shape of a site
  * with one unversioned repository.
  *
- * @type Entry = array{root: Root, release: Release}
+ * @type Entry = array{root: Root, release: Release, landing: non-empty-string}
  *
  * @api
  */
@@ -58,7 +57,9 @@ final readonly class VersionMenu
                 continue;
             }
 
-            $versions[] = ['root' => $root, 'release' => $root->release];
+            // Asked once here, because a root's landing page is read from disk and every page of
+            // the site asks for the links of its component.
+            $versions[] = ['root' => $root, 'release' => $root->release, 'landing' => $root->landing()];
         }
 
         usort(
@@ -121,7 +122,7 @@ final readonly class VersionMenu
 
             $links[] = [
                 'label'   => sprintf('v%d%s', $version['release']->version->major, $newest ? ' (latest)' : ''),
-                'url'     => $route->url(ltrim($version['root']->mount, characters: '/') . 'index.md'),
+                'url'     => $route->url($version['landing']),
                 'current' => str_starts_with("/{$sitePath}", $version['root']->mount),
             ];
 

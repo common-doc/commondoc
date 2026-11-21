@@ -88,4 +88,6 @@ Three things to know:
   serves the result the same way.
 
 If you build to a different directory with `--output`, change the `./build` volume on the
-`preview` service to match.
+`preview` service to match. If you delete or replace `./build` rather than rebuilding into it,
+run `docker compose restart preview`: the container stays attached to the directory it started
+with, so it serves nothing, and answers 404, until it is restarted.
