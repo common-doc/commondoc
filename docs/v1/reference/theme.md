@@ -211,6 +211,26 @@ The built-in layout is Bootstrap 5.3 from a pinned CDN version with integrity ha
 
   `note` pairs with `alert-info`, `tip` with `alert-success`, `warning` with `alert-warning` and `caution` with `alert-danger`. `important` uses `admonition-important`, which supplies a purple the alert variants lack.
 
+## Search
+
+A build writes `search-index.json` at the site root, and the navbar's search box reads it in
+the browser. There is no server and nothing to configure.
+
+- **The index** is read from the pages the build just wrote, not from the converter, so it
+  describes exactly what was published: a document that failed to render is not in it. Each
+  entry has the page's address, its title, its headings, its visible text, and its component
+  and version, such as `webware-log/v2`, so a result can be told apart from a page of the
+  same name elsewhere. Only the document body is read, because the sidebar and the version
+  switcher are on every page and would make every page match every component name.
+- **The search** loads the index the first time the box is focused. Every word typed must
+  match somewhere in a page. A match scores 3 per occurrence in the title, 2 in a heading and
+  1 in the body, and ties are broken by address so the order is stable. The first eight are
+  shown, and Escape or a click elsewhere closes the list.
+- **Limits.** One index covers the whole site, so it grows with it: the webinertia site, 81
+  pages over 10 versions, is about 450 KB, and it is fetched once and then cached by the
+  browser. Results are not limited to the version being read, and a page with a great deal of
+  body text can outrank one whose title is an exact match.
+
 ## Navigation
 
 The built-in layout's sidebar has two menus, both rendered with the `navigation` view helper:

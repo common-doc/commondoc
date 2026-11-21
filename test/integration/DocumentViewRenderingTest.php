@@ -245,6 +245,8 @@ final class DocumentViewRenderingTest extends TestCase
         static::assertIsInt($stylesheet);
         static::assertLessThan($stylesheet, $script);
         static::assertStringContainsString('data-theme-toggle', $output);
+        static::assertStringContainsString('data-search', $output);
+        static::assertStringContainsString('search-index.json', $output);
         static::assertStringContainsString('localStorage.setItem(\'commondoc-theme\'', $output);
     }
 

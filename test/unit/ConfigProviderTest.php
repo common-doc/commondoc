@@ -36,6 +36,7 @@ use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\Container\PageFactoryFactory;
+use CommonDoc\Container\SearchIndexMiddlewareFactory;
 use CommonDoc\Container\SiteConfigFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
@@ -43,6 +44,7 @@ use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\AssetCopyMiddleware;
 use CommonDoc\Middleware\ComponentPageMiddleware;
+use CommonDoc\Middleware\SearchIndexMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\DocumentRoute;
@@ -151,6 +153,10 @@ final class ConfigProviderTest extends TestCase
                     'middleware' => ComponentPageMiddleware::class,
                     'priority'   => 30,
                 ],
+                [
+                    'middleware' => SearchIndexMiddleware::class,
+                    'priority'   => 20,
+                ],
             ],
             $config[MessageBusInterface::class][MessageBusConfigProvider::MIDDLEWARE_PIPELINE_KEY],
         );
@@ -229,6 +235,7 @@ final class ConfigProviderTest extends TestCase
                 SiteConfig::class                => SiteConfigFactory::class,
                 AssetCopyMiddleware::class       => AssetCopyMiddlewareFactory::class,
                 ComponentPageMiddleware::class   => ComponentPageMiddlewareFactory::class,
+                SearchIndexMiddleware::class     => SearchIndexMiddlewareFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
             $dependencies['factories'],
