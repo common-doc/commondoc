@@ -38,6 +38,7 @@ use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Container\SearchIndexMiddlewareFactory;
 use CommonDoc\Container\SiteConfigFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
+use CommonDoc\Extension\Admonition\AdmonitionExtension;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
@@ -254,18 +255,21 @@ final readonly class ConfigProvider
     }
 
     /**
-     * The plugin manager section this package contributes.
+     * The plugin manager section this package contributes: the admonition extension, which is
+     * this package's own and so is registered the way any extension package would register
+     * itself, through the manager's section rather than by being named in the manager.
      *
-     * Empty by default, because the extensions this package always loads are
-     * `ExtensionPluginManager::CONFIG` and are not declared here. An extension
-     * package contributes its own `factories` or `invokables` under the same
-     * class-name key, which is the whole registration step for that package.
+     * The extensions this package always loads are `ExtensionPluginManager::CONFIG` and are not
+     * declared here. An extension package contributes its own `factories` or `invokables` under
+     * the same class-name key, which is the whole registration step for that package.
      *
      * @return ExtensionSet
      */
     public function getExtensions(): array
     {
-        return [];
+        return [
+            'invokables' => [AdmonitionExtension::class => AdmonitionExtension::class],
+        ];
     }
 
     /** @return ListenerConfig */

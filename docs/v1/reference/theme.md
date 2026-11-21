@@ -200,7 +200,7 @@ The built-in layout is Bootstrap 5.3 from a pinned CDN version with integrity ha
 
 - **Dark and light mode.** Bootstrap styles itself from `data-bs-theme` on the root element. A script in the head sets it from the reader's saved choice, or from the operating system when there is none, before the stylesheet is requested, so the first paint is in the right theme. The toggle in the navbar rewrites the attribute and saves the choice in `localStorage`. Every colour is a CSS variable, so switching never reloads or flashes.
 - **Layout.** A navbar with the toggle, a sidebar holding the menu, and the document beside it.
-- **Admonitions.** The styles and markup contract are in place before the extension exists. An admonition is an alert with a title:
+- **Admonitions.** The `AdmonitionExtension` writes this markup from a GitHub alert (`> [!WARNING]`, see [Extensions](extensions.md#admonitions)), and the theme styles it. An admonition is an alert with a title:
 
 ```html
 <div class="admonition admonition-warning alert alert-warning" role="note">

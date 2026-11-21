@@ -39,6 +39,7 @@ use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Container\SearchIndexMiddlewareFactory;
 use CommonDoc\Container\SiteConfigFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
+use CommonDoc\Extension\Admonition\AdmonitionExtension;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
@@ -182,10 +183,12 @@ final class ConfigProviderTest extends TestCase
     }
 
     #[Test]
-    public function publishesThePluginManagerKeyWithAnEmptyFragment(): void
+    public function publishesThePluginManagerKeyWithTheAdmonitionExtension(): void
     {
-        static::assertSame([], new ConfigProvider()->getExtensions());
-        static::assertSame([], new ConfigProvider()->__invoke()[ExtensionPluginManager::class]);
+        $expected = ['invokables' => [AdmonitionExtension::class => AdmonitionExtension::class]];
+
+        static::assertSame($expected, new ConfigProvider()->getExtensions());
+        static::assertSame($expected, new ConfigProvider()->__invoke()[ExtensionPluginManager::class]);
     }
 
     #[Test]

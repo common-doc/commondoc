@@ -40,6 +40,24 @@ dependency. Their configuration lives under the extension's own key inside the
 `League\CommonMark\Environment\EnvironmentInterface` section, and each key is
 documented with its defaults in `config/autoload/commonmark.global.php`.
 
+## Admonitions
+
+Callouts are written as GitHub alerts, so the same file reads as a blockquote on GitHub and as a styled callout here:
+
+```markdown
+> [!WARNING]
+> Back up the database before you run the migration.
+```
+
+> [!NOTE]
+> This block is itself an admonition, which is how the build checks that the extension is loaded.
+
+The five kinds are `NOTE`, `TIP`, `IMPORTANT`, `WARNING` and `CAUTION`, and the marker is read without regard to case. Each renders as a Bootstrap alert with a title and an icon, in the markup [the default theme](theme.md) styles. The block holds anything a blockquote can, including lists and code.
+
+The marker has to be alone on the first line. `> [!NOTE] some text` is an ordinary blockquote, as it is on GitHub, and so is a quotation that merely mentions a marker. A marker that names no kind, such as `[!DANGER]`, is left alone.
+
+The extension ships in this package and is registered the way any extension package would register itself, through the plugin manager's section of the configuration. It is `league/commonmark`-shaped, a node, a listener and a renderer with no configuration and no collaborators, so it can be moved to a package of its own without changing what it does.
+
 ## Extension packages
 
 An extension that is not bundled lives in its own repository. It is a Composer
@@ -98,12 +116,7 @@ is on the extension package, not on this one.
 
 ## Planned
 
-These are decided but not built. They will each be their own package, registered the
-way described above.
-
-| Extension | Why |
-| --- | --- |
-| Admonitions | Requested for PhpDb's documentation. `league/commonmark` ships no admonition extension, so this is a new node type, renderer and configuration rather than an enablement. |
+Nothing is planned that is not built. Extensions that are wanted but undecided are tracked in the repository's issues rather than here.
 
 ## Related
 
