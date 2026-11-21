@@ -22,6 +22,7 @@ use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
 
 use function basename;
 use function sprintf;
+use function str_replace;
 
 /**
  * The roots a repository's released versions make, one per version, so every version of
@@ -40,6 +41,9 @@ use function sprintf;
  */
 final readonly class VersionRoot
 {
+    /** The placeholder in a target that each tag replaces with its own major version. */
+    private const string MAJOR = '{major}';
+
     public function __construct(
         private Git $git = new Git(),
         private VersionReader $versions = new VersionReader(),
@@ -75,11 +79,14 @@ final readonly class VersionRoot
         $roots     = [];
 
         foreach ($this->versions->read($repository) as $version) {
+            // A repository that keeps one directory per major states `docs/v{major}` once,
+            // and each tag is read from its own.
+            $own       = new Target(str_replace(self::MAJOR, (string) $version->major, $target->location));
             $directory = sprintf('%s/%s/v%d', $workspace, $segment, $version->major);
             $written   = $this->trees->extract(
                 directory  : $repository,
                 ref        : $version->tag,
-                path       : $target->location,
+                path       : $own->location,
                 destination: $directory,
             );
 
@@ -88,12 +95,12 @@ final readonly class VersionRoot
             }
 
             $roots[] = new Root(
-                path   : $target->at($directory),
+                path   : $own->at($directory),
                 mount  : sprintf('/%s/v%d/', $segment, $version->major),
                 source : new Source(
                     url   : $origin->url,
                     ref   : $version->tag,
-                    prefix: $target->location,
+                    prefix: $own->location,
                 ),
                 release: new Release($component, $version),
             );

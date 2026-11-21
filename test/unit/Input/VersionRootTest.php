@@ -71,6 +71,30 @@ final class VersionRootTest extends TestCase
     }
 
     #[Test]
+    public function readsEachTagFromItsOwnMajorDirectoryWhenTheTargetNamesOne(): void
+    {
+        GitCheckout::create($this->directory);
+
+        foreach ([1 => 'One', 2 => 'Two'] as $major => $title) {
+            mkdir(
+                directory: "{$this->directory}/docs/v{$major}",
+                recursive: true,
+            );
+            file_put_contents("{$this->directory}/docs/v{$major}/index.md", data: "# {$title}\n");
+            GitCheckout::run($this->directory, arguments: 'add docs');
+            GitCheckout::run($this->directory, arguments: 'commit --quiet -m %s', values: "v{$major}");
+            GitCheckout::run($this->directory, arguments: 'tag v%d.0.0', values: (string) $major);
+        }
+
+        $roots = new VersionRoot()->of($this->directory, new Target('docs/v{major}'), $this->workspace);
+
+        static::assertCount(2, $roots);
+        static::assertSame("# One\n", file_get_contents("{$roots[0]->path}/index.md"));
+        static::assertSame("# Two\n", file_get_contents("{$roots[1]->path}/index.md"));
+        static::assertSame('docs/v2', $roots[1]->source?->prefix);
+    }
+
+    #[Test]
     public function skipsATagThatPredatesTheDocumentation(): void
     {
         $this->repository();
