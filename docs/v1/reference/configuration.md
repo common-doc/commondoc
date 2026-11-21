@@ -151,6 +151,38 @@ not read, because the version mounts are what make the versions a set.
   `commondoc-versions` in the system temporary directory, which is cleared for each
   version before it is written.
 
+## Organizations
+
+An entry can name an organization instead of a repository, and every repository of it that
+opts in is built as a versioned component:
+
+```php
+['organization' => 'webinertia', 'exclude' => ['docs.web-ware.net'], 'target' => ['docs/{major}.0', 'docs/v{major}']],
+```
+
+The opt-in is a GitHub **custom property** on the repository, `doc-target` by default and
+set to `true`. A repository joins the site by being marked, with no edit here. Set
+`property` to read a different property, and `exclude` to leave out repositories that carry
+it but are not components, such as the site's own.
+
+- The search is one request to GitHub's repository search with the `props.` qualifier.
+  Archived repositories are left out. Set `GITHUB_TOKEN` to search private repositories and
+  to raise the rate limit. The token is used only for the search and is never written into a
+  remote URL.
+- Each match is cloned with every tag into `commondoc-checkouts` in the system temporary
+  directory, and brought up to date with a fetch on later builds. The clone uses whatever
+  git credentials the environment already has, so a private repository is built wherever
+  git can read it.
+- Each checkout is then read exactly as a `repository` entry with `'versions' => true`
+  is, so `target` takes the same one directory or list of candidates, and everything under
+  [Versions](#versions) applies.
+- GitHub returns at most a thousand search results.
+
+PHP on Windows has no certificate bundle for cURL by default, so the search fails with an
+SSL error until `curl.cainfo` points at one, for example the bundle that ships with Git:
+`php -d "curl.cainfo=C:\Program Files\Git\usr\ssl\certs\ca-bundle.crt" vendor/bin/webware commondoc:build`.
+The container image needs nothing.
+
 ## Verified, not trusted
 
 A `repository` entry is checked before it becomes a root. A target that matches

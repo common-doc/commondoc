@@ -105,6 +105,19 @@ final readonly class Git
     }
 
     /**
+     * Whether a git command ran and exited cleanly, for the ones that answer nothing.
+     *
+     * `ask()` cannot tell a successful `clone` from a failed one, because both print nothing
+     * and both come back null.
+     *
+     * @param list<string> $arguments The git arguments, one value each
+     */
+    public function succeeds(string $directory, array $arguments): bool
+    {
+        return null !== $this->run($directory, $arguments);
+    }
+
+    /**
      * @param list<string> $arguments
      */
     private function run(string $directory, array $arguments): ?string

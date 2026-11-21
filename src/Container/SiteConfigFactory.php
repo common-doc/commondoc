@@ -15,19 +15,23 @@ declare(strict_types=1);
 namespace CommonDoc\Container;
 
 use CommonDoc\Exception\InvalidArgumentException;
+use CommonDoc\Exception\RuntimeException;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Target;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\PathType;
 use CommonDoc\SiteConfig;
+use InvalidArgumentException as NativeInvalidArgumentException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Override;
 use Psl\Filesystem;
+use Psl\Json;
 use Psl\Regex;
 use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
+use Psr\Http\Client\ClientExceptionInterface;
 use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
 
 use function array_key_exists;
@@ -128,6 +132,10 @@ final readonly class SiteConfigFactory implements FactoryInterface
      *         helper configuration
      * @throws FileWriterException When a version's files cannot be written
      * @throws Filesystem\Exception\ExceptionInterface When a previous extraction cannot be cleared
+     * @throws ClientExceptionInterface When an organization search cannot be sent
+     * @throws RuntimeException When GitHub refuses an organization search
+     * @throws Json\Exception\DecodeException When GitHub's answer is not JSON
+     * @throws NativeInvalidArgumentException When a search request cannot be composed
      * @throws Regex\Exception\ExceptionInterface When a tag cannot be matched, which the fixed
      *         pattern makes unreachable
      * @throws Type\Exception\ExceptionInterface When the captured groups are not the shape the
@@ -226,6 +234,10 @@ final readonly class SiteConfigFactory implements FactoryInterface
      * @throws NotFoundExceptionInterface When the config service is not registered
      * @throws FileWriterException When a version's files cannot be written
      * @throws Filesystem\Exception\ExceptionInterface When a previous extraction cannot be cleared
+     * @throws ClientExceptionInterface When an organization search cannot be sent
+     * @throws RuntimeException When GitHub refuses an organization search
+     * @throws Json\Exception\DecodeException When GitHub's answer is not JSON
+     * @throws NativeInvalidArgumentException When a search request cannot be composed
      * @throws Regex\Exception\ExceptionInterface When a tag cannot be matched, which the fixed
      *         pattern makes unreachable
      * @throws Type\Exception\ExceptionInterface When the captured groups are not the shape the
