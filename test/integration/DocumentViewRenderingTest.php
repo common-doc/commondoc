@@ -179,6 +179,12 @@ final class DocumentViewRenderingTest extends TestCase
     }
 
     #[Test]
+    public function rendersNoSwitcherForAPageWithoutVersions(): void
+    {
+        static::assertStringNotContainsString('version-switcher', $this->renderDocument($this->config()));
+    }
+
+    #[Test]
     public function rendersTheBodyTemplateTheSiteConfigures(): void
     {
         $override = "{$this->directory}/override.phtml";
@@ -189,6 +195,39 @@ final class DocumentViewRenderingTest extends TestCase
         static::assertStringContainsString('<div id="site-body">', $output);
         static::assertStringContainsString('<p>Body paragraph.</p>', $output);
         static::assertStringNotContainsString('<main class="document">', $output);
+    }
+
+    #[Test]
+    public function rendersTheVersionSwitcherForAPageThatHasVersions(): void
+    {
+        $container = $this->container($this->config());
+
+        /** @var ConverterInterface $converter */
+        $converter = $container->get(ConverterInterface::class);
+
+        /** @var PageContext $context */
+        $context = $container->get(PageContext::class);
+
+        $context->set(new Page(
+            label       : 'Guide',
+            projectName : 'CommonDoc',
+            projectSlug : 'commondoc',
+            sourcePath  : 'bus/v1/index.md',
+            url         : '/bus/v1/',
+            versionLabel: '1.0',
+            routeName   : '/bus/v1/',
+            versions    : [
+                ['label' => 'v2 (latest)', 'url' => '/bus/v2/', 'current' => false],
+                ['label' => 'v1', 'url' => '/bus/v1/', 'current' => true],
+            ],
+        ));
+
+        $output = (string) $converter->convert("# Guide\n");
+        $context->clear();
+
+        static::assertStringContainsString('<nav class="version-switcher"', $output);
+        static::assertStringContainsString('<a href="&#x2F;bus&#x2F;v2&#x2F;">v2 (latest)</a>', $output);
+        static::assertStringContainsString('<a href="&#x2F;bus&#x2F;v1&#x2F;" aria-current="page">v1</a>', $output);
     }
 
     #[Test]
