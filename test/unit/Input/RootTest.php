@@ -16,10 +16,10 @@ namespace CommonDocTest\Input;
 
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Root;
+use CommonDocTest\Support\AbstractTemporaryTree;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 /**
  * A root is a source directory and the prefix it publishes at.
@@ -31,10 +31,67 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Root::class)]
 #[CoversMethod(Root::class, '__construct')]
 #[CoversMethod(Root::class, 'directory')]
+#[CoversMethod(Root::class, 'landing')]
 #[CoversMethod(Root::class, 'mountPath')]
 #[CoversMethod(Root::class, 'overlaps')]
-final class RootTest extends TestCase
+final class RootTest extends AbstractTemporaryTree
 {
+    #[Test]
+    public function landsOnItsIndexWhenItHasOne(): void
+    {
+        $this->makeTree();
+        $this->writeFile('docs/index.md');
+        $this->writeFile('docs/a-first.md');
+
+        static::assertSame(
+            'guide/index.md',
+            new Root(
+                path : "{$this->tree}/docs",
+                mount: '/guide/',
+            )->landing(),
+        );
+    }
+
+    #[Test]
+    public function landsOnTheFirstDocumentWhenItHasNoIndex(): void
+    {
+        $this->makeTree();
+        $this->writeFile('docs/installation.md');
+        $this->writeFile('docs/configuration.md');
+        $this->writeFile('docs/logo.png');
+
+        // Sorted, and a document rather than whatever sorts first among every file.
+        static::assertSame(
+            'guide/configuration.md',
+            new Root(
+                path : "{$this->tree}/docs",
+                mount: '/guide/',
+            )->landing(),
+        );
+    }
+
+    #[Test]
+    public function landsOnTheIndexItWouldHaveWhenItHoldsNoDocumentOrCannotBeRead(): void
+    {
+        $this->makeTree();
+        $this->writeFile('docs/logo.png');
+
+        static::assertSame(
+            'guide/index.md',
+            new Root(
+                path : "{$this->tree}/docs",
+                mount: '/guide/',
+            )->landing(),
+        );
+        static::assertSame(
+            'guide/index.md',
+            new Root(
+                path : "{$this->tree}/missing",
+                mount: '/guide/',
+            )->landing(),
+        );
+    }
+
     #[Test]
     public function normalisesAMountWithoutATrailingSlash(): void
     {
@@ -137,5 +194,10 @@ final class RootTest extends TestCase
     {
         static::assertSame('docs', new Root(path: 'docs/')->directory());
         static::assertSame('docs', new Root(path: 'docs\\')->directory());
+    }
+
+    protected function tearDown(): void
+    {
+        $this->removeTree();
     }
 }

@@ -149,6 +149,23 @@ final class VersionRootTest extends TestCase
     }
 
     #[Test]
+    public function skipsATagWhoseTargetHoldsNoDocument(): void
+    {
+        GitCheckout::create($this->directory);
+        mkdir(
+            directory: "{$this->directory}/docs",
+            recursive: true,
+        );
+        file_put_contents("{$this->directory}/docs/index.adoc", data: "= Old format\n");
+        GitCheckout::run($this->directory, arguments: 'add docs');
+        GitCheckout::run($this->directory, arguments: 'commit --quiet -m adoc');
+        GitCheckout::run($this->directory, arguments: 'tag v1.0.0');
+
+        // Files are there, but none is a document, so there is no version to publish.
+        static::assertSame([], new VersionRoot()->of($this->directory, [new Target('docs')], $this->workspace));
+    }
+
+    #[Test]
     public function yieldsNothingForADirectoryThatIsNotARepository(): void
     {
         static::assertSame([], new VersionRoot()->of($this->directory, [new Target('docs')], $this->workspace));

@@ -39,7 +39,7 @@ final class ComponentIndexTest extends TestCase
     public function listsAnUnreleasedRootNamedFromItsMount(): void
     {
         $entries = new ComponentIndex([new Root(
-            path : 'docs',
+            path : '/nowhere/docs',
             mount: '/email-sender/',
         )])->entries();
 

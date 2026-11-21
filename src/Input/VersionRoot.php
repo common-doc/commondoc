@@ -98,7 +98,7 @@ final readonly class VersionRoot
                     continue;
                 }
 
-                $roots[] = new Root(
+                $root = new Root(
                     path   : $own->at($directory),
                     mount  : sprintf('/%s/v%d/', $segment, $version->major),
                     source : new Source(
@@ -108,6 +108,15 @@ final readonly class VersionRoot
                     ),
                     release: new Release($component, $version),
                 );
+
+                // A directory of files that are not documents is not this version's
+                // documentation, so the next candidate is tried: a tag that kept only an
+                // earlier format would otherwise be a version with nothing to read.
+                if ([] === $root->documents()) {
+                    continue;
+                }
+
+                $roots[] = $root;
 
                 break;
             }

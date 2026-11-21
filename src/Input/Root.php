@@ -15,7 +15,9 @@ declare(strict_types=1);
 namespace CommonDoc\Input;
 
 use CommonDoc\Exception\InvalidArgumentException;
+use Psl\Filesystem;
 
+use function in_array;
 use function ltrim;
 use function rtrim;
 use function sprintf;
@@ -113,6 +115,42 @@ final readonly class Root
         $trimmed = rtrim($this->path, characters: self::SEPARATORS);
 
         return '' === $trimmed ? self::SEPARATOR : $trimmed;
+    }
+
+    /**
+     * Every document this root holds, as paths relative to it and in sorted order.
+     *
+     * A root that cannot be read holds none. The scan is what refuses an unreadable root, with
+     * the path in the message, and this question is asked before the scan runs.
+     *
+     * @return list<non-empty-string>
+     */
+    public function documents(): array
+    {
+        try {
+            return new Markdown()->scan(Tree::at($this->directory())->paths());
+        } catch (Filesystem\Exception\ExceptionInterface|InvalidArgumentException) {
+            return [];
+        }
+    }
+
+    /**
+     * The document a reader lands on when they are sent to this root, as a site path.
+     *
+     * Its own `index.md` when it has one, and otherwise the first document in sorted order, because
+     * a link to a page that does not exist is a dead link on a site that is otherwise fine, and
+     * most repositories keep their documentation as named pages with no index among them.
+     *
+     * A root with no document answers with the index it would have.
+     *
+     * @return non-empty-string
+     */
+    public function landing(): string
+    {
+        $index     = 'index' . Markdown::EXTENSION;
+        $documents = $this->documents();
+
+        return $this->mountPath(in_array($index, $documents, strict: true) ? $index : $documents[0] ?? $index);
     }
 
     /**

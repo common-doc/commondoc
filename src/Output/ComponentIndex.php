@@ -18,7 +18,6 @@ use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Component;
 use CommonDoc\Input\Root;
 
-use function ltrim;
 use function trim;
 
 /**
@@ -66,7 +65,7 @@ final readonly class ComponentIndex
             $entries[] = [
                 'title'   => $root->release?->component->label ?? $segment,
                 'index'   => "{$segment}/" . self::INDEX,
-                'target'  => ltrim($root->mount, characters: '/') . self::INDEX,
+                'target'  => $root->landing(),
                 'latest'  => $root->release?->version->tag ?? '',
                 'segment' => $segment,
             ];
@@ -79,12 +78,12 @@ final readonly class ComponentIndex
                 continue;
             }
 
-            $index = ltrim($root->mount, characters: '/') . self::INDEX;
+            $landing = $root->landing();
 
             $entries[] = [
                 'title'   => new Component($name)->label,
-                'index'   => $index,
-                'target'  => $index,
+                'index'   => $landing,
+                'target'  => $landing,
                 'latest'  => '',
                 'segment' => null,
             ];

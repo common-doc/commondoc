@@ -83,7 +83,7 @@ final class ComponentPageMiddlewareTest extends AbstractTemporaryTree
             ->willReturn('<p>home</p>');
 
         $this->process($this->command([new Root(
-            path : 'docs',
+            path : '/nowhere/docs',
             mount: '/email/',
         )]), $renderer);
 
