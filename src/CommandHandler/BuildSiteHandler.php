@@ -233,18 +233,22 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
         $order = 0;
 
         foreach ($documents as $document) {
-            // No name is passed: the router derives one from the path, and its value is
-            // then the published path itself. Naming a route after its source path would
-            // be a second vocabulary for the same document, and a link could be generated
-            // under one name while the page it targets was registered under the other.
-            $this->collector->get(
-                path      : $this->root->published($document),
-                middleware: $this->middleware,
-            )->setOptions([
-                'navigation' => self::NAVIGATION,
-                'label'      => self::labelFor($document),
-                'order'      => $order,
-            ]);
+            // `route()` rather than `get()`: these routes exist to be generated from and
+            // read by the navigation helper, and are never dispatched, so the method they
+            // accept is meaningless. It matters because the router derives the name from
+            // the path, and `HTTP_METHOD_ANY` derives it as the path itself, while `get()`
+            // would derive `<path>^GET`. One name, the published path, is what every
+            // caller generates from.
+            $this->collector
+                ->route(
+                    path      : $this->root->published($document),
+                    middleware: $this->middleware,
+                )
+                ->setOptions([
+                    'navigation' => self::NAVIGATION,
+                    'label'      => self::labelFor($document),
+                    'order'      => $order,
+                ]);
 
             $order++;
         }
@@ -271,7 +275,8 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      * the three types below would each have to be named, and a new one added
      * later would silently stop being recorded.
      *
-     * @param non-empty-string $file The path on disk, already resolved for whichever root holds it
+     * @param non-empty-string $file     The path on disk, already resolved for whichever root holds it
+     * @param non-empty-string $document The document's site path, as the scan produced it
      *
      * @throws CommonMarkException When the document cannot be parsed or rendered
      * @throws ConfigurationExceptionInterface When a converter option is invalid
@@ -291,9 +296,10 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
         $this->context->set(Type\instance_of(Page::class)
             ->coerce(
                 $this->services->build(Page::class, [
-                    'localPath' => $document,
-                    'label'     => self::labelFor($document),
-                    'source'    => $scan->ownerOf($document),
+                    'localPath'      => $document,
+                    'label'          => self::labelFor($document),
+                    'source'         => $scan->ownerOf($document),
+                    'repositoryPath' => $scan->repositoryPathOf($document),
                 ]),
             ));
 

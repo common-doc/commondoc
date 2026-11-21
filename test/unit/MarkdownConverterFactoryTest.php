@@ -15,7 +15,6 @@ declare(strict_types=1);
 namespace CommonDocTest;
 
 use CommonDoc\Container\MarkdownConverterFactory;
-use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
@@ -26,11 +25,19 @@ use League\CommonMark\Environment\EnvironmentInterface;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\MarkdownConverter;
+use Mezzio\Helper\UrlHelper;
+use Mezzio\Router\Route;
+use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use RuntimeException;
+use Webware\Router\QueryParamRouter;
 
 /**
  * The converter's two modes, told apart by what they do to a link.
@@ -46,6 +53,28 @@ use RuntimeException;
 #[CoversMethod(MarkdownConverterFactory::class, '__invoke')]
 final class MarkdownConverterFactoryTest extends TestCase
 {
+    /**
+     * The real router with one route per document these tests link to, registered the
+     * way a build registers them: at the published path, with no name.
+     */
+    private static function router(): QueryParamRouter
+    {
+        $middleware = new class implements MiddlewareInterface {
+            #[Override]
+            public function process(
+                ServerRequestInterface $request,
+                RequestHandlerInterface $handler,
+            ): ResponseInterface {
+                return $handler->handle($request);
+            }
+        };
+
+        $router = new QueryParamRouter();
+        $router->addRoute(new Route('/guide/intro/', $middleware));
+
+        return $router;
+    }
+
     #[Test]
     public function buildsTheConverterAroundTheEnvironmentFromTheContainer(): void
     {
@@ -143,6 +172,7 @@ final class MarkdownConverterFactoryTest extends TestCase
             sourcePath  : 'guide/setup.md',
             url         : '/guide/setup/',
             versionLabel: '1.0',
+            routeName   : '/guide/setup/',
         ));
 
         return new ServiceManager([
@@ -158,6 +188,7 @@ final class MarkdownConverterFactoryTest extends TestCase
                     return $environment;
                 },
                 DocumentRoot::class         => static fn(): DocumentRoot => new DocumentRoot('/'),
+                UrlHelper::class            => static fn(): UrlHelper => new UrlHelper(self::router()),
             ],
         ]);
     }

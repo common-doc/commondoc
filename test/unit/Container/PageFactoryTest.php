@@ -74,6 +74,28 @@ final class PageFactoryTest extends TestCase
     }
 
     /**
+     * Build one page the way a caller does, through the factory's options.
+     *
+     * @param array<array-key, mixed>                                                  $options
+     * @param array{projectName?: string, projectSlug?: string, versionLabel?: string} $identity
+     */
+    private static function page(
+        array $options,
+        array $identity = [],
+        ?DocumentRoot $root = null,
+    ): Page {
+        $subject = new PageFactory()(
+            self::container($identity, $root ?? new DocumentRoot('/repo/')),
+            Page::class,
+            $options,
+        );
+
+        static::assertInstanceOf(Page::class, $subject);
+
+        return $subject;
+    }
+
+    /**
      * The real helper over the real router, for the same reason the link tests use it:
      * the URL a page carries is meant to come from the router, so a stub would assert
      * the expectation instead of the behaviour.
@@ -100,28 +122,6 @@ final class PageFactoryTest extends TestCase
         }
 
         return new UrlHelper($router);
-    }
-
-    /**
-     * Build one page the way a caller does, through the factory's options.
-     *
-     * @param array<array-key, mixed>                                                  $options
-     * @param array{projectName?: string, projectSlug?: string, versionLabel?: string} $identity
-     */
-    private static function page(
-        array $options,
-        array $identity = [],
-        ?DocumentRoot $root = null,
-    ): Page {
-        $subject = new PageFactory()(
-            self::container($identity, $root ?? new DocumentRoot('/repo/')),
-            Page::class,
-            $options,
-        );
-
-        static::assertInstanceOf(Page::class, $subject);
-
-        return $subject;
     }
 
     #[Test]

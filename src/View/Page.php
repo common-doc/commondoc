@@ -46,7 +46,7 @@ final readonly class Page implements ModelInterface
      * @param list<Page> $children
      * @param non-empty-string $captureTo
      */
-    // @mago-expect lint:excessive-parameter-list - a page descriptor needs all thirteen inputs.
+    // @mago-expect lint:excessive-parameter-list - a page descriptor needs all fourteen inputs.
     public function __construct(
         public string $label,
         public string $projectName,
@@ -56,6 +56,7 @@ final readonly class Page implements ModelInterface
         public string $versionLabel,
         public string $routeName,
         public ?Source $source = null,
+        public ?string $repositoryPath = null,
         public bool $append = false,
         public string $captureTo = 'page',
         public array $children = [],

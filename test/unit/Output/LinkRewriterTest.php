@@ -69,6 +69,57 @@ final class LinkRewriterTest extends TestCase
 
     private const string MOUNT = '/message-bus/v2/';
 
+    private static function checkout(string $prefix = 'docs/2.0'): Source
+    {
+        return new Source(
+            url   : 'https://github.com/example/message-bus',
+            ref   : 'abc123',
+            prefix: $prefix,
+        );
+    }
+
+    /**
+     * A page for the document under test.
+     *
+     * `repositoryPath` is passed rather than derived, because deriving it here would
+     * repeat the inversion the production code no longer performs: the scan records both
+     * halves while walking, so a test that had to subtract a mount to build a fixture
+     * would be exercising the defect rather than the behaviour.
+     *
+     * @param list<AbstractWebResource> $nodes
+     */
+    private static function document(
+        ?string $sourcePath,
+        array $nodes,
+        ?Source $source = null,
+        ?string $repositoryPath = null,
+    ): Document {
+        $document  = new Document();
+        $paragraph = new Paragraph();
+
+        $document->appendChild($paragraph);
+
+        foreach ($nodes as $node) {
+            $paragraph->appendChild($node);
+        }
+
+        if (null !== $sourcePath) {
+            $document->data->set('commondoc.page', new Page(
+                label         : 'Setup',
+                projectName   : 'CommonDoc',
+                projectSlug   : 'commondoc',
+                sourcePath    : $sourcePath,
+                url           : '/guide/setup/',
+                versionLabel  : '1.0',
+                routeName     : '/guide/setup/',
+                source        : $source,
+                repositoryPath: $repositoryPath,
+            ));
+        }
+
+        return $document;
+    }
+
     /**
      * The helper the rewriter calls, over a router holding one route per document.
      *
@@ -98,45 +149,6 @@ final class LinkRewriterTest extends TestCase
         }
 
         return new UrlHelper($router);
-    }
-
-    /**
-     * @param list<AbstractWebResource> $nodes
-     */
-    private static function document(?string $sourcePath, array $nodes, ?Source $source = null): Document
-    {
-        $document  = new Document();
-        $paragraph = new Paragraph();
-
-        $document->appendChild($paragraph);
-
-        foreach ($nodes as $node) {
-            $paragraph->appendChild($node);
-        }
-
-        if (null !== $sourcePath) {
-            $document->data->set('commondoc.page', new Page(
-                label       : 'Setup',
-                projectName : 'CommonDoc',
-                projectSlug : 'commondoc',
-                sourcePath  : $sourcePath,
-                url         : '/guide/setup/',
-                versionLabel: '1.0',
-                routeName   : '/guide/setup/',
-                source      : $source,
-            ));
-        }
-
-        return $document;
-    }
-
-    private static function mounted(): Source
-    {
-        return new Source(
-            url   : 'https://github.com/example/message-bus',
-            ref   : 'abc123',
-            prefix: 'docs/2.0',
-        )->mountedAt(self::MOUNT);
     }
 
     #[Test]
@@ -192,7 +204,8 @@ final class LinkRewriterTest extends TestCase
             $this->targetOf(
                 $link,
                 from: 'message-bus/v2/guide/setup.md',
-                source: self::mounted(),
+                source: self::checkout(),
+                repositoryPath: 'docs/2.0/guide/setup.md',
             ),
         );
     }
@@ -267,7 +280,8 @@ final class LinkRewriterTest extends TestCase
         $this->dispatch(
             [$link],
             sourcePath: 'message-bus/v2/guide/setup.md',
-            source: self::mounted(),
+            source: self::checkout(),
+            repositoryPath: 'docs/2.0/guide/setup.md',
         );
     }
 
@@ -284,7 +298,8 @@ final class LinkRewriterTest extends TestCase
         $this->dispatch(
             [$link],
             sourcePath: 'message-bus/v2/benchmark-results.md',
-            source: self::mounted(),
+            source: self::checkout(),
+            repositoryPath: 'docs/2.0/benchmark-results.md',
         );
     }
 
@@ -300,7 +315,8 @@ final class LinkRewriterTest extends TestCase
         $this->dispatch(
             [$link],
             sourcePath: 'message-bus/v2/guide/setup.md',
-            source: new Source('https://github.com/example/message-bus', 'abc123')->mountedAt(self::MOUNT),
+            source: new Source('https://github.com/example/message-bus', 'abc123'),
+            repositoryPath: 'guide/setup.md',
         );
     }
 
@@ -353,7 +369,8 @@ final class LinkRewriterTest extends TestCase
             $this->targetOf(
                 $link,
                 from: 'message-bus/v2/benchmark-results.md',
-                source: self::mounted(),
+                source: self::checkout(),
+                repositoryPath: 'docs/2.0/benchmark-results.md',
             ),
         );
     }
@@ -372,7 +389,8 @@ final class LinkRewriterTest extends TestCase
             $this->targetOf(
                 $link,
                 from: 'benchmark-results.md',
-                source: self::mounted(),
+                source: self::checkout(),
+                repositoryPath: 'docs/2.0/benchmark-results.md',
             ),
         );
     }
@@ -409,11 +427,12 @@ final class LinkRewriterTest extends TestCase
         ?string $sourcePath,
         PathType $pathType = PathType::Directory,
         ?Source $source = null,
+        ?string $repositoryPath = null,
     ): void {
         $root     = new DocumentRoot('/repo/', $pathType);
         $rewriter = new LinkRewriter($root, self::url($root), self::DOCUMENTS, self::ASSETS);
 
-        $rewriter(new DocumentParsedEvent(self::document($sourcePath, $nodes, $source)));
+        $rewriter(new DocumentParsedEvent(self::document($sourcePath, $nodes, $source, $repositoryPath)));
     }
 
     /**
@@ -425,8 +444,9 @@ final class LinkRewriterTest extends TestCase
         string $from,
         PathType $pathType = PathType::Directory,
         ?Source $source = null,
+        ?string $repositoryPath = null,
     ): string {
-        $this->dispatch([$node], $from, $pathType, $source);
+        $this->dispatch([$node], $from, $pathType, $source, $repositoryPath);
 
         return $node->getUrl();
     }

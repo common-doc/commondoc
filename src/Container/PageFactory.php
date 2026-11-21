@@ -18,7 +18,9 @@ use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Source;
 use CommonDoc\SiteConfig;
 use CommonDoc\View\Page;
+use InvalidArgumentException as NativeInvalidArgumentException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
+use Mezzio\Helper\Exception\RuntimeException as HelperException;
 use Mezzio\Helper\UrlHelper;
 use Override;
 use Psl\Type;
@@ -52,7 +54,7 @@ final readonly class PageFactory implements FactoryInterface
      *
      * @param ?array<array-key, mixed> $options
      *
-     * @return array{localPath: non-empty-string, label: string, children: mixed, source: mixed}
+     * @return array{localPath: non-empty-string, label: string, children: mixed, source: mixed, repositoryPath: mixed}
      *
      * @throws InvalidArgumentException When the options do not name a document
      */
@@ -70,10 +72,11 @@ final readonly class PageFactory implements FactoryInterface
         }
 
         return [
-            'localPath' => $localPath,
-            'label'     => $label,
-            'children'  => $options['children'] ?? [],
-            'source'    => $options['source'] ?? null,
+            'localPath'      => $localPath,
+            'label'          => $label,
+            'children'       => $options['children'] ?? [],
+            'source'         => $options['source'] ?? null,
+            'repositoryPath' => $options['repositoryPath'] ?? null,
         ];
     }
 
@@ -82,7 +85,13 @@ final readonly class PageFactory implements FactoryInterface
      *
      * @throws ContainerExceptionInterface When a collaborator cannot be fetched
      * @throws NotFoundExceptionInterface When a collaborator is not registered
-     * @throws InvalidArgumentException When the options do not name a document
+     * @throws InvalidArgumentException When the options do not name a document, or the
+     *         local path does not name a relative markdown path
+     * @throws HelperException When the route registered for this document cannot be
+     *         generated from, which means the build did not seed it
+     * @throws NativeInvalidArgumentException When the helper refuses a malformed
+     *         fragment. Nothing here passes a fragment, so this is declared rather
+     *         than reachable
      * @throws Type\Exception\ExceptionInterface When a collaborator is the wrong type
      */
     #[Override]
@@ -109,17 +118,20 @@ final readonly class PageFactory implements FactoryInterface
 
         /** @var mixed $source */
         $source = $optionsFrom['source'];
+        /** @var mixed $repositoryPath */
+        $repositoryPath = $optionsFrom['repositoryPath'];
 
         return new Page(
-            label       : $optionsFrom['label'],
-            projectName : $site->projectName,
-            projectSlug : $site->projectSlug,
-            sourcePath  : $optionsFrom['localPath'],
-            url         : $url($routeName),
-            versionLabel: $site->versionLabel,
-            routeName   : $routeName,
-            source      : $source instanceof Source ? $source : null,
-            children    : Type\vec(Type\instance_of(Page::class))->coerce($optionsFrom['children']),
+            label         : $optionsFrom['label'],
+            projectName   : $site->projectName,
+            projectSlug   : $site->projectSlug,
+            sourcePath    : $optionsFrom['localPath'],
+            url           : $url($routeName),
+            versionLabel  : $site->versionLabel,
+            routeName     : $routeName,
+            source        : $source instanceof Source ? $source : null,
+            repositoryPath: is_string($repositoryPath) && '' !== $repositoryPath ? $repositoryPath : null,
+            children      : Type\vec(Type\instance_of(Page::class))->coerce($optionsFrom['children']),
         );
     }
 }

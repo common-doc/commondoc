@@ -160,6 +160,7 @@ final class DocumentViewRenderingTest extends TestCase
                 sourcePath  : "docs/page-{$index}.md",
                 url         : "/page-{$index}",
                 versionLabel: '1.0',
+                routeName   : '/page',
             ));
 
             $output = (string) $converter->convert("## Section {$index}\n\nBody {$index}.");

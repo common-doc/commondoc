@@ -77,6 +77,14 @@ final class ConfigProviderWiringTest extends TestCase
     {
         $container = $this->container();
 
+        // The route has to exist before the page can be built, because the page's URL is
+        // generated from it rather than computed here. That is the build's own order:
+        // `seed()` registers every route before the first page is built.
+        $container->get(RouteCollector::class)->route(
+            path      : '/guide/setup/',
+            middleware: new NotServedMiddleware(),
+        );
+
         $page = $container->build(Page::class, [
             'localPath' => 'guide/setup.md',
             'label'     => 'Setup',
@@ -85,7 +93,8 @@ final class ConfigProviderWiringTest extends TestCase
         static::assertInstanceOf(Page::class, $page);
         static::assertSame('guide/setup.md', $page->sourcePath);
         // The published path comes from the DocumentRoot the container built, so the
-        // page cannot disagree with the file the write pass will produce.
+        // page cannot disagree with the file the write pass will produce. The URL is the
+        // route's own path, which is why the route above is registered at that same path.
         static::assertSame(
             $container->get(DocumentRoot::class)->published('guide/setup.md'),
             $page->url,

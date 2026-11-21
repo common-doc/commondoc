@@ -16,14 +16,11 @@ namespace CommonDoc\Input;
 
 use CommonDoc\Exception\RuntimeException;
 use CommonDoc\Output\SourcePath;
-use Psl\Str;
 
 use function explode;
 use function implode;
-use function ltrim;
 use function rawurlencode;
 use function rtrim;
-use function sprintf;
 use function str_ends_with;
 use function str_replace;
 use function str_starts_with;
@@ -67,14 +64,11 @@ final readonly class Source
      * @param string $ref    The git ref the link addresses, normally the commit that was read
      * @param string $prefix The path from the repository root to the source root, such as
      *                       `docs/2.0`, or an empty string when the root is the repository
-     * @param string $mount  The prefix on the site the source root is published at, such
-     *                       as `/message-bus/v2/` or `/`
      */
     public function __construct(
         public string $url,
         public string $ref,
         public string $prefix = '',
-        public string $mount = self::SEPARATOR,
     ) {}
 
     /**
@@ -133,24 +127,6 @@ final readonly class Source
     }
 
     /**
-     * This source, published at another mount.
-     *
-     * The mount is a property of the root rather than of the repository, and one
-     * repository may be published twice, so the mounted value is a separate
-     * instance. `$mount` is expected to be the normalised form `Root` already
-     * guarantees: a leading slash and exactly one trailing one.
-     */
-    public function mountedAt(string $mount): self
-    {
-        return new self(
-            url   : $this->url,
-            ref   : $this->ref,
-            prefix: $this->prefix,
-            mount : $mount,
-        );
-    }
-
-    /**
      * The URL of one file in the repository, encoded so a space or a `#` in a
      * path cannot end the URL early.
      *
@@ -187,9 +163,9 @@ final readonly class Source
      *
      * The target is resolved in repository space rather than in site space, because a
      * site path has already spent its mount and no longer says how many segments it
-     * climbed. `$sitePath` is the document's path on the site, so this type strips the
-     * mount it is published at and prepends the path from the repository root: the mount
-     * and the prefix are the two halves of one relationship, and neither is guessed.
+     * climbed. `$from` is the document's path from the repository root, which the scan
+     * recorded while walking, so the climb is counted in the space the link was written
+     * for and no mount has to be subtracted back out.
      *
      * Two answers are null rather than a URL, because both leave the caller's own
      * refusal in place:
@@ -197,10 +173,10 @@ final readonly class Source
      * - a target that stays inside this root is a genuinely dead link, not a source link
      * - a target that climbs above the repository names no file anywhere
      *
-     * @param string $target   The target exactly as the document wrote it
-     * @param string $sitePath The document's path on the site, as the scan produced it
+     * @param string $target The target exactly as the document wrote it
+     * @param string $from   The document's path from the repository root
      */
-    public function link(string $target, string $sitePath): ?string
+    public function link(string $target, string $from): ?string
     {
         if (str_starts_with($target, self::SEPARATOR)) {
             // An absolute target is relative to the site root, which is the only
@@ -209,7 +185,7 @@ final readonly class Source
         }
 
         try {
-            $resolved = SourcePath::resolve($target, $this->inRepository($sitePath));
+            $resolved = SourcePath::resolve($target, $from);
         } catch (RuntimeException) {
             return null;
         }
@@ -219,24 +195,5 @@ final readonly class Source
         }
 
         return $this->at($resolved);
-    }
-
-    /**
-     * The repository path of one file on the site.
-     *
-     * The site path is relative to the mount and the prefix is the path from the
-     * repository root to that mount, so putting one in front of the other is the whole
-     * translation. Both come from the scan, which is the only place that knows them.
-     */
-    private function inRepository(string $sitePath): string
-    {
-        $relative = Str\strip_prefix(
-            $sitePath,
-            Str\concat(ltrim($this->mount, characters: self::SEPARATOR)),
-        );
-
-        return '' === $this->prefix
-            ? $relative
-            : sprintf('%s%s%s', $this->prefix, self::SEPARATOR, $relative);
     }
 }

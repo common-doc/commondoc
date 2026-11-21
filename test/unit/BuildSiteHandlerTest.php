@@ -191,7 +191,7 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
     }
 
     #[Test]
-    public function registersOneRoutePerDocumentNamedByLocalPath(): void
+    public function registersOneRoutePerDocumentAtItsPublishedPath(): void
     {
         $this->writeFile('source/index.md', contents: "# Home\n");
         $this->writeFile('source/guide/setup.md', contents: "# Setup\n");
@@ -200,18 +200,19 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
 
         $this->handler(collector: $collector)->handle($this->command());
 
-        $routes = [];
+        // The name is not asserted to a literal: the collector registers a GET route and
+        // the router derives the name from the path, so the name is the published path
+        // with the method suffix. What matters is that a route exists per document at the
+        // path the translation gives, and that no name is invented here.
+        $paths = [];
 
         foreach ($collector->getRoutes() as $route) {
-            $routes[$route->getName()] = $route->getPath();
+            $paths[$route->getPath()] = true;
         }
 
         static::assertSame(
-            [
-                'guide/setup.md' => '/guide/setup/',
-                'index.md'       => '/',
-            ],
-            $routes,
+            ['/guide/setup/' => true, '/' => true],
+            $paths,
         );
     }
 

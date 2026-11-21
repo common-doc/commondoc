@@ -46,18 +46,18 @@ final readonly class Scan
     private const string SEPARATOR = '/';
 
     /**
-     * @param array<non-empty-string, non-empty-string> $sources   Site path to the file that holds it
-     * @param list<non-empty-string>                    $documents The site paths that are documents
-     * @param list<non-empty-string>                    $assets    The site paths that are not
-     * @param array<non-empty-string, Source>           $origins   Mount prefix to the repository that holds it
-     * @param array<non-empty-string, Source>           $owners    Site path to the repository that holds it
+     * @param array<non-empty-string, non-empty-string> $sources      Site path to the file that holds it
+     * @param list<non-empty-string>                    $documents    The site paths that are documents
+     * @param list<non-empty-string>                    $assets       The site paths that are not
+     * @param array<non-empty-string, Source>           $owners       Site path to the repository that holds it
+     * @param array<non-empty-string, non-empty-string> $repositories Site path to its path from the repository root
      */
     public function __construct(
         public array $sources,
         public array $documents,
         public array $assets,
-        public array $origins = [],
         public array $owners = [],
+        public array $repositories = [],
     ) {}
 
     /**
@@ -78,10 +78,10 @@ final readonly class Scan
      */
     public static function of(array $roots): self
     {
-        $sources = [];
-        $origins = [];
-        $owners  = [];
-        $reader  = new SourceReader();
+        $sources      = [];
+        $owners       = [];
+        $repositories = [];
+        $reader       = new SourceReader();
 
         foreach ($roots as $root) {
             // Root guarantees the directory carries no trailing separator, so the
@@ -91,24 +91,23 @@ final readonly class Scan
 
             $source = $reader->read($directory);
 
-            if (null !== $source) {
-                // The mount is where this root is published, and `Source` answers a link
-                // by stripping it, so the two halves of that relationship are recorded
-                // together rather than reconstructed from a site path per link.
-                $source                = $source->mountedAt($root->mount);
-                $origins[$root->mount] = $source;
-            }
-
             foreach (Tree::at($directory)->paths() as $path) {
-                $sitePath            = $root->mountPath($path);
+                $sitePath           = $root->mountPath($path);
                 $sources[$sitePath] = sprintf('%s%s%s', $directory, self::SEPARATOR, $path);
 
-                // Recorded while walking rather than recovered later: the root is known
-                // here and a link is resolved long after, so a map built once replaces a
-                // longest-prefix search per link.
-                if (null !== $source) {
-                    $owners[$sitePath] = $source;
+                if (null === $source) {
+                    continue;
                 }
+
+                // Recorded while walking rather than recovered later. The two halves of a
+                // link that leaves the site are both known here: the root's path inside
+                // its repository, and the file's path inside that root. Joining them now
+                // means no later code has to subtract a mount back out to recover either,
+                // which is the inversion that made `SourceLinks` wrong.
+                $owners[$sitePath]       = $source;
+                $repositories[$sitePath] = '' === $source->prefix
+                    ? $path
+                    : sprintf('%s%s%s', $source->prefix, self::SEPARATOR, $path);
             }
         }
 
@@ -122,14 +121,14 @@ final readonly class Scan
         $documents = new Markdown()->scan($paths);
 
         return new self(
-            sources  : $sources,
-            documents: $documents,
-            assets   : new Asset()->scan(
+            sources     : $sources,
+            documents   : $documents,
+            assets      : new Asset()->scan(
                 paths    : $paths,
                 documents: $documents,
             ),
-            origins  : $origins,
-            owners   : $owners,
+            owners      : $owners,
+            repositories: $repositories,
         );
     }
 
@@ -144,6 +143,22 @@ final readonly class Scan
     public function ownerOf(string $sitePath): ?Source
     {
         return $this->owners[$sitePath] ?? null;
+    }
+
+    /**
+     * Where one file sits inside the repository it was read from, or null when its root
+     * is not a checkout.
+     *
+     * This is the path a link that leaves the site has to be resolved against, and it is
+     * the same for the document holding the link and for the target it names. Recorded
+     * during the walk rather than derived from the site path afterwards, because a site
+     * path has already spent its mount and only an inversion would recover the climb.
+     *
+     * @param non-empty-string $sitePath
+     */
+    public function repositoryPathOf(string $sitePath): ?string
+    {
+        return $this->repositories[$sitePath] ?? null;
     }
 
     /**

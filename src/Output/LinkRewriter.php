@@ -21,6 +21,7 @@ use Dflydev\DotAccessData\Exception\InvalidPathException;
 use InvalidArgumentException;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\Node\Inline\AbstractWebResource;
+use Mezzio\Helper\Exception\RuntimeException as HelperException;
 use Mezzio\Helper\UrlHelper;
 
 use function array_fill_keys;
@@ -94,15 +95,40 @@ final readonly class LinkRewriter
     }
 
     /**
+     * The repository URL a target names, or null when the page has no repository
+     * or the target stays inside it.
+     *
+     * The climb is counted in repository space, which is why the page carries both the
+     * source it was read from and its own path from the repository root: a site path has
+     * already spent its mount and cannot say how far a target climbed from the document
+     * that wrote it. The scan recorded both while walking, so nothing here derives either
+     * by subtraction.
+     */
+    private function aboveSite(string $path, Page $page): ?string
+    {
+        $from = $page->repositoryPath;
+
+        if (null === $from) {
+            return null;
+        }
+
+        return $page->source?->link($path, $from);
+    }
+
+    /**
      * The published path a single target has on the site.
      *
      * @param string $target The destination exactly as the source wrote it
-     * @param string $from   The local path of the document holding the link
+     * @param Page   $page   The document holding the link, which supplies both the path
+     *                       the target resolves against and the source it came from
      *
      * @throws InvalidArgumentException when the translation refuses a path,
      *         which the membership check above makes unreachable. It is declared
      *         because the translation declares it, and a caller should not have
      *         to reason about which of the two calls could raise it.
+     * @throws HelperException when a document the scan found has no route. That is a
+     *         defect in this package rather than in the documentation, so it is not
+     *         treated as a dead link and does not fall back to the source
      * @throws RuntimeException when the target resolves to nothing that exists
      */
     private function rewrite(string $target, Page $page): string
@@ -145,21 +171,6 @@ final readonly class LinkRewriter
     }
 
     /**
-     * The repository URL a target names, or null when the page has no repository
-     * or the target stays inside it.
-     *
-     * The climb is counted in repository space, which is why the page carries the source
-     * it was read from: a site path has already spent its mount and cannot say how far a
-     * target climbed from the document that wrote it. The source knows both its mount and
-     * its path inside the repository, so it does the arithmetic rather than this type
-     * guessing at either half.
-     */
-    private function aboveSite(string $path, Page $page): ?string
-    {
-        return $page->source?->link($path, $page->sourcePath);
-    }
-
-    /**
      * The published path the build serves a target at.
      *
      * Recomputation can produce a path for anything, so only the discovered sets can
@@ -173,6 +184,9 @@ final readonly class LinkRewriter
      *
      * @throws InvalidArgumentException from the translation, which the membership
      *         check makes unreachable; it is declared because the translation declares it
+     * @throws HelperException from the URL helper when the candidate has no route. That
+     *         is the same "found nothing" case the refusal below reports, raised by the
+     *         router instead of by this type
      * @throws RuntimeException when the target resolves to nothing the scan found, or
      *         climbs above the site root
      */
@@ -214,6 +228,8 @@ final readonly class LinkRewriter
      *         the membership check in `rewrite()` makes unreachable. This is the
      *         package's own type, so it does not cover a vendor exception; the
      *         data read below is therefore declared separately.
+     * @throws HelperException when a document the scan found has no route, which is
+     *         a defect in this package rather than a dead link
      * @throws InvalidPathException from the document data read, which the default
      *         value makes unreachable in practice
      * @throws RuntimeException when a target resolves to nothing the scan found,

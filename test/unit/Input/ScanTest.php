@@ -40,6 +40,8 @@ use const DIRECTORY_SEPARATOR;
  */
 #[CoversClass(Scan::class)]
 #[CoversMethod(Scan::class, 'of')]
+#[CoversMethod(Scan::class, 'ownerOf')]
+#[CoversMethod(Scan::class, 'repositoryPathOf')]
 #[CoversMethod(Scan::class, 'sourceOf')]
 final class ScanTest extends TestCase
 {
@@ -125,11 +127,13 @@ final class ScanTest extends TestCase
     }
 
     #[Test]
-    public function recordsTheRepositoryARootCameFrom(): void
+    public function recordsTheRepositoryAndTheRepositoryPathOfEveryFile(): void
     {
-        // Origins are how a link that leaves the site is resolved, and the scan is the
-        // only place they are read, so a root that was walked without its repository
-        // being asked would silently cost every source link in the build.
+        // Both maps are what a link that leaves the site is resolved with, and the scan is
+        // the only place they are produced. A root walked without its repository being
+        // asked would silently cost every source link in the build, and a missing
+        // repository path would leave the rewriter with nothing to resolve the climb
+        // against. They are recorded together here so neither can be dropped alone.
         $tree = $this->temporaryTree();
 
         try {
@@ -145,8 +149,10 @@ final class ScanTest extends TestCase
                 mount: '/docs/',
             )]);
 
-            static::assertSame(['/docs/'], array_keys($scan->origins));
-            static::assertSame('https://github.com/example/fixture', $scan->origins['/docs/']->url);
+            static::assertSame('https://github.com/example/fixture', $scan->ownerOf('docs/index.md')?->url);
+            // The prefix is empty because the root is the repository, so the path from the
+            // repository root is the file's own path inside that root.
+            static::assertSame('index.md', $scan->repositoryPathOf('docs/index.md'));
         } finally {
             $this->removeDirectory($tree);
         }
