@@ -117,9 +117,10 @@ final class VersionTest extends TestCase
     #[Test]
     public function picksTheLatestOfEachMajorLineInAscendingOrder(): void
     {
-        // Out of order on purpose, with a stray tag: a reader that took the last tag, or
-        // stopped at the stray, would answer differently.
-        $tags = ['v2.0.0', 'v1.4.2', 'v2.3.1', 'stray', 'v1.0.0', 'v2.3.0'];
+        // Out of order on purpose, with a stray tag FIRST: a reader that stopped at the
+        // first tag that is not a version would answer nothing, and one that took the last
+        // tag of a line would answer differently.
+        $tags = ['stray', 'v2.0.0', 'v1.4.2', 'v2.3.1', 'v1.0.0', 'also-stray', 'v2.3.0'];
 
         static::assertSame(
             ['v1.4.2', 'v2.3.1'],
