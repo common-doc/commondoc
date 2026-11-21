@@ -134,6 +134,9 @@ not read, because the version mounts are what make the versions a set.
   between them.
 - A tag that has nothing at the target is skipped, because early tags often predate the
   documentation.
+- The `target` may be a list of directories, tried in order for each tag, so a
+  repository whose layout changed between releases reads each tag from the first one it
+  holds: `['docs/{major}.0', 'docs/v{major}']`.
 - The `target` may contain `{major}`, which each tag replaces with its own major
   version, so `docs/v{major}` reads `docs/v1` from a 1.x tag and `docs/v2` from a 2.x
   tag. Text around the placeholder is kept, so `docs/{major}.0` reads `docs/2.0` from a

@@ -52,7 +52,7 @@ final readonly class VersionRoot
 
     /**
      * @param string $repository The checkout whose tags are read
-     * @param Target $target     The documentation directory within each tag
+     * @param list<Target> $targets The documentation directories to try within each tag, in order
      * @param string $workspace  Where each version's tree is written
      *
      * @return list<Root>
@@ -65,7 +65,7 @@ final readonly class VersionRoot
      * @throws Type\Exception\ExceptionInterface When the captured groups are not the shape the
      *         pattern promises, which the fixed pattern makes unreachable
      */
-    public function of(string $repository, Target $target, string $workspace): array
+    public function of(string $repository, array $targets, string $workspace): array
     {
         $remote = $this->git->ask($repository, ['remote', 'get-url', 'origin']);
         $origin = null === $remote ? null : Source::fromRemote($remote, ref: 'HEAD');
@@ -79,31 +79,38 @@ final readonly class VersionRoot
         $roots     = [];
 
         foreach ($this->versions->read($repository) as $version) {
-            // A repository that keeps one directory per major states `docs/v{major}` once,
-            // and each tag is read from its own.
-            $own       = new Target(str_replace(self::MAJOR, (string) $version->major, $target->location));
             $directory = sprintf('%s/%s/v%d', $workspace, $segment, $version->major);
-            $written   = $this->trees->extract(
-                directory  : $repository,
-                ref        : $version->tag,
-                path       : $own->location,
-                destination: $directory,
-            );
 
-            if (0 === $written) {
-                continue;
+            // Candidates in order, because a repository's layout changes between releases:
+            // the first directory a tag actually holds is the one it is read from.
+            foreach ($targets as $target) {
+                // A repository that keeps one directory per major states `docs/v{major}`
+                // once, and each tag is read from its own.
+                $own     = new Target(str_replace(self::MAJOR, (string) $version->major, $target->location));
+                $written = $this->trees->extract(
+                    directory  : $repository,
+                    ref        : $version->tag,
+                    path       : $own->location,
+                    destination: $directory,
+                );
+
+                if (0 === $written) {
+                    continue;
+                }
+
+                $roots[] = new Root(
+                    path   : $own->at($directory),
+                    mount  : sprintf('/%s/v%d/', $segment, $version->major),
+                    source : new Source(
+                        url   : $origin->url,
+                        ref   : $version->tag,
+                        prefix: $own->location,
+                    ),
+                    release: new Release($component, $version),
+                );
+
+                break;
             }
-
-            $roots[] = new Root(
-                path   : $own->at($directory),
-                mount  : sprintf('/%s/v%d/', $segment, $version->major),
-                source : new Source(
-                    url   : $origin->url,
-                    ref   : $version->tag,
-                    prefix: $own->location,
-                ),
-                release: new Release($component, $version),
-            );
         }
 
         return $roots;

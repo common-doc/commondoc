@@ -17,7 +17,6 @@ namespace CommonDoc\Container;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Target;
-use CommonDoc\Input\VersionRoot;
 use Psl\Filesystem;
 use Psl\Regex;
 use Psl\Type;
@@ -25,8 +24,6 @@ use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
 
 use function array_push;
 use function is_array;
-use function is_string;
-use function sys_get_temp_dir;
 
 /**
  * Reads the site's source roots out of the configuration.
@@ -97,7 +94,7 @@ final readonly class RootReader
 
         /** @var mixed $entry Deliberately untyped: the entry reader decides what it is */
         foreach ($configured as $entry) {
-            $versioned = $this->versioned($entry, $target);
+            $versioned = new VersionEntryReader()->read($entry, $target);
 
             if (null !== $versioned) {
                 array_push($roots, ...$versioned);
@@ -115,47 +112,5 @@ final readonly class RootReader
         }
 
         return [] === $roots ? $this->defaults() : $roots;
-    }
-
-    /**
-     * The roots a `repository` entry makes when it asks for its released versions, or null
-     * when it does not.
-     *
-     * An entry opts in with `'versions' => true`. Its mount is not read: each version is
-     * mounted at `/{component}/v{major}/`, which is what makes the versions a set.
-     *
-     * @param mixed $entry Deliberately untyped: configuration is
-     *
-     * @return ?list<Root>
-     *
-     * @throws InvalidArgumentException When a mount cannot prefix a path
-     * @throws FileWriterException When a version's files cannot be written
-     * @throws Filesystem\Exception\ExceptionInterface When a previous extraction cannot be cleared
-     * @throws Regex\Exception\ExceptionInterface When a tag cannot be matched, which the fixed
-     *         pattern makes unreachable
-     * @throws Type\Exception\ExceptionInterface When the captured groups are not the shape the
-     *         pattern promises, which the fixed pattern makes unreachable
-     */
-    private function versioned(mixed $entry, Target $fallback): ?array
-    {
-        if (! is_array($entry) || true !== ($entry['versions'] ?? null)) {
-            return null;
-        }
-
-        /** @var mixed $repository Deliberately untyped: the check below decides what it is */
-        $repository = $entry['repository'] ?? null;
-
-        if (! is_string($repository) || '' === $repository) {
-            return null;
-        }
-
-        /** @var mixed $target Deliberately untyped: the check below decides what it is */
-        $target = $entry['target'] ?? null;
-
-        return new VersionRoot()->of(
-            repository: $repository,
-            target    : is_string($target) && '' !== $target ? new Target($target) : $fallback,
-            workspace : sys_get_temp_dir() . '/commondoc-versions',
-        );
     }
 }

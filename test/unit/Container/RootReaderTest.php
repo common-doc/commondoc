@@ -16,6 +16,7 @@ namespace CommonDocTest\Container;
 
 use CommonDoc\Container\RootEntryReader;
 use CommonDoc\Container\RootReader;
+use CommonDoc\Container\VersionEntryReader;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Target;
@@ -46,6 +47,9 @@ use function unlink;
  */
 #[CoversClass(RootReader::class)]
 #[CoversClass(RootEntryReader::class)]
+#[CoversClass(VersionEntryReader::class)]
+#[CoversMethod(VersionEntryReader::class, 'read')]
+#[CoversMethod(VersionEntryReader::class, 'targets')]
 #[CoversMethod(RootReader::class, 'defaults')]
 #[CoversMethod(RootReader::class, 'read')]
 #[CoversMethod(RootEntryReader::class, 'read')]
