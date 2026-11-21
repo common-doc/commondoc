@@ -30,7 +30,7 @@
 </head>
 <body>
     <nav class="site-nav">
-        <?= $this->navigation(\CommonDoc\Output\DocumentRoutes::NAVIGATION)->menu() ?>
+        <?= $this->navigation(\CommonDoc\Output\RouteRegistrar::NAVIGATION)->menu() ?>
     </nav>
     <?= $this->content ?>
 </body>

@@ -16,25 +16,29 @@ namespace CommonDocTest\Output;
 
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Output\DocumentRoot;
-use CommonDoc\Output\DocumentRoutes;
+use CommonDoc\Output\DocumentRoute;
+use CommonDoc\Output\RouteRegistrar;
+use Mezzio\Helper\UrlHelper;
 use Mezzio\Router\Exception\DuplicateRouteException;
 use Mezzio\Router\RouteCollector;
-use Mezzio\Router\RouterInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Webware\Router\QueryParamRouter;
 
 /**
  * Registration is the one place a document becomes a route, so what the route carries
  * is asserted here rather than through a whole build.
  */
-#[CoversClass(DocumentRoutes::class)]
-#[CoversMethod(DocumentRoutes::class, '__construct')]
-#[CoversMethod(DocumentRoutes::class, 'labelFor')]
-#[CoversMethod(DocumentRoutes::class, 'register')]
-final class DocumentRoutesTest extends TestCase
+#[CoversClass(RouteRegistrar::class)]
+#[CoversMethod(RouteRegistrar::class, '__construct')]
+#[CoversMethod(RouteRegistrar::class, 'labelFor')]
+#[CoversMethod(RouteRegistrar::class, 'register')]
+final class RouteRegistrarTest extends TestCase
 {
+    private ?QueryParamRouter $router = null;
+
     #[Test]
     public function carriesTheOptionsTheNavigationHelperReads(): void
     {
@@ -50,8 +54,9 @@ final class DocumentRoutesTest extends TestCase
 
         static::assertSame(
             [
-                '/guide/setup/' => ['navigation' => DocumentRoutes::NAVIGATION, 'label' => 'setup', 'order' => 0],
-                '/'             => ['navigation' => DocumentRoutes::NAVIGATION, 'label' => 'index', 'order' => 1],
+                '/{path}'       => [],
+                '/guide/setup/' => ['navigation' => RouteRegistrar::NAVIGATION, 'label' => 'setup', 'order' => 0],
+                '/'             => ['navigation' => RouteRegistrar::NAVIGATION, 'label' => 'index', 'order' => 1],
             ],
             $options,
         );
@@ -62,8 +67,8 @@ final class DocumentRoutesTest extends TestCase
     {
         // A better label needs a source this build does not have yet, so every index page
         // is labelled `index` and that is stated rather than hidden.
-        static::assertSame('setup', DocumentRoutes::labelFor('guide/setup.md'));
-        static::assertSame('index', DocumentRoutes::labelFor('index.md'));
+        static::assertSame('setup', RouteRegistrar::labelFor('guide/setup.md'));
+        static::assertSame('index', RouteRegistrar::labelFor('index.md'));
     }
 
     #[Test]
@@ -91,18 +96,35 @@ final class DocumentRoutesTest extends TestCase
             $paths[] = $route->getPath();
         }
 
-        static::assertSame(['/guide/setup/', '/'], $paths);
+        static::assertSame(['/{path}', '/guide/setup/', '/'], $paths);
+    }
+
+    #[Test]
+    public function registersThePatternRouteWithoutNavigationOptions(): void
+    {
+        $collector = $this->collector();
+
+        $this->routes($collector)->register(['index.md']);
+
+        $pattern = $collector->getRoutes()[0];
+
+        static::assertSame(DocumentRoute::NAME, $pattern->getName());
+        static::assertSame([], $pattern->getOptions());
     }
 
     private function collector(): RouteCollector
     {
-        return new RouteCollector($this->createStub(RouterInterface::class));
+        $this->router = new QueryParamRouter();
+
+        return new RouteCollector($this->router);
     }
 
-    private function routes(RouteCollector $collector): DocumentRoutes
+    private function routes(RouteCollector $collector): RouteRegistrar
     {
-        return new DocumentRoutes(
-            root      : new DocumentRoot('/'),
+        $root = new DocumentRoot('/');
+
+        return new RouteRegistrar(
+            route     : new DocumentRoute($root, new UrlHelper($this->router ?? new QueryParamRouter())),
             collector : $collector,
             middleware: new NotServedMiddleware(),
         );

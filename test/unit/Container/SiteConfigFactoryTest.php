@@ -92,7 +92,7 @@ final class SiteConfigFactoryTest extends TestCase
 
         static::assertSame('/', $site->documentRoot->basePath);
         static::assertSame(PathType::Directory, $site->documentRoot->pathType);
-        static::assertSame('/guide/setup/', $site->documentRoot->published('guide/setup.md'));
+        static::assertSame('guide/setup/', $site->documentRoot->pathOf('guide/setup.md'));
     }
 
     #[Test]

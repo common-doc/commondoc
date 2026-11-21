@@ -17,6 +17,8 @@ namespace CommonDoc\Output;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Input\Markdown;
+use InvalidArgumentException as NativeInvalidArgumentException;
+use Mezzio\Helper\Exception\RuntimeException as HelperException;
 use Mezzio\Router\Exception\DuplicateRouteException;
 use Mezzio\Router\RouteCollectorInterface;
 
@@ -26,16 +28,17 @@ use function strlen;
 use function substr;
 
 /**
- * Registers one route per document, so the routing table is the site's own map.
+ * Registers the routes a build generates URLs from and the menu reads.
  *
- * A build dispatches nothing. The routes exist so a URL can be generated for a document
- * by name and so the navigation helper has a tree to read, which is why registration is
- * its own collaborator rather than a step buried in the coordinator: it is the one
- * place a document becomes a route, and it is where a route tree grows.
+ * A build dispatches nothing. First the one pattern route every URL is generated from,
+ * then one route per document at the URL that pattern yields, so the navigation helper
+ * has a tree to read whose every path was composed by the router. That is why registration
+ * is its own collaborator rather than a step buried in the coordinator: it is the one place
+ * a document becomes a route, and it is where a route tree grows.
  *
  * @api
  */
-final readonly class DocumentRoutes
+final readonly class RouteRegistrar
 {
     private const string SEPARATOR = '/';
 
@@ -50,7 +53,7 @@ final readonly class DocumentRoutes
     public const string NAVIGATION = 'commondoc';
 
     public function __construct(
-        private DocumentRoot $root,
+        private DocumentRoute $route,
         private RouteCollectorInterface $collector,
         private NotServedMiddleware $middleware,
     ) {}
@@ -76,7 +79,7 @@ final readonly class DocumentRoutes
     }
 
     /**
-     * Register one route per document, published at its own path.
+     * Register the pattern route, then one route per document at the URL it yields.
      *
      * Registration happens before the first render, so a link to a document the
      * loop has not reached yet still has a route, and so a URL can be generated for it
@@ -84,7 +87,8 @@ final readonly class DocumentRoutes
      * path, which is how two local paths that publish at one path are caught: nothing
      * here re-implements that check.
      *
-     * The route carries the options the navigation helper reads. They are set here
+     * The pattern route carries no navigation option, so the menu never lists it. Each
+     * document route carries the options the navigation helper reads. They are set here
      * because registration is the only moment the route exists and the document is
      * known at once: a menu built later has nothing but the routing table, so an option
      * not written now cannot be recovered from a document later.
@@ -93,9 +97,18 @@ final readonly class DocumentRoutes
      *
      * @throws DuplicateRouteException When two documents publish at one path
      * @throws InvalidArgumentException When a local path does not name a document
+     * @throws HelperException When the pattern route cannot be generated from
+     * @throws NativeInvalidArgumentException When the helper refuses a malformed fragment. Nothing
+     *         here passes a fragment, so this is declared rather than reachable
      */
     public function register(array $documents): void
     {
+        $this->collector->route(
+            path      : $this->route->pattern(),
+            middleware: $this->middleware,
+            name      : DocumentRoute::NAME,
+        );
+
         $order = 0;
 
         foreach ($documents as $document) {
@@ -103,11 +116,10 @@ final readonly class DocumentRoutes
             // read by the navigation helper, and are never dispatched, so the method they
             // accept is meaningless. It matters because the router derives the name from
             // the path, and `HTTP_METHOD_ANY` derives it as the path itself, while `get()`
-            // would derive `<path>^GET`. One name, the published path, is what every
-            // caller generates from.
+            // would derive `<path>^GET`. The name is the URL, which is what `Page` carries.
             $this->collector
                 ->route(
-                    path      : $this->root->published($document),
+                    path      : $this->route->url($document),
                     middleware: $this->middleware,
                 )
                 ->setOptions([

@@ -26,7 +26,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversMethod(DocumentRoot::class, '__construct')]
 #[CoversMethod(DocumentRoot::class, 'asset')]
 #[CoversMethod(DocumentRoot::class, 'file')]
-#[CoversMethod(DocumentRoot::class, 'published')]
+#[CoversMethod(DocumentRoot::class, 'pathOf')]
 final class DocumentRootTest extends TestCase
 {
     #[Test]
@@ -34,15 +34,15 @@ final class DocumentRootTest extends TestCase
     {
         $root = new DocumentRoot('/repo/');
 
-        static::assertSame('/repo/guide/', $root->published('guide/index.md'));
+        static::assertSame('guide/', $root->pathOf('guide/index.md'));
     }
 
     #[Test]
-    public function keepsTheFileRelativeWhileThePublishedPathCarriesThePrefix(): void
+    public function keepsBothTheFileAndThePathRelativeToTheBasePath(): void
     {
         $root = new DocumentRoot('/repo/');
 
-        static::assertStringStartsWith('/repo/', $root->published('a/b.md'));
+        static::assertSame('a/b/', $root->pathOf('a/b.md'));
         static::assertStringStartsNotWith('/', $root->file('a/b.md'));
     }
 
@@ -51,7 +51,7 @@ final class DocumentRootTest extends TestCase
     {
         $root = new DocumentRoot('/');
 
-        static::assertSame('/guide/setup/', $root->published('guide/setup.md'));
+        static::assertSame('guide/setup/', $root->pathOf('guide/setup.md'));
         static::assertSame('guide/setup/index.html', $root->file('guide/setup.md'));
     }
 
@@ -63,7 +63,7 @@ final class DocumentRootTest extends TestCase
         // Markdown::scan matches its suffix without regard to case, so a document
         // it reports must be translatable. Refusing upper case here would fail a
         // build on a document the scan had already accepted.
-        static::assertSame('/guide/setup/', $root->published('guide/setup.MD'));
+        static::assertSame('guide/setup/', $root->pathOf('guide/setup.MD'));
         static::assertSame('guide/setup/index.html', $root->file('guide/setup.MD'));
     }
 
@@ -93,7 +93,7 @@ final class DocumentRootTest extends TestCase
     {
         $root = new DocumentRoot('/', PathType::File);
 
-        static::assertSame('/guide/index.html', $root->published('guide/index.md'));
+        static::assertSame('guide/index.html', $root->pathOf('guide/index.md'));
         static::assertSame('guide/index.html', $root->file('guide/index.md'));
     }
 
@@ -102,9 +102,9 @@ final class DocumentRootTest extends TestCase
     {
         $root = new DocumentRoot('/', PathType::File);
 
-        static::assertSame('/guide/setup.html', $root->published('guide/setup.md'));
+        static::assertSame('guide/setup.html', $root->pathOf('guide/setup.md'));
         static::assertSame('guide/setup.html', $root->file('guide/setup.md'));
-        static::assertSame('/index.html', $root->published('index.md'));
+        static::assertSame('index.html', $root->pathOf('index.md'));
         static::assertSame('index.html', $root->file('index.md'));
     }
 
@@ -113,7 +113,7 @@ final class DocumentRootTest extends TestCase
     {
         $root = new DocumentRoot('/');
 
-        static::assertSame('/', $root->published('index.md'));
+        static::assertSame('', $root->pathOf('index.md'));
         static::assertSame('index.html', $root->file('index.md'));
     }
 
@@ -122,8 +122,8 @@ final class DocumentRootTest extends TestCase
     {
         $root = new DocumentRoot('/repo');
 
-        static::assertSame('/repo/', $root->published('index.md'));
-        static::assertSame('/repo/guide/setup/', $root->published('guide/setup.md'));
+        static::assertSame('', $root->pathOf('index.md'));
+        static::assertSame('guide/setup/', $root->pathOf('guide/setup.md'));
         static::assertSame('guide/setup/index.html', $root->file('guide/setup.md'));
     }
 
@@ -150,7 +150,7 @@ final class DocumentRootTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new DocumentRoot('/')->published('/guide/setup.md');
+        new DocumentRoot('/')->pathOf('/guide/setup.md');
     }
 
     #[Test]
@@ -183,7 +183,7 @@ final class DocumentRootTest extends TestCase
     {
         $root = new DocumentRoot('/');
 
-        static::assertSame('/guide/', $root->published('guide/index.md'));
+        static::assertSame('guide/', $root->pathOf('guide/index.md'));
         static::assertSame('guide/index.html', $root->file('guide/index.md'));
     }
 
@@ -192,8 +192,8 @@ final class DocumentRootTest extends TestCase
     {
         $root = new DocumentRoot('/');
 
-        static::assertSame('/myindex/', $root->published('myindex.md'));
+        static::assertSame('myindex/', $root->pathOf('myindex.md'));
         static::assertSame('myindex/index.html', $root->file('myindex.md'));
-        static::assertSame('/a/indexer/', $root->published('a/indexer.md'));
+        static::assertSame('a/indexer/', $root->pathOf('a/indexer.md'));
     }
 }

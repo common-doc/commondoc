@@ -17,6 +17,7 @@ namespace CommonDoc\Container;
 use Closure;
 use CommonDoc\CommonMarkEvent;
 use CommonDoc\Output\DocumentRoot;
+use CommonDoc\Output\DocumentRoute;
 use CommonDoc\Output\LinkRewriter;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\HeadingListener;
@@ -26,7 +27,6 @@ use Laminas\ServiceManager\Factory\FactoryInterface;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Exception\AlreadyInitializedException;
 use League\CommonMark\MarkdownConverter;
-use Mezzio\Helper\UrlHelper;
 use Override;
 use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
@@ -82,8 +82,8 @@ final readonly class ConverterFactoryFactory implements FactoryInterface
             ->coerce($container->get(HeadingListener::class));
         $root = Type\instance_of(DocumentRoot::class)
             ->coerce($container->get(DocumentRoot::class));
-        $url = Type\instance_of(UrlHelper::class)
-            ->coerce($container->get(UrlHelper::class));
+        $route = Type\instance_of(DocumentRoute::class)
+            ->coerce($container->get(DocumentRoute::class));
 
         return /**
          * @param list<non-empty-string> $documents Every document the scan found
@@ -98,7 +98,7 @@ final readonly class ConverterFactoryFactory implements FactoryInterface
             $pageListener,
             $headingListener,
             $root,
-            $url,
+            $route,
         ): ConverterInterface {
             $environment = EnvironmentFactory::assemble(
                 options        : $environmentOptions,
@@ -110,7 +110,7 @@ final readonly class ConverterFactoryFactory implements FactoryInterface
 
             $environment->addEventListener(
                 CommonMarkEvent::DocumentParsed->value,
-                new LinkRewriter($root, $url, $documents, $assets),
+                new LinkRewriter($root, $route, $documents, $assets),
             );
 
             return new MarkdownConverter($environment);

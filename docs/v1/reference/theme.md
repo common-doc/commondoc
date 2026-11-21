@@ -199,7 +199,7 @@ must not assume a page exists.
 The built-in layout renders the site menu with the `navigation` view helper:
 
 ```php
-<?= $this->navigation(\CommonDoc\Output\DocumentRoutes::NAVIGATION)->menu() ?>
+<?= $this->navigation(\CommonDoc\Output\RouteRegistrar::NAVIGATION)->menu() ?>
 ```
 
 The menu is read from the routing table. A build registers one route per document before

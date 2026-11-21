@@ -21,8 +21,10 @@ use CommonDoc\Container\ConverterFactoryFactory;
 use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Output\DocumentRoot;
+use CommonDoc\Output\DocumentRoute;
 use CommonDoc\View\PageContext;
 use Laminas\ServiceManager\ServiceManager;
+use Mezzio\Helper\UrlHelper;
 use Mezzio\Router\RouteCollector;
 use Mezzio\Router\RouteCollectorInterface;
 use Mezzio\Router\RouterInterface;
@@ -77,6 +79,10 @@ final class BuildSiteHandlerFactoryTest extends TestCase
         return new ServiceManager([
             'factories' => [
                 DocumentRoot::class            => static fn(): DocumentRoot => new DocumentRoot('/'),
+                DocumentRoute::class           => fn(): DocumentRoute => new DocumentRoute(
+                    new DocumentRoot('/'),
+                    $this->createStub(UrlHelper::class),
+                ),
                 PageContext::class             => static fn(): PageContext => new PageContext(),
                 NotServedMiddleware::class     => static fn(): NotServedMiddleware => new NotServedMiddleware(),
                 RouteCollectorInterface::class => fn(): RouteCollector => new RouteCollector(

@@ -17,12 +17,12 @@ namespace CommonDoc\Container;
 use Closure;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Source;
+use CommonDoc\Output\DocumentRoute;
 use CommonDoc\SiteConfig;
 use CommonDoc\View\Page;
 use InvalidArgumentException as NativeInvalidArgumentException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Mezzio\Helper\Exception\RuntimeException as HelperException;
-use Mezzio\Helper\UrlHelper;
 use Override;
 use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
@@ -67,8 +67,8 @@ final readonly class PageFactoryFactory implements FactoryInterface
     ): Closure {
         $site = Type\instance_of(SiteConfig::class)
             ->coerce($container->get(SiteConfig::class));
-        $url = Type\instance_of(UrlHelper::class)
-            ->coerce($container->get(UrlHelper::class));
+        $route = Type\instance_of(DocumentRoute::class)
+            ->coerce($container->get(DocumentRoute::class));
 
         return /**
          * @param non-empty-string $localPath      The document's site path, as the scan produced it
@@ -86,20 +86,19 @@ final readonly class PageFactoryFactory implements FactoryInterface
             string $label,
             ?Source $source = null,
             ?string $repositoryPath = null,
-        ) use ($site, $url): Page {
-            // The route name is the path this document was registered at, which is the
-            // published path: the router derives a name from the path when none is given,
-            // and the build registers with none.
-            $routeName = $site->documentRoot->published($localPath);
+        ) use ($site, $route): Page {
+            // The page's route name is its URL: the registrar registers each document's
+            // route at the URL the pattern yields and names it by that path.
+            $url = $route->url($localPath);
 
             return new Page(
                 label         : $label,
                 projectName   : $site->projectName,
                 projectSlug   : $site->projectSlug,
                 sourcePath    : $localPath,
-                url           : $url->generate(routeName: $routeName),
+                url           : $url,
                 versionLabel  : $site->versionLabel,
-                routeName     : $routeName,
+                routeName     : $url,
                 source        : $source,
                 repositoryPath: $repositoryPath,
             );

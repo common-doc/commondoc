@@ -20,7 +20,7 @@ use CommonDoc\Container\ConverterFactoryFactory;
 use CommonDoc\Container\DocumentViewRendererFactory;
 use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
-use CommonDoc\Output\DocumentRoot;
+use CommonDoc\Output\DocumentRoute;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
@@ -84,8 +84,9 @@ final class ConfigProviderWiringTest extends TestCase
         // generated from it rather than computed here. That is the build's own order:
         // the routes are registered before the first page is built.
         $container->get(RouteCollector::class)->route(
-            path      : '/guide/setup/',
+            path      : $container->get(DocumentRoute::class)->pattern(),
             middleware: new NotServedMiddleware(),
+            name      : DocumentRoute::NAME,
         );
 
         $pages = $container->get(PageFactoryFactory::class);
@@ -99,13 +100,10 @@ final class ConfigProviderWiringTest extends TestCase
 
         static::assertInstanceOf(Page::class, $page);
         static::assertSame('guide/setup.md', $page->sourcePath);
-        // The published path comes from the DocumentRoot the container built, so the
-        // page cannot disagree with the file the write pass will produce. The URL is the
-        // route's own path, which is why the route above is registered at that same path.
-        static::assertSame(
-            $container->get(DocumentRoot::class)->published('guide/setup.md'),
-            $page->url,
-        );
+        // The URL is generated from the one pattern route with the path the DocumentRoot
+        // the container built answers, so the page cannot disagree with the file the
+        // write pass will produce.
+        static::assertSame('/guide/setup/', $page->url);
     }
 
     /**

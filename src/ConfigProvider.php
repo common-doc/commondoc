@@ -24,6 +24,7 @@ use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
 use CommonDoc\Container\ConverterFactoryFactory;
 use CommonDoc\Container\DocumentRootFactory;
+use CommonDoc\Container\DocumentRouteFactory;
 use CommonDoc\Container\DocumentViewRendererFactory;
 use CommonDoc\Container\EnvironmentFactory;
 use CommonDoc\Container\ExtensionPluginManager;
@@ -41,6 +42,7 @@ use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\AssetCopyMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Output\DocumentRoot;
+use CommonDoc\Output\DocumentRoute;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\HeadingListener;
 use CommonDoc\View\PageContext;
@@ -212,6 +214,7 @@ final readonly class ConfigProvider
                 CommandPreHandleListener::class  => CommandPreHandleListenerFactory::class,
                 ConverterFactoryFactory::class   => ConverterFactoryFactory::class,
                 DocumentRoot::class              => DocumentRootFactory::class,
+                DocumentRoute::class             => DocumentRouteFactory::class,
                 DocumentViewRenderer::class      => DocumentViewRendererFactory::class,
                 EnvironmentInterface::class      => EnvironmentFactory::class,
                 ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
