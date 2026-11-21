@@ -21,17 +21,17 @@ use CommonDoc\Exception\RuntimeException;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Scan;
+use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
+use CommonDoc\Output\DocumentRoutes;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\Record\Progress;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use CommonDocTest\Support\AbstractTemporaryTree;
-use Laminas\ServiceManager\ServiceLocatorInterface;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Node\Block\Document;
 use League\CommonMark\Output\RenderedContentInterface;
-use Mezzio\Router\Exception\DuplicateRouteException;
 use Mezzio\Router\RouteCollector;
 use Mezzio\Router\RouteCollectorInterface;
 use Mezzio\Router\RouterInterface;
@@ -61,6 +61,42 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
     private string $source = '';
     private string $output = '';
 
+    /**
+     * The function the handler calls to get the page for one document.
+     *
+     * Passed in rather than resolved, which is the contract under test: a handler that
+     * reached for anything else to build a page has nothing to reach for here.
+     *
+     * @param ?Closure(string, string): void $onPage Observes the label each page was built with
+     *
+     * @return Closure(non-empty-string $localPath, string $label, ?Source $source, ?string $repositoryPath): Page
+     */
+    private static function pages(DocumentRoot $root, ?Closure $onPage = null): Closure
+    {
+        return static function (
+            string $localPath,
+            string $label,
+            ?Source $source = null,
+            ?string $repositoryPath = null,
+        ) use ($root, $onPage): Page {
+            if (null !== $onPage) {
+                $onPage($localPath, $label);
+            }
+
+            return new Page(
+                label         : $label,
+                projectName   : 'CommonDoc',
+                projectSlug   : 'commondoc',
+                sourcePath    : $localPath,
+                url           : $root->published($localPath),
+                versionLabel  : '1.0',
+                routeName     : $root->published($localPath),
+                source        : $source,
+                repositoryPath: $repositoryPath,
+            );
+        };
+    }
+
     private static function render(string $html): RenderedContentInterface
     {
         return new class($html) implements RenderedContentInterface {
@@ -83,6 +119,24 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
                 return $this->html;
             }
         };
+    }
+
+    #[Test]
+    public function buildsOneConverterPerBuildFromWhatTheScanFound(): void
+    {
+        $this->writeFile('source/index.md', contents: "# Home\n");
+        $this->writeFile('source/guide/setup.md', contents: "# Setup\n");
+        $this->writeFile('source/site.css', contents: 'body{}');
+
+        $calls = [];
+
+        $this->handler(onConverter: static function (array $documents, array $assets) use (&$calls): void {
+            $calls[] = [$documents, $assets];
+        })->handle($this->command(new Progress(output: ['site.css'])));
+
+        // One converter for the build, bound to the build's own lists: the link
+        // rewriter inside it is what checks a target against them.
+        static::assertSame([[['guide/setup.md', 'index.md'], ['site.css']]], $calls);
     }
 
     #[Test]
@@ -175,45 +229,6 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         static::assertSame(['guide/setup.md'], $raw->failedPath());
         static::assertTrue(is_file("{$this->output}/index.html"));
         static::assertFalse(is_file("{$this->output}/guide/setup/index.html"));
-    }
-
-    #[Test]
-    public function refusesTwoDocumentsThatPublishAtOnePath(): void
-    {
-        $this->writeFile('source/guide/setup.md', contents: "# Setup\n");
-        $this->writeFile('source/guide/setup/index.md', contents: "# Nested\n");
-
-        // Both publish at /guide/setup/, which the collector refuses as a
-        // duplicate route. Nothing in this package re-implements that check.
-        $this->expectException(DuplicateRouteException::class);
-
-        $this->handler()->handle($this->command());
-    }
-
-    #[Test]
-    public function registersOneRoutePerDocumentAtItsPublishedPath(): void
-    {
-        $this->writeFile('source/index.md', contents: "# Home\n");
-        $this->writeFile('source/guide/setup.md', contents: "# Setup\n");
-
-        $collector = $this->collector();
-
-        $this->handler(collector: $collector)->handle($this->command());
-
-        // The name is not asserted to a literal: the collector registers a GET route and
-        // the router derives the name from the path, so the name is the published path
-        // with the method suffix. What matters is that a route exists per document at the
-        // path the translation gives, and that no name is invented here.
-        $paths = [];
-
-        foreach ($collector->getRoutes() as $route) {
-            $paths[$route->getPath()] = true;
-        }
-
-        static::assertSame(
-            ['/guide/setup/' => true, '/' => true],
-            $paths,
-        );
     }
 
     #[Test]
@@ -328,12 +343,14 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
 
     /**
      * @param ?Closure(string, string): void $onPage Observes the label each page was built with
+     * @param ?Closure(list<non-empty-string>, list<non-empty-string>): void $onConverter Observes the lists the converter was built for
      */
     private function handler(
         ?RouteCollectorInterface $collector = null,
         ?ConverterInterface $converter = null,
         ?PageContext $context = null,
         ?Closure $onPage = null,
+        ?Closure $onConverter = null,
     ): BuildSiteHandler {
         $root = new DocumentRoot('/');
 
@@ -343,57 +360,24 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         }
 
         return new BuildSiteHandler(
+            routes    : new DocumentRoutes(
+                root      : $root,
+                collector : $collector ?? $this->collector(),
+                middleware: new NotServedMiddleware(),
+            ),
             root      : $root,
-            collector : $collector ?? $this->collector(),
             context   : $context ?? new PageContext(),
-            middleware: new NotServedMiddleware(),
-            services  : $this->locator($root, $converter, $onPage),
-        );
-    }
-
-    /**
-     * A locator that answers the two `build()` calls the handler makes.
-     *
-     * `build()` rather than `get()` is the contract under test, so this stub
-     * answers only that method: a handler that fell back to `get()` would get
-     * null and fail rather than quietly pass.
-     *
-     * @param ?Closure(string, string): void $onPage Observes the label each page was built with
-     */
-    private function locator(
-        DocumentRoot $root,
-        ConverterInterface $converter,
-        ?Closure $onPage = null,
-    ): ServiceLocatorInterface {
-        $locator = $this->createStub(ServiceLocatorInterface::class);
-        $locator
-            ->method('build')
-            ->willReturnCallback(static function (string $id, ?array $options = null) use (
-                $root,
+            converters: static function (array $documents, array $assets) use (
                 $converter,
-                $onPage,
-            ): mixed {
-                if (ConverterInterface::class === $id) {
-                    return $converter;
+                $onConverter,
+            ): ConverterInterface {
+                if (null !== $onConverter) {
+                    $onConverter($documents, $assets);
                 }
 
-                /** @var array{localPath: string, label: string} $options */
-                $options ??= [];
-
-                $onPage?->__invoke($options['localPath'], $options['label']);
-
-                return new Page(
-                    label       : $options['label'],
-                    projectName : 'CommonDoc',
-                    projectSlug : 'commondoc',
-                    sourcePath  : $options['localPath'],
-                    url         : $root->published($options['localPath']),
-                    versionLabel: '1.0',
-                    routeName   : $root->published($options['localPath']),
-                    source      : $options['source'] ?? null,
-                );
-            });
-
-        return $locator;
+                return $converter;
+            },
+            pages     : self::pages($root, $onPage),
+        );
     }
 }

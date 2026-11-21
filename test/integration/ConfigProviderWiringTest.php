@@ -14,8 +14,11 @@ declare(strict_types=1);
 
 namespace CommonDocTestIntegration;
 
+use Closure;
 use CommonDoc\ConfigProvider;
+use CommonDoc\Container\ConverterFactoryFactory;
 use CommonDoc\Container\DocumentViewRendererFactory;
+use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\DocumentViewRenderer;
@@ -79,16 +82,20 @@ final class ConfigProviderWiringTest extends TestCase
 
         // The route has to exist before the page can be built, because the page's URL is
         // generated from it rather than computed here. That is the build's own order:
-        // `seed()` registers every route before the first page is built.
+        // the routes are registered before the first page is built.
         $container->get(RouteCollector::class)->route(
             path      : '/guide/setup/',
             middleware: new NotServedMiddleware(),
         );
 
-        $page = $container->build(Page::class, [
-            'localPath' => 'guide/setup.md',
-            'label'     => 'Setup',
-        ]);
+        $pages = $container->get(PageFactoryFactory::class);
+
+        static::assertInstanceOf(Closure::class, $pages);
+
+        $page = $pages(
+            localPath: 'guide/setup.md',
+            label    : 'Setup',
+        );
 
         static::assertInstanceOf(Page::class, $page);
         static::assertSame('guide/setup.md', $page->sourcePath);
@@ -168,6 +175,17 @@ final class ConfigProviderWiringTest extends TestCase
 
         static::assertInstanceOf(RouteCollector::class, $collector);
         static::assertSame($collector, $container->get(RouteCollectorInterface::class));
+    }
+
+    #[Test]
+    public function servesThePageAndConverterFunctionsUnderTheirFactoryNames(): void
+    {
+        $container = $this->container();
+
+        // What the container serves under these names is a callable, not an instance of the
+        // factory: the handler is handed functions and never a container.
+        static::assertInstanceOf(Closure::class, $container->get(ConverterFactoryFactory::class));
+        static::assertInstanceOf(Closure::class, $container->get(PageFactoryFactory::class));
     }
 
     private function container(): ServiceManager

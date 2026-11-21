@@ -200,7 +200,7 @@ final readonly class LinkRewriter
             // so the published path is also the name to generate from. This is the only
             // place a document's address is produced, so a link and the page it targets
             // cannot disagree.
-            return $this->url->__invoke($this->root->published($candidate));
+            return $this->url->generate(routeName: $this->root->published($candidate));
         }
 
         if (array_key_exists($candidate, $this->assets)) {

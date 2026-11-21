@@ -14,14 +14,15 @@ declare(strict_types=1);
 
 namespace CommonDocTest;
 
+use Closure;
 use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\Container\BuildSiteHandlerFactory;
+use CommonDoc\Container\ConverterFactoryFactory;
+use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\View\PageContext;
 use Laminas\ServiceManager\ServiceManager;
-use League\CommonMark\Environment\Environment;
-use League\CommonMark\Environment\EnvironmentInterface;
 use Mezzio\Router\RouteCollector;
 use Mezzio\Router\RouteCollectorInterface;
 use Mezzio\Router\RouterInterface;
@@ -29,14 +30,13 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psl\Type\Exception\CoercionException;
 
 /**
  * The handler's collaborators, resolved from a real container.
  *
- * A real `ServiceManager` rather than a stub, because one of the collaborators
- * is the locator itself and the factory coerces the container it is given to
- * `ServiceLocatorInterface`: a `ContainerInterface` stub does not satisfy that,
- * which is the check working as intended.
+ * The two per-build objects are served as callables, under the names of the factories
+ * that produce them, so what the handler is handed is a function and not a container.
  */
 #[CoversClass(BuildSiteHandlerFactory::class)]
 #[CoversMethod(BuildSiteHandlerFactory::class, '__invoke')]
@@ -50,15 +50,30 @@ final class BuildSiteHandlerFactoryTest extends TestCase
         static::assertInstanceOf(BuildSiteHandler::class, $subject);
     }
 
+    #[Test]
+    public function refusesAConverterThatIsNotACallable(): void
+    {
+        $this->expectException(CoercionException::class);
+
+        new BuildSiteHandlerFactory()(
+            $this->container(converter: 'not a closure'),
+            BuildSiteHandler::class,
+        );
+    }
+
     /**
      * A container with only what the handler's own constructor needs.
      *
-     * The per-build objects are absent on purpose: they are asked for with
-     * `build()` while a build runs, so a container that could not supply one is
-     * exactly what an over-eager constructor would fail on.
+     * The converter and the page are served as callables and are not called: building the
+     * handler must not build either, so a container whose callables fail if invoked is
+     * exactly what an over-eager constructor would trip on.
      */
-    private function container(): ServiceManager
+    private function container(mixed $converter = null): ServiceManager
     {
+        $unused = static function (): never {
+            self::fail('Building the handler must not call a per-build function.');
+        };
+
         return new ServiceManager([
             'factories' => [
                 DocumentRoot::class            => static fn(): DocumentRoot => new DocumentRoot('/'),
@@ -67,7 +82,8 @@ final class BuildSiteHandlerFactoryTest extends TestCase
                 RouteCollectorInterface::class => fn(): RouteCollector => new RouteCollector(
                     $this->createStub(RouterInterface::class),
                 ),
-                EnvironmentInterface::class    => static fn(): Environment => new Environment(),
+                ConverterFactoryFactory::class => static fn(): mixed => $converter ?? Closure::fromCallable($unused),
+                PageFactoryFactory::class      => static fn(): Closure => Closure::fromCallable($unused),
             ],
         ]);
     }

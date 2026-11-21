@@ -18,6 +18,7 @@ use CommonDoc\CommonMarkEvent;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\HeadingListener;
 use CommonDoc\View\PageContextListener;
+use Laminas\ServiceManager\Exception\ExceptionInterface as ServiceManagerException;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Environment\EnvironmentInterface;
@@ -26,6 +27,7 @@ use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\ExtensionInterface;
 use League\CommonMark\Node\Block\Document;
 use Override;
+use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -57,9 +59,62 @@ use function is_array;
 final readonly class EnvironmentFactory implements FactoryInterface
 {
     /**
+     * A fresh environment from collaborators that are already resolved.
+     *
+     * Static and container free, so a caller that has to build an environment many
+     * times, as a build does for each converter, resolves its collaborators once and
+     * calls this per environment rather than holding the container to ask again.
+     * `__invoke()` below is the same assembly with the collaborators fetched.
+     *
+     * @param array<string, mixed> $options
+     *
+     * @throws AlreadyInitializedException
+     * @throws ServiceManagerException When the plugin manager cannot serve a default extension
+     */
+    public static function assemble(
+        array $options,
+        ExtensionPluginManager $manager,
+        DocumentViewRenderer $renderer,
+        PageContextListener $pageListener,
+        HeadingListener $headingListener,
+    ): Environment {
+        $environment = new Environment($options);
+        $environment->addExtension(new CommonMarkCoreExtension());
+
+        foreach ($manager->getDefaultExtensions() as $name) {
+            /** @var ExtensionInterface $extension */
+            $extension = $manager->get($name);
+
+            $environment->addExtension($extension);
+        }
+
+        $environment->addRenderer(Document::class, $renderer);
+        // No priority, for the same reason the renderer takes none: the only
+        // ordering that matters is that the page is written before a listener
+        // that rewrites a link can read it, and every listener the build adds is
+        // added to an environment this factory has already finished. Listeners
+        // of equal priority run in the order they were added, so nothing else
+        // has to be arranged.
+        $environment->addEventListener(CommonMarkEvent::DocumentParsed->value, $pageListener);
+        // Below the page listener and below the extensions, so every heading already
+        // carries the id the renderer will emit. Its own priority rather than addition
+        // order, because an extension registering at the same priority would be decided by
+        // registration order instead of by intent.
+        $environment->addEventListener(
+            CommonMarkEvent::DocumentParsed->value,
+            $headingListener,
+            HeadingListener::PRIORITY,
+        );
+
+        return $environment;
+    }
+
+    /**
+     * The environment options from the aggregated configuration.
+     *
      * @return array<string, mixed>
      */
-    private function optionsFrom(mixed $config): array
+    public static function optionsFrom(mixed $config): array
     {
         if (! is_array($config) || ! is_array($config[EnvironmentInterface::class] ?? null)) {
             return [];
@@ -81,6 +136,8 @@ final readonly class EnvironmentFactory implements FactoryInterface
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      * @throws AlreadyInitializedException
+     * @throws ServiceManagerException When the plugin manager cannot serve a default extension
+     * @throws Type\Exception\ExceptionInterface When a collaborator is the wrong type
      */
     #[Override]
     public function __invoke(
@@ -88,39 +145,16 @@ final readonly class EnvironmentFactory implements FactoryInterface
         string $requestedName,
         ?array $options = null,
     ): Environment {
-        $manager = $container->get(ExtensionPluginManager::class);
-
-        $environment = new Environment($this->optionsFrom($container->get('config')));
-        $environment->addExtension(new CommonMarkCoreExtension());
-
-        foreach ($manager->getDefaultExtensions() as $name) {
-            /** @var ExtensionInterface $extension */
-            $extension = $manager->get($name);
-
-            $environment->addExtension($extension);
-        }
-
-        $environment->addRenderer(Document::class, $container->get(DocumentViewRenderer::class));
-        // No priority, for the same reason the renderer takes none: the only
-        // ordering that matters is that the page is written before a listener
-        // that rewrites a link can read it, and every listener the build adds is
-        // added to an environment this factory has already finished. Listeners
-        // of equal priority run in the order they were added, so nothing else
-        // has to be arranged.
-        $environment->addEventListener(
-            CommonMarkEvent::DocumentParsed->value,
-            $container->get(PageContextListener::class),
+        return self::assemble(
+            options        : self::optionsFrom($container->get('config')),
+            manager        : Type\instance_of(ExtensionPluginManager::class)
+                ->coerce($container->get(ExtensionPluginManager::class)),
+            renderer       : Type\instance_of(DocumentViewRenderer::class)
+                ->coerce($container->get(DocumentViewRenderer::class)),
+            pageListener   : Type\instance_of(PageContextListener::class)
+                ->coerce($container->get(PageContextListener::class)),
+            headingListener: Type\instance_of(HeadingListener::class)
+                ->coerce($container->get(HeadingListener::class)),
         );
-        // Below the page listener and below the extensions, so every heading already
-        // carries the id the renderer will emit. Its own priority rather than addition
-        // order, because an extension registering at the same priority would be decided by
-        // registration order instead of by intent.
-        $environment->addEventListener(
-            CommonMarkEvent::DocumentParsed->value,
-            $container->get(HeadingListener::class),
-            HeadingListener::PRIORITY,
-        );
-
-        return $environment;
     }
 }

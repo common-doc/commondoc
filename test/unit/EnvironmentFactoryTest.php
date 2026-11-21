@@ -50,6 +50,8 @@ use function array_map;
 
 #[CoversClass(EnvironmentFactory::class)]
 #[CoversMethod(EnvironmentFactory::class, '__invoke')]
+#[CoversMethod(EnvironmentFactory::class, 'assemble')]
+#[CoversMethod(EnvironmentFactory::class, 'optionsFrom')]
 final class EnvironmentFactoryTest extends TestCase
 {
     private PageContext $context;
@@ -125,6 +127,33 @@ final class EnvironmentFactoryTest extends TestCase
     }
 
     #[Test]
+    public function assemblesAFreshEnvironmentEachTimeFromCollaboratorsAlreadyResolved(): void
+    {
+        $manager = new ExtensionPluginManager($this->createStub(ContainerInterface::class), []);
+
+        $first = EnvironmentFactory::assemble(
+            options        : [],
+            manager        : $manager,
+            renderer       : $this->renderer,
+            pageListener   : $this->listener,
+            headingListener: $this->headings,
+        );
+        $second = EnvironmentFactory::assemble(
+            options        : [],
+            manager        : $manager,
+            renderer       : $this->renderer,
+            pageListener   : $this->listener,
+            headingListener: $this->headings,
+        );
+
+        // A build adds its own listener to the environment it is given, so two builds must
+        // never be handed the same one. The same collaborators can be reused; the
+        // environment cannot.
+        static::assertNotSame($first, $second);
+        static::assertSame(self::extensionClasses($first), self::extensionClasses($second));
+    }
+
+    #[Test]
     public function fallsBackToTheDefaultsWhenTheConfigIsNotAnArray(): void
     {
         $environment = new EnvironmentFactory()(
@@ -171,6 +200,17 @@ final class EnvironmentFactoryTest extends TestCase
                 SmartPunctExtension::class,
             ],
             self::extensionClasses($environment),
+        );
+    }
+
+    #[Test]
+    public function readsNoOptionsFromAConfigWithoutTheEnvironmentSection(): void
+    {
+        static::assertSame([], EnvironmentFactory::optionsFrom('not an array'));
+        static::assertSame([], EnvironmentFactory::optionsFrom([]));
+        static::assertSame(
+            ['html_input' => 'escape'],
+            EnvironmentFactory::optionsFrom([EnvironmentInterface::class => ['html_input' => 'escape']]),
         );
     }
 

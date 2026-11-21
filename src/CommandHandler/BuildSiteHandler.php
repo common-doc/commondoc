@@ -14,29 +14,26 @@ declare(strict_types=1);
 
 namespace CommonDoc\CommandHandler;
 
+use Closure;
 use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\Exception\ExceptionInterface;
 use CommonDoc\Exception\LogicException;
-use CommonDoc\Http\Middleware\NotServedMiddleware;
-use CommonDoc\Input\Markdown;
 use CommonDoc\Input\Scan;
+use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
+use CommonDoc\Output\DocumentRoutes;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\Record\Progress;
 use CommonDoc\Record\Reason;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
 use InvalidArgumentException;
-use Laminas\ServiceManager\ServiceLocatorInterface;
 use League\CommonMark\ConverterInterface;
 use League\CommonMark\Exception\CommonMarkException;
 use League\Config\Exception\ConfigurationExceptionInterface;
 use Mezzio\Router\Exception\DuplicateRouteException;
-use Mezzio\Router\RouteCollectorInterface;
 use Psl\Exception\ExceptionInterface as PslExceptionInterface;
 use Psl\File;
-use Psl\Type;
-use Psr\Container\ContainerExceptionInterface;
 use Webware\FileWriter\Exception\ExceptionInterface as FileWriterException;
 use Webware\FileWriter\FileWriter;
 use Webware\MessageBus\Command\CommandResult;
@@ -44,12 +41,8 @@ use Webware\MessageBus\Command\CommandResultInterface;
 use Webware\MessageBus\CommandHandlerInterface;
 use Webware\MessageBus\MessageStatus;
 
-use function array_pop;
-use function explode;
 use function rtrim;
 use function sprintf;
-use function strlen;
-use function substr;
 
 /**
  * The coordinator over the passes a build is made of.
@@ -62,12 +55,13 @@ use function substr;
  * its result, so adding a type costs a pass over an array rather than another
  * pass over the disk.
  *
- * One converter per build. Both per-build objects are asked for with `build()`
- * rather than `get()`, because neither can be shared: the converter carries a
- * link rewriter bound to this build's own document list, and a page belongs to
- * one document. The service manager never caches what it builds, so a second
- * build in one process cannot see the first build's listener, and each document
- * gets its own page.
+ * One converter per build. Both per-build objects are handed to the handler as
+ * functions rather than as instances or as a container to ask: neither can be
+ * shared, because the converter carries a link rewriter bound to this build's own
+ * document list and a page belongs to one document. Calling the function builds a
+ * new one, so a second build in one process cannot see the first build's listener,
+ * and each document gets its own page. The handler constructs nothing through a
+ * locator and cannot reach one.
  *
  * Two failure policies, and the difference is deliberate. A document that cannot
  * be rendered or written is recorded and the build continues, because the
@@ -83,26 +77,18 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     private const string SEPARATOR = '/';
 
     /**
-     * The navigation identifier every route this build registers belongs to.
-     *
-     * A menu is built for one identifier, and a build produces one menu over its own
-     * documents, so one value is enough. It is stated here rather than derived, because
-     * a template has to ask for the same string the routes were written with, and a
-     * derivation in two places is two rules.
-     */
-    public const string NAVIGATION = 'commondoc';
-
-    /**
-     * @param ServiceLocatorInterface $services Where the per-build objects come from.
-     *        A converter and a page are built per build and per document, so they
-     *        cannot be injected as instances; this is the seam that builds them.
+     * @param Closure(list<non-empty-string> $documents, list<non-empty-string> $assets): ConverterInterface $converters
+     *        Builds a converter bound to this build's document and asset lists. Called
+     *        once per build, because the converter carries a link rewriter for those lists.
+     * @param Closure(non-empty-string $localPath, string $label, ?Source $source, ?string $repositoryPath): Page $pages
+     *        Builds the page for one document. Called once per document.
      */
     public function __construct(
+        private DocumentRoutes $routes,
         private DocumentRoot $root,
-        private RouteCollectorInterface $collector,
         private PageContext $context,
-        private NotServedMiddleware $middleware,
-        private ServiceLocatorInterface $services,
+        private Closure $converters,
+        private Closure $pages,
     ) {}
 
     /**
@@ -116,26 +102,6 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     }
 
     /**
-     * A page label for a document, derived mechanically from its own path.
-     *
-     * The file name without its document suffix is used, with no special case
-     * for `index`, because a better label needs a source this build does not have
-     * yet: the document's first heading, or a front-matter field. Deriving
-     * something deterministic is better than inventing navigation vocabulary
-     * here, and the label is cosmetic until that source exists.
-     */
-    private static function labelFor(string $document): string
-    {
-        $segments = explode(self::SEPARATOR, $document);
-
-        return substr(
-            string: array_pop($segments),
-            offset: 0,
-            length: -strlen(Markdown::EXTENSION),
-        );
-    }
-
-    /**
      * Build the site and report what was written and what failed.
      *
      * Both kinds of file fail the same way and are reported the same way. A
@@ -146,8 +112,6 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      *         defect in this package rather than in the documentation
      * @throws LogicException When the scan phase has not run
      * @throws DuplicateRouteException When two documents publish at one path
-     * @throws ContainerExceptionInterface When a per-build object cannot be built
-     * @throws Type\Exception\ExceptionInterface When a built object is the wrong type
      */
     public function handle(BuildSiteCommand $command): CommandResultInterface
     {
@@ -160,17 +124,11 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
         $documents = $scan->documents;
         $assets    = $scan->assets;
 
-        $this->seed($documents);
+        $this->routes->register($documents);
 
-        // Built rather than fetched: the converter carries a link rewriter bound
+        // Called rather than fetched: the converter carries a link rewriter bound
         // to these two lists, and a shared one would carry the previous build's.
-        $converter = Type\instance_of(ConverterInterface::class)
-            ->coerce(
-                $this->services->build(ConverterInterface::class, [
-                    'documents' => $documents,
-                    'assets'    => $assets,
-                ]),
-            );
+        $converter = ($this->converters)($documents, $assets);
 
         $written = [];
         $failed  = [];
@@ -210,51 +168,6 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     }
 
     /**
-     * Register one route per document, published at its own path.
-     *
-     * Registration happens before the first render, so a link to a document the
-     * loop has not reached yet still has a route, and so a URL can be generated for it
-     * rather than computed here. The collector refuses a duplicate name or
-     * path, which is how two local paths that publish at one path are caught: nothing
-     * here re-implements that check.
-     *
-     * The route carries the options the navigation helper reads. They are set here
-     * because registration is the only moment the route exists and the document is
-     * known at once: a menu built later has nothing but the routing table, so an option
-     * not written now cannot be recovered from a document later.
-     *
-     * @param list<non-empty-string> $documents
-     *
-     * @throws DuplicateRouteException When two documents publish at one path
-     * @throws InvalidArgumentException When a local path does not name a document
-     */
-    private function seed(array $documents): void
-    {
-        $order = 0;
-
-        foreach ($documents as $document) {
-            // `route()` rather than `get()`: these routes exist to be generated from and
-            // read by the navigation helper, and are never dispatched, so the method they
-            // accept is meaningless. It matters because the router derives the name from
-            // the path, and `HTTP_METHOD_ANY` derives it as the path itself, while `get()`
-            // would derive `<path>^GET`. One name, the published path, is what every
-            // caller generates from.
-            $this->collector
-                ->route(
-                    path      : $this->root->published($document),
-                    middleware: $this->middleware,
-                )
-                ->setOptions([
-                    'navigation' => self::NAVIGATION,
-                    'label'      => self::labelFor($document),
-                    'order'      => $order,
-                ]);
-
-            $order++;
-        }
-    }
-
-    /**
      * Render one document and write it where the translation says it goes.
      *
      * The page is set on the context before conversion and cleared after, in a
@@ -283,8 +196,6 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      * @throws ExceptionInterface When a local path, page or link is refused
      * @throws FileWriterException When the output cannot be written
      * @throws PslExceptionInterface When the source cannot be read
-     * @throws ContainerExceptionInterface When the page cannot be built, which is
-     *         a wiring failure rather than a document failure and aborts the build
      */
     private function write(
         ConverterInterface $converter,
@@ -293,15 +204,12 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
         string $document,
         string $target,
     ): void {
-        $this->context->set(Type\instance_of(Page::class)
-            ->coerce(
-                $this->services->build(Page::class, [
-                    'localPath'      => $document,
-                    'label'          => self::labelFor($document),
-                    'source'         => $scan->ownerOf($document),
-                    'repositoryPath' => $scan->repositoryPathOf($document),
-                ]),
-            ));
+        $this->context->set(($this->pages)(
+            localPath     : $document,
+            label         : DocumentRoutes::labelFor($document),
+            source        : $scan->ownerOf($document),
+            repositoryPath: $scan->repositoryPathOf($document),
+        ));
 
         try {
             $html = (string) $converter->convert(File\read($file));
