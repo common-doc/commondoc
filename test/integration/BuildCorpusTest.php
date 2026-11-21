@@ -341,6 +341,7 @@ final class BuildCorpusTest extends TestCase
                     'reference/configuration/index.html',
                     'reference/extensions/index.html',
                     'reference/theme/index.html',
+                    'search-index.json',
                 ],
                 $this->written($output),
             );
