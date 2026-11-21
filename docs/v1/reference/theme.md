@@ -211,6 +211,32 @@ The built-in layout is Bootstrap 5.3 from a pinned CDN version with integrity ha
 
   `note` pairs with `alert-info`, `tip` with `alert-success`, `warning` with `alert-warning` and `caution` with `alert-danger`. `important` uses `admonition-important`, which supplies a purple the alert variants lack.
 
+## Code and diagrams
+
+A fenced block with a language is coloured, and a `mermaid` block is drawn as a diagram:
+
+```php
+final readonly class Greeting
+{
+    public function __invoke(string $name): string
+    {
+        return "Hello, {$name}";
+    }
+}
+```
+
+```mermaid
+graph LR
+    Scan --> Convert --> Write
+    Scan --> Assets
+```
+
+- **Highlighting** is highlight.js 11, in the browser, with its common set of 36 languages, which includes PHP, JavaScript, JSON, YAML, XML, SQL, Bash, INI and Markdown. A block with no language is left uncoloured, because guessing a language would colour prose. Dockerfile and Twig are not in the common set.
+- **Diagrams** are Mermaid 11, in the browser.
+- **Both follow the theme.** The loaders read `data-bs-theme` and watch it, so the toggle recolours the code and draws each diagram again in the matching theme, without a reload.
+- **Both load only where needed.** A page with code gets the highlighter, a page with a diagram gets Mermaid, and every other page gets neither. Both come from a pinned version with an integrity hash, like Bootstrap. Mermaid is large, about 2.5 MB, which is why it is not loaded everywhere.
+- A diagram that Mermaid cannot parse is left as its source text rather than failing the page.
+
 ## Search
 
 A build writes `search-index.json` at the site root, and the navbar's search box reads it in
