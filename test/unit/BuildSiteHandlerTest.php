@@ -19,12 +19,9 @@ use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\Exception\RuntimeException;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
-use CommonDoc\Input\Component;
-use CommonDoc\Input\Release;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Scan;
 use CommonDoc\Input\Source;
-use CommonDoc\Input\Version;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\DocumentRoute;
 use CommonDoc\Output\RouteRegistrar;
@@ -47,7 +44,6 @@ use TypeError;
 use Webware\MessageBus\MessageStatus;
 use Webware\Router\QueryParamRouter;
 
-use function file_get_contents;
 use function is_file;
 use function mkdir;
 use function str_contains;
@@ -283,28 +279,6 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
     }
 
     #[Test]
-    public function sendsAComponentsOwnAddressToItsLatestVersion(): void
-    {
-        $this->writeFile('source/v1/index.md', contents: "# One\n");
-        $this->writeFile('source/v2/index.md', contents: "# Two\n");
-
-        $roots = [$this->versionRoot(1), $this->versionRoot(2)];
-
-        $this->handler()->handle(new BuildSiteCommand(
-            roots : $roots,
-            output: $this->output,
-            scan  : Scan::of($roots),
-        ));
-
-        $redirect = (string) file_get_contents("{$this->output}/comp/index.html");
-
-        static::assertStringContainsString('url=/comp/v2/', $redirect);
-        static::assertStringContainsString('<link rel="canonical" href="/comp/v2/">', $redirect);
-        static::assertFileExists("{$this->output}/comp/v1/index.html");
-        static::assertFileExists("{$this->output}/comp/v2/index.html");
-    }
-
-    #[Test]
     public function writesEveryDocumentAtThePathTheTranslationGives(): void
     {
         $this->writeFile('source/index.md', contents: "# Home\n");
@@ -314,16 +288,6 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
 
         static::assertTrue(is_file("{$this->output}/index.html"));
         static::assertTrue(is_file("{$this->output}/guide/setup/index.html"));
-    }
-
-    #[Test]
-    public function writesNoRedirectForASiteWithoutVersions(): void
-    {
-        $this->writeFile('source/index.md', contents: "# Home\n");
-
-        $this->handler()->handle($this->command());
-
-        static::assertFileDoesNotExist("{$this->output}/comp/index.html");
     }
 
     protected function setUp(): void
@@ -423,18 +387,6 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
                 return $converter;
             },
             pages     : self::pages($route, $onPage),
-        );
-    }
-
-    private function versionRoot(int $major): Root
-    {
-        return new Root(
-            path   : "{$this->source}/v{$major}",
-            mount  : "/comp/v{$major}/",
-            release: new Release(
-                component: new Component('comp'),
-                version  : Version::fromTag("v{$major}.0.0") ?? self::fail('The tag is not a version.'),
-            ),
         );
     }
 }

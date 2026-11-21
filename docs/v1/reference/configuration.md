@@ -130,6 +130,10 @@ checkout is never switched, and the latest tag of each major line is published a
 not read, because the version mounts are what make the versions a set.
 
 - `/{component}/` is a page that redirects to the newest version.
+- The site root is a home page with a card for each versioned component, linking to its
+  newest version and listing every version. It is written only when no document
+  publishes at the root, so it never replaces one, and `commondoc::home` can be
+  replaced like any other template.
 - Every page of a versioned component lists all of its versions, so a reader can move
   between them.
 - A tag that has nothing at the target is skipped, because early tags often predate the

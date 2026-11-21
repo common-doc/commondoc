@@ -23,6 +23,7 @@ use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
+use CommonDoc\Container\ComponentPageMiddlewareFactory;
 use CommonDoc\Container\ConverterFactoryFactory;
 use CommonDoc\Container\DocumentRootFactory;
 use CommonDoc\Container\DocumentRouteFactory;
@@ -41,6 +42,7 @@ use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\AssetCopyMiddleware;
+use CommonDoc\Middleware\ComponentPageMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\DocumentRoute;
@@ -145,6 +147,10 @@ final class ConfigProviderTest extends TestCase
                     'middleware' => AssetCopyMiddleware::class,
                     'priority'   => 40,
                 ],
+                [
+                    'middleware' => ComponentPageMiddleware::class,
+                    'priority'   => 30,
+                ],
             ],
             $config[MessageBusInterface::class][MessageBusConfigProvider::MIDDLEWARE_PIPELINE_KEY],
         );
@@ -155,7 +161,10 @@ final class ConfigProviderTest extends TestCase
     {
         $config = new ConfigProvider()->getViewConfig();
 
-        static::assertSame(['commondoc::document', 'commondoc::layout'], array_keys($config['map']));
+        static::assertSame(
+            ['commondoc::document', 'commondoc::home', 'commondoc::layout'],
+            array_keys($config['map']),
+        );
         static::assertSame('commondoc::layout', $config['layout']);
 
         // The directory is the theme the resolver falls back to; the name keeps the
@@ -219,6 +228,7 @@ final class ConfigProviderTest extends TestCase
                 RouteCollector::class            => RouteCollectorFactory::class,
                 SiteConfig::class                => SiteConfigFactory::class,
                 AssetCopyMiddleware::class       => AssetCopyMiddlewareFactory::class,
+                ComponentPageMiddleware::class   => ComponentPageMiddlewareFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
             $dependencies['factories'],
