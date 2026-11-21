@@ -50,7 +50,7 @@ final class VersionRootTest extends TestCase
     {
         $this->repository();
 
-        $roots = new VersionRoot()->of($this->directory, new Target('docs'), $this->workspace);
+        $roots = new VersionRoot()->of($this->directory, [new Target('docs')], $this->workspace);
         $scan  = Scan::of($roots);
 
         static::assertSame('v1.0.0', $scan->ownerOf('fixture/v1/index.md')?->ref);
@@ -63,7 +63,7 @@ final class VersionRootTest extends TestCase
     {
         $this->repository();
 
-        $roots = new VersionRoot()->of($this->directory, new Target('docs'), $this->workspace);
+        $roots = new VersionRoot()->of($this->directory, [new Target('docs')], $this->workspace);
 
         static::assertSame(['/fixture/v1/', '/fixture/v2/'], [$roots[0]->mount, $roots[1]->mount]);
         static::assertSame("# One\n", file_get_contents("{$roots[0]->path}/index.md"));
@@ -83,7 +83,7 @@ final class VersionRootTest extends TestCase
         GitCheckout::run($this->directory, arguments: 'commit --quiet -m two');
         GitCheckout::run($this->directory, arguments: 'tag v2.0.0');
 
-        $roots = new VersionRoot()->of($this->directory, new Target('docs/{major}.0'), $this->workspace);
+        $roots = new VersionRoot()->of($this->directory, [new Target('docs/{major}.0')], $this->workspace);
 
         static::assertCount(1, $roots);
         static::assertSame('docs/2.0', $roots[0]->source?->prefix);
@@ -105,7 +105,7 @@ final class VersionRootTest extends TestCase
             GitCheckout::run($this->directory, arguments: 'tag v%d.0.0', values: (string) $major);
         }
 
-        $roots = new VersionRoot()->of($this->directory, new Target('docs/v{major}'), $this->workspace);
+        $roots = new VersionRoot()->of($this->directory, [new Target('docs/v{major}')], $this->workspace);
 
         static::assertCount(2, $roots);
         static::assertSame("# One\n", file_get_contents("{$roots[0]->path}/index.md"));
@@ -114,18 +114,44 @@ final class VersionRootTest extends TestCase
     }
 
     #[Test]
+    public function readsEachTagFromTheFirstCandidateDirectoryItHolds(): void
+    {
+        GitCheckout::create($this->directory);
+
+        foreach ([1 => 'docs/v1', 2 => 'docs/2.0'] as $major => $path) {
+            mkdir(
+                directory: "{$this->directory}/{$path}",
+                recursive: true,
+            );
+            file_put_contents("{$this->directory}/{$path}/index.md", data: "# {$major}\n");
+            GitCheckout::run($this->directory, arguments: 'add docs');
+            GitCheckout::run($this->directory, arguments: 'commit --quiet -m %s', values: "m{$major}");
+            GitCheckout::run($this->directory, arguments: 'tag v%d.0.0', values: (string) $major);
+        }
+
+        $roots = new VersionRoot()->of(
+            $this->directory,
+            [new Target('docs/{major}.0'), new Target('docs/v{major}')],
+            $this->workspace,
+        );
+
+        static::assertSame(['docs/v1', 'docs/2.0'], [$roots[0]->source?->prefix, $roots[1]->source?->prefix]);
+        static::assertCount(2, $roots);
+    }
+
+    #[Test]
     public function skipsATagThatPredatesTheDocumentation(): void
     {
         $this->repository();
 
         // v0.9.0 was tagged before docs existed, so it has no root and costs nothing.
-        static::assertCount(2, new VersionRoot()->of($this->directory, new Target('docs'), $this->workspace));
+        static::assertCount(2, new VersionRoot()->of($this->directory, [new Target('docs')], $this->workspace));
     }
 
     #[Test]
     public function yieldsNothingForADirectoryThatIsNotARepository(): void
     {
-        static::assertSame([], new VersionRoot()->of($this->directory, new Target('docs'), $this->workspace));
+        static::assertSame([], new VersionRoot()->of($this->directory, [new Target('docs')], $this->workspace));
     }
 
     protected function setUp(): void
