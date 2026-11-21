@@ -57,3 +57,35 @@ php vendor/bin/webware commondoc:build "$PWD\docs\v1" --output "$PWD\build"
 The `assets` in that tree exist so the asset pass and the link rewriter are both
 exercised by a normal build. See [Paths and files](concepts/paths.md) for how an
 asset path differs from a document path.
+
+## Previewing a build in a browser
+
+A build is a folder of static files, so looking at one only needs a web server pointed at
+it. The repository's `compose.yml` has a `preview` service for that: nginx serving `./build`
+read-only, which is where `commondoc:build` writes by default.
+
+```powershell
+php vendor/bin/webware commondoc:build
+docker compose up -d preview
+```
+
+Then open `http://localhost:8080/`. The files are read from disk on every request, so
+rebuilding is all it takes to refresh the page. Stop it with:
+
+```powershell
+docker compose down
+```
+
+Three things to know:
+
+- The service is bound to `127.0.0.1`, so it is reachable from your machine only. It is a
+  preview, not a server to publish from.
+- The site's base path has to be `/`, which is the default. A project site configured for
+  `/<repository>/` has links that resolve from that path, so they will not resolve from the
+  root of the preview.
+- A build run inside the `tooling` container can read only what is mounted into it. A site
+  composed from checkouts elsewhere on your machine is built on the host, and the preview
+  serves the result the same way.
+
+If you build to a different directory with `--output`, change the `./build` volume on the
+`preview` service to match.

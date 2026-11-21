@@ -72,6 +72,26 @@ services:
     working_dir: /app
 
   # -------------------------------------------------------------------------
+  # Preview - serves the last build so it can be looked at in a browser.
+  #
+  #   docker compose up -d preview     # then open http://localhost:8080/
+  #   docker compose down
+  #
+  # It serves ./build read-only and changes nothing, so rebuilding (the default
+  # `--output` is `build`) is all it takes to refresh: the files are read from
+  # disk on every request. The site's base path has to be `/`, which is the
+  # default, because it is served at the root of this host.
+  #
+  # Bound to the loopback interface only: it is a local preview, not a server.
+  # -------------------------------------------------------------------------
+  preview:
+    image: nginx:1.27-alpine
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./build:/usr/share/nginx/html:ro
+    restart: unless-stopped
+  # -------------------------------------------------------------------------
   # MySQL (optional) - uncomment this whole block for packages whose tests
   # need a MySQL database (e.g. webware-acl via php-db/phpdb-mysql).
   #
