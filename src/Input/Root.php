@@ -59,14 +59,17 @@ final readonly class Root
     public string $mount;
 
     /**
-     * @param string $path  The directory holding this root's files
-     * @param string $mount The prefix it is published at
+     * @param string  $path   The directory holding this root's files
+     * @param string  $mount  The prefix it is published at
+     * @param ?Source $source The repository the files belong to, when it cannot be read from
+     *                        the directory: a tree extracted from a tag is not a checkout
      *
      * @throws InvalidArgumentException When the mount cannot prefix a path
      */
     public function __construct(
         public string $path,
         string $mount = self::SEPARATOR,
+        public ?Source $source = null,
     ) {
         $this->mount = self::normalize($mount);
     }
