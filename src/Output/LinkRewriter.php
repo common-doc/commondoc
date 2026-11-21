@@ -16,12 +16,12 @@ namespace CommonDoc\Output;
 
 use CommonDoc\DocumentData;
 use CommonDoc\Exception\RuntimeException;
-use CommonDoc\Input\Source;
 use CommonDoc\View\Page;
 use Dflydev\DotAccessData\Exception\InvalidPathException;
 use InvalidArgumentException;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\CommonMark\Node\Inline\AbstractWebResource;
+use Mezzio\Helper\UrlHelper;
 
 use function array_fill_keys;
 use function array_key_exists;
@@ -73,18 +73,15 @@ final readonly class LinkRewriter
     /** @var array<non-empty-string, true> */
     private array $assets;
 
-    private SourceLinks $links;
-
     /**
-     * @param list<non-empty-string>          $documents Every document the scan discovered
-     * @param list<non-empty-string>          $assets    Every path that is not a document
-     * @param array<non-empty-string, Source> $origins   Site path prefix to the repository holding it
+     * @param list<non-empty-string> $documents Every document the scan discovered
+     * @param list<non-empty-string> $assets    Every path that is not a document
      */
     public function __construct(
         private DocumentRoot $root,
+        private UrlHelper $url,
         array $documents,
         array $assets,
-        array $origins = [],
     ) {
         $this->documents = array_fill_keys(
             keys : $documents,
@@ -94,7 +91,6 @@ final readonly class LinkRewriter
             keys : $assets,
             value: true,
         );
-        $this->links = new SourceLinks($origins);
     }
 
     /**
@@ -109,7 +105,7 @@ final readonly class LinkRewriter
      *         to reason about which of the two calls could raise it.
      * @throws RuntimeException when the target resolves to nothing that exists
      */
-    private function rewrite(string $target, string $from): string
+    private function rewrite(string $target, Page $page): string
     {
         if (
             '' === $target
@@ -131,16 +127,14 @@ final readonly class LinkRewriter
             return $target;
         }
 
-        $published = null;
-
         try {
-            $published = $this->servedAt($path, $target, $from);
+            return $this->servedAt($path, $target, $page) . $suffix;
         } catch (RuntimeException $refused) {
             // Where the target still resolves inside the repository the root came
             // from, it is a link to the source: a document may point at a directory
             // or a file it does not publish, and refusing that would make a
             // repository's own documentation unpublishable without editing it.
-            $above = $this->links->at($path, $from);
+            $above = $this->aboveSite($path, $page);
 
             if (null === $above) {
                 throw $refused;
@@ -148,8 +142,21 @@ final readonly class LinkRewriter
 
             return $above . $suffix;
         }
+    }
 
-        return $published . $suffix;
+    /**
+     * The repository URL a target names, or null when the page has no repository
+     * or the target stays inside it.
+     *
+     * The climb is counted in repository space, which is why the page carries the source
+     * it was read from: a site path has already spent its mount and cannot say how far a
+     * target climbed from the document that wrote it. The source knows both its mount and
+     * its path inside the repository, so it does the arithmetic rather than this type
+     * guessing at either half.
+     */
+    private function aboveSite(string $path, Page $page): ?string
+    {
+        return $page->source?->link($path, $page->sourcePath);
     }
 
     /**
@@ -162,28 +169,35 @@ final readonly class LinkRewriter
      *
      * @param string $path   The target with its query and fragment removed
      * @param string $target The target exactly as the document wrote it, for the refusal
-     * @param string $from   The local path of the document holding the link
+     * @param Page   $page   The document holding the link
      *
      * @throws InvalidArgumentException from the translation, which the membership
      *         check makes unreachable; it is declared because the translation declares it
      * @throws RuntimeException when the target resolves to nothing the scan found, or
      *         climbs above the site root
      */
-    private function servedAt(string $path, string $target, string $from): string
+    private function servedAt(string $path, string $target, Page $page): string
     {
-        $candidate = SourcePath::resolve($path, $from);
+        $candidate = SourcePath::resolve($path, $page->sourcePath);
 
         if (array_key_exists($candidate, $this->documents)) {
-            return $this->root->published($candidate);
+            // A document is a route, so its URL comes from the router. The route was
+            // registered at the document's published path and carries no name of its own,
+            // so the published path is also the name to generate from. This is the only
+            // place a document's address is produced, so a link and the page it targets
+            // cannot disagree.
+            return $this->url->__invoke($this->root->published($candidate));
         }
 
         if (array_key_exists($candidate, $this->assets)) {
+            // An asset is not a route: it is copied where it sits, so its address is the
+            // base path followed by its own path.
             return $this->root->asset($candidate);
         }
 
         throw new RuntimeException(sprintf(
             'The document "%s" links to "%s", which resolves to "%s" and is neither a document nor an asset the scan found.',
-            $from,
+            $page->sourcePath,
             $target,
             $candidate,
         ));
@@ -221,7 +235,7 @@ final readonly class LinkRewriter
                 continue;
             }
 
-            $node->setUrl($this->rewrite($node->getUrl(), $page->sourcePath));
+            $node->setUrl($this->rewrite($node->getUrl(), $page));
         }
     }
 }

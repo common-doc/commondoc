@@ -16,6 +16,7 @@ namespace CommonDoc\View;
 
 use ArrayIterator;
 use CommonDoc\Exception\LogicException;
+use CommonDoc\Input\Source;
 use Laminas\View\Model\ModelInterface;
 use Override;
 use Traversable;
@@ -45,7 +46,7 @@ final readonly class Page implements ModelInterface
      * @param list<Page> $children
      * @param non-empty-string $captureTo
      */
-    // @mago-expect lint:excessive-parameter-list - a page descriptor needs all eleven inputs.
+    // @mago-expect lint:excessive-parameter-list - a page descriptor needs all thirteen inputs.
     public function __construct(
         public string $label,
         public string $projectName,
@@ -53,6 +54,8 @@ final readonly class Page implements ModelInterface
         public string $sourcePath,
         public string $url,
         public string $versionLabel,
+        public string $routeName,
+        public ?Source $source = null,
         public bool $append = false,
         public string $captureTo = 'page',
         public array $children = [],
@@ -129,6 +132,7 @@ final readonly class Page implements ModelInterface
             'projectSlug'  => $this->projectSlug,
             'projectName'  => $this->projectName,
             'versionLabel' => $this->versionLabel,
+            'routeName'    => $this->routeName,
             'sourcePath'   => $this->sourcePath,
             'captureTo'    => $this->captureTo,
             'append'       => $this->append,

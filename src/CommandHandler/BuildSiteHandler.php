@@ -19,6 +19,7 @@ use CommonDoc\Exception\ExceptionInterface;
 use CommonDoc\Exception\LogicException;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Input\Markdown;
+use CommonDoc\Input\Scan;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\Record\Progress;
@@ -80,6 +81,16 @@ use function substr;
 final readonly class BuildSiteHandler implements CommandHandlerInterface
 {
     private const string SEPARATOR = '/';
+
+    /**
+     * The navigation identifier every route this build registers belongs to.
+     *
+     * A menu is built for one identifier, and a build produces one menu over its own
+     * documents, so one value is enough. It is stated here rather than derived, because
+     * a template has to ask for the same string the routes were written with, and a
+     * derivation in two places is two rules.
+     */
+    public const string NAVIGATION = 'commondoc';
 
     /**
      * @param ServiceLocatorInterface $services Where the per-build objects come from.
@@ -158,7 +169,6 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
                 $this->services->build(ConverterInterface::class, [
                     'documents' => $documents,
                     'assets'    => $assets,
-                    'origins'   => $scan->origins,
                 ]),
             );
 
@@ -167,7 +177,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
 
         foreach ($documents as $document) {
             try {
-                $this->write($converter, $scan->sourceOf($document), $document, $target);
+                $this->write($converter, $scan, $scan->sourceOf($document), $document, $target);
                 $written[] = $document;
             } catch (
                 CommonMarkException|ConfigurationExceptionInterface|ExceptionInterface|FileWriterException|PslExceptionInterface $failure
@@ -200,13 +210,18 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     }
 
     /**
-     * Register one route per document, named by local path and published at its
-     * own path.
+     * Register one route per document, published at its own path.
      *
      * Registration happens before the first render, so a link to a document the
-     * loop has not reached yet still has a route. The collector refuses a
-     * duplicate name or path, which is how two local paths that publish at one
-     * path are caught: nothing here re-implements that check.
+     * loop has not reached yet still has a route, and so a URL can be generated for it
+     * rather than computed here. The collector refuses a duplicate name or
+     * path, which is how two local paths that publish at one path are caught: nothing
+     * here re-implements that check.
+     *
+     * The route carries the options the navigation helper reads. They are set here
+     * because registration is the only moment the route exists and the document is
+     * known at once: a menu built later has nothing but the routing table, so an option
+     * not written now cannot be recovered from a document later.
      *
      * @param list<non-empty-string> $documents
      *
@@ -215,12 +230,23 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      */
     private function seed(array $documents): void
     {
+        $order = 0;
+
         foreach ($documents as $document) {
+            // No name is passed: the router derives one from the path, and its value is
+            // then the published path itself. Naming a route after its source path would
+            // be a second vocabulary for the same document, and a link could be generated
+            // under one name while the page it targets was registered under the other.
             $this->collector->get(
                 path      : $this->root->published($document),
                 middleware: $this->middleware,
-                name      : $document,
-            );
+            )->setOptions([
+                'navigation' => self::NAVIGATION,
+                'label'      => self::labelFor($document),
+                'order'      => $order,
+            ]);
+
+            $order++;
         }
     }
 
@@ -257,6 +283,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      */
     private function write(
         ConverterInterface $converter,
+        Scan $scan,
         string $file,
         string $document,
         string $target,
@@ -266,6 +293,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
                 $this->services->build(Page::class, [
                     'localPath' => $document,
                     'label'     => self::labelFor($document),
+                    'source'    => $scan->ownerOf($document),
                 ]),
             ));
 

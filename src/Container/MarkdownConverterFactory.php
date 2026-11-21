@@ -15,7 +15,6 @@ declare(strict_types=1);
 namespace CommonDoc\Container;
 
 use CommonDoc\CommonMarkEvent;
-use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\LinkRewriter;
 use Laminas\ServiceManager\Factory\FactoryInterface;
@@ -24,6 +23,7 @@ use League\CommonMark\Environment\Environment;
 use League\CommonMark\Environment\EnvironmentInterface;
 use League\CommonMark\Exception\AlreadyInitializedException;
 use League\CommonMark\MarkdownConverter;
+use Mezzio\Helper\UrlHelper;
 use Override;
 use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
@@ -65,7 +65,7 @@ final readonly class MarkdownConverterFactory implements FactoryInterface
      *
      * @param ?array<array-key, mixed> $options
      *
-     * @return null|array{documents: list<non-empty-string>, assets: list<non-empty-string>, origins?: array<non-empty-string, Source>}
+     * @return null|array{documents: list<non-empty-string>, assets: list<non-empty-string>}
      *
      * @throws Type\Exception\ExceptionInterface When a shape key holds the wrong type
      */
@@ -84,7 +84,7 @@ final readonly class MarkdownConverterFactory implements FactoryInterface
         // argument: `Type\shape` refuses an unknown key, so pointing it at the
         // options would make every caller that passes a third value look like "no
         // scan" and silently drop the rewriter. Narrowing keeps the two lists
-        // strict and lets the map be optional.
+        // strict and lets a caller pass anything else it needs.
         $narrowed = [
             'documents' => $options['documents'] ?? null,
             'assets'    => $options['assets'] ?? null,
@@ -94,19 +94,7 @@ final readonly class MarkdownConverterFactory implements FactoryInterface
             return null;
         }
 
-        $scan = $lists->coerce($narrowed);
-
-        /** @var mixed $origins Deliberately untyped: the shape below decides what it is */
-        $origins = $options['origins'] ?? [];
-
-        $origins = Type\dict(Type\non_empty_string(), Type\instance_of(Source::class))
-            ->coerce(is_array($origins) ? $origins : []);
-
-        return [
-            'documents' => $scan['documents'],
-            'assets'    => $scan['assets'],
-            'origins'   => $origins,
-        ];
+        return $lists->coerce($narrowed);
     }
 
     /**
@@ -134,6 +122,7 @@ final readonly class MarkdownConverterFactory implements FactoryInterface
 
         $locator = Type\instance_of(ServiceLocatorInterface::class)->coerce($container);
         $root    = Type\instance_of(DocumentRoot::class)->coerce($container->get(DocumentRoot::class));
+        $url     = Type\instance_of(UrlHelper::class)->coerce($container->get(UrlHelper::class));
 
         // `build()` rather than `get()`, because the environment is a shared
         // service: a listener added to the shared one would outlive this build
@@ -144,7 +133,7 @@ final readonly class MarkdownConverterFactory implements FactoryInterface
 
         $environment->addEventListener(
             CommonMarkEvent::DocumentParsed->value,
-            new LinkRewriter($root, $scan['documents'], $scan['assets'], $scan['origins'] ?? []),
+            new LinkRewriter($root, $url, $scan['documents'], $scan['assets']),
         );
 
         return new MarkdownConverter($environment);

@@ -388,6 +388,8 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
                     sourcePath  : $options['localPath'],
                     url         : $root->published($options['localPath']),
                     versionLabel: '1.0',
+                    routeName   : $root->published($options['localPath']),
+                    source      : $options['source'] ?? null,
                 );
             });
 

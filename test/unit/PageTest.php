@@ -72,6 +72,7 @@ final class PageTest extends TestCase
             sourcePath  : 'docs/reference/page.md',
             url         : '/reference/page',
             versionLabel: '1.0',
+            routeName   : 'commondoc.reference-page',
             template    : $template,
         );
     }
@@ -87,6 +88,7 @@ final class PageTest extends TestCase
             sourcePath  : 'docs/parent.md',
             url         : '/parent',
             versionLabel: '1.0',
+            routeName   : 'commondoc.reference-page',
             children    : $children,
         );
 
@@ -124,6 +126,7 @@ final class PageTest extends TestCase
                 'projectSlug'  => 'commondoc',
                 'projectName'  => 'CommonDoc',
                 'versionLabel' => '1.0',
+                'routeName'    => 'commondoc.reference-page',
                 'sourcePath'   => 'docs/reference/page.md',
                 'captureTo'    => 'page',
                 'append'       => false,
@@ -179,6 +182,7 @@ final class PageTest extends TestCase
             sourcePath  : 'docs/parent.md',
             url         : '/parent',
             versionLabel: '1.0',
+            routeName   : 'commondoc.reference-page',
             append      : true,
             captureTo   : 'sidebar',
             terminal    : true,

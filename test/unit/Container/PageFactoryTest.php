@@ -19,12 +19,20 @@ use CommonDoc\Output\DocumentRoot;
 use CommonDoc\SiteConfig;
 use CommonDoc\View\Page;
 use InvalidArgumentException;
+use Mezzio\Helper\UrlHelper;
+use Mezzio\Router\Route;
+use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psl\Type\Exception\CoercionException;
 use Psr\Container\ContainerInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use Webware\Router\QueryParamRouter;
 
 /**
  * One page per document, built from options rather than from a captured callable.
@@ -57,11 +65,41 @@ final class PageFactoryTest extends TestCase
                 static fn(string $id): mixed => match ($id) {
                     SiteConfig::class   => $siteConfig,
                     DocumentRoot::class => $root,
+                    UrlHelper::class    => self::url($root),
                     default             => null,
                 },
             );
 
         return $container;
+    }
+
+    /**
+     * The real helper over the real router, for the same reason the link tests use it:
+     * the URL a page carries is meant to come from the router, so a stub would assert
+     * the expectation instead of the behaviour.
+     *
+     * Every document these tests build a page for is registered the way a build
+     * registers one: at its published path, with no name.
+     */
+    private static function url(DocumentRoot $root): UrlHelper
+    {
+        $middleware = new class implements MiddlewareInterface {
+            #[Override]
+            public function process(
+                ServerRequestInterface $request,
+                RequestHandlerInterface $handler,
+            ): ResponseInterface {
+                return $handler->handle($request);
+            }
+        };
+
+        $router = new QueryParamRouter();
+
+        foreach (['guide/setup.md', 'guide/index.md', 'index.md'] as $document) {
+            $router->addRoute(new Route($root->published($document), $middleware));
+        }
+
+        return new UrlHelper($router);
     }
 
     /**

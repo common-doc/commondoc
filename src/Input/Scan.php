@@ -49,13 +49,15 @@ final readonly class Scan
      * @param array<non-empty-string, non-empty-string> $sources   Site path to the file that holds it
      * @param list<non-empty-string>                    $documents The site paths that are documents
      * @param list<non-empty-string>                    $assets    The site paths that are not
-     * @param array<non-empty-string, Source>           $origins   Site path prefix to the repository that holds it
+     * @param array<non-empty-string, Source>           $origins   Mount prefix to the repository that holds it
+     * @param array<non-empty-string, Source>           $owners    Site path to the repository that holds it
      */
     public function __construct(
         public array $sources,
         public array $documents,
         public array $assets,
         public array $origins = [],
+        public array $owners = [],
     ) {}
 
     /**
@@ -78,6 +80,7 @@ final readonly class Scan
     {
         $sources = [];
         $origins = [];
+        $owners  = [];
         $reader  = new SourceReader();
 
         foreach ($roots as $root) {
@@ -89,11 +92,23 @@ final readonly class Scan
             $source = $reader->read($directory);
 
             if (null !== $source) {
+                // The mount is where this root is published, and `Source` answers a link
+                // by stripping it, so the two halves of that relationship are recorded
+                // together rather than reconstructed from a site path per link.
+                $source                = $source->mountedAt($root->mount);
                 $origins[$root->mount] = $source;
             }
 
             foreach (Tree::at($directory)->paths() as $path) {
-                $sources[$root->mountPath($path)] = sprintf('%s%s%s', $directory, self::SEPARATOR, $path);
+                $sitePath            = $root->mountPath($path);
+                $sources[$sitePath] = sprintf('%s%s%s', $directory, self::SEPARATOR, $path);
+
+                // Recorded while walking rather than recovered later: the root is known
+                // here and a link is resolved long after, so a map built once replaces a
+                // longest-prefix search per link.
+                if (null !== $source) {
+                    $owners[$sitePath] = $source;
+                }
             }
         }
 
@@ -114,7 +129,21 @@ final readonly class Scan
                 documents: $documents,
             ),
             origins  : $origins,
+            owners   : $owners,
         );
+    }
+
+    /**
+     * The repository a document was read from, or null when its root is not a checkout.
+     *
+     * Answers for any site path the walk produced, not only documents, because the same
+     * map answers a link target as answers the page holding the link.
+     *
+     * @param non-empty-string $sitePath
+     */
+    public function ownerOf(string $sitePath): ?Source
+    {
+        return $this->owners[$sitePath] ?? null;
     }
 
     /**

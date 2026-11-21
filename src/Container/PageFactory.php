@@ -15,9 +15,11 @@ declare(strict_types=1);
 namespace CommonDoc\Container;
 
 use CommonDoc\Exception\InvalidArgumentException;
+use CommonDoc\Input\Source;
 use CommonDoc\SiteConfig;
 use CommonDoc\View\Page;
 use Laminas\ServiceManager\Factory\FactoryInterface;
+use Mezzio\Helper\UrlHelper;
 use Override;
 use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
@@ -33,9 +35,9 @@ use function is_string;
  * one with `build()`, which the service manager never caches, and passes only
  * what differs per document: its local path and its label. Everything shared by
  * every page in a deployment (the project name, the slug, the version label) comes
- * from `SiteConfig`, and the published path is derived from the translation that site
- * carries rather than accepted, so a page cannot carry a URL that disagrees with
- * the file the write pass produces for the same document.
+ * from `SiteConfig`, and both the published path and the route name come from the
+ * routing table rather than from a translation computed here: the router is the one
+ * place a URL is produced, so a page cannot carry an address the router disagrees with.
  *
  * @internal
  */
@@ -50,7 +52,7 @@ final readonly class PageFactory implements FactoryInterface
      *
      * @param ?array<array-key, mixed> $options
      *
-     * @return array{localPath: non-empty-string, label: string, children: mixed}
+     * @return array{localPath: non-empty-string, label: string, children: mixed, source: mixed}
      *
      * @throws InvalidArgumentException When the options do not name a document
      */
@@ -71,6 +73,7 @@ final readonly class PageFactory implements FactoryInterface
             'localPath' => $localPath,
             'label'     => $label,
             'children'  => $options['children'] ?? [],
+            'source'    => $options['source'] ?? null,
         ];
     }
 
@@ -95,13 +98,27 @@ final readonly class PageFactory implements FactoryInterface
         // second source for a path is a second rule.
         $site = Type\instance_of(SiteConfig::class)->coerce($container->get(SiteConfig::class));
 
+        // The route name is the path this document was registered at, which is the
+        // published path: the router derives a name from the path when none is given,
+        // and `seed()` gives none. Asking the router to generate the URL from that name
+        // is the only place a URL is produced for a document, so a page cannot carry an
+        // address the router would not.
+        $routeName = $site->documentRoot->published($optionsFrom['localPath']);
+
+        $url = Type\instance_of(UrlHelper::class)->coerce($container->get(UrlHelper::class));
+
+        /** @var mixed $source */
+        $source = $optionsFrom['source'];
+
         return new Page(
             label       : $optionsFrom['label'],
             projectName : $site->projectName,
             projectSlug : $site->projectSlug,
             sourcePath  : $optionsFrom['localPath'],
-            url         : $site->documentRoot->published($optionsFrom['localPath']),
+            url         : $url($routeName),
             versionLabel: $site->versionLabel,
+            routeName   : $routeName,
+            source      : $source instanceof Source ? $source : null,
             children    : Type\vec(Type\instance_of(Page::class))->coerce($optionsFrom['children']),
         );
     }

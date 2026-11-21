@@ -72,19 +72,19 @@ final class MarkdownConverterFactoryTest extends TestCase
     }
 
     #[Test]
-    public function keepsTheRewriterWhenTheScanCarriesOrigins(): void
+    public function keepsTheRewriterWhenTheOptionsCarryMoreThanTheTwoLists(): void
     {
         // `Type\shape` refuses an unknown key, so validating the whole options array
-        // with it made a third key look like "no scan" and silently dropped the
-        // rewriter: every link then shipped exactly as written and the build
-        // reported success. This pins that a scan with origins still rewrites.
+        // with it makes any extra key look like "no scan" and silently drops the
+        // rewriter: every link then ships exactly as written and the build reports
+        // success. This pins that a caller may pass anything else it needs.
         $converter = new MarkdownConverterFactory()(
             $this->container(),
             MarkdownConverter::class,
             [
                 'documents' => ['guide/intro.md'],
                 'assets'    => [],
-                'origins'   => ['/' => new Source('https://github.com/example/repo', 'abc123')],
+                'unrelated' => true,
             ],
         );
 

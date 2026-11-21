@@ -285,6 +285,7 @@ final class EnvironmentFactoryTest extends TestCase
             sourcePath  : 'docs/install.md',
             url         : '/install/',
             versionLabel: '1.0',
+            routeName   : '/install/',
         );
 
         $this->context  = new PageContext();
