@@ -121,6 +121,23 @@ Everything else, the test matrix, Mago, mutation testing and Codecov, is supplie
 organization ruleset `Continuous Integration` rather than by a file in this repository.
 `webware-ci.json` at the root is the parameter contract that workflow reads.
 
+## Previewing a build
+
+`compose.yml` has a `preview` service that serves the last build in a browser:
+
+```bash
+docker compose up -d preview     # then open http://localhost:8080/
+docker compose down
+```
+
+It serves `./build` read-only, which is where `commondoc:build` writes by default, so
+rebuilding is all it takes to refresh. The site's base path must be `/`, which is the
+default. It is bound to `127.0.0.1` only.
+
+A build run inside the `tooling` container can only read repositories mounted into it, so
+a site composed from checkouts elsewhere on the host is built on the host and previewed
+the same way.
+
 ## Roadmap
 
 What is left before a release, including the decisions still open, is tracked in the
