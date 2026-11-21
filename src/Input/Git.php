@@ -18,6 +18,10 @@ use Psl\Async;
 use Psl\Shell;
 use Psl\Str;
 
+use function array_filter;
+use function array_values;
+use function explode;
+
 /**
  * Asks git a question of one checkout.
  *
@@ -46,24 +50,71 @@ final readonly class Git
      */
     public function ask(string $directory, array $arguments): ?string
     {
+        $output = $this->run($directory, $arguments);
+
+        if (null === $output) {
+            return null;
+        }
+
+        try {
+            $output = Str\trim($output);
+        } catch (Str\Exception\InvalidArgumentException) {
+            return null;
+        }
+
+        return '' === $output ? null : $output;
+    }
+
+    /**
+     * The paths of every file a ref holds beneath a path, relative to the repository root.
+     *
+     * Listed with `-z` so a path containing a space, a quote or a newline arrives as git
+     * stored it instead of quoted.
+     *
+     * @param string $directory The checkout to ask
+     * @param string $ref       A tag, branch or commit
+     * @param string $path      The directory within the repository to list
+     *
+     * @return list<string>
+     */
+    public function files(string $directory, string $ref, string $path): array
+    {
+        $output = $this->run($directory, ['ls-tree', '-r', '-z', '--name-only', $ref, '--', $path]);
+
+        if (null === $output) {
+            return [];
+        }
+
+        return array_values(array_filter(explode("\0", $output), static fn(string $file): bool => '' !== $file));
+    }
+
+    /**
+     * One file as a ref holds it, byte for byte, or null when the ref has no such file.
+     *
+     * Not trimmed, because a file's trailing newline is part of the file.
+     */
+    public function show(string $directory, string $ref, string $path): ?string
+    {
+        return $this->run($directory, ['show', "{$ref}:{$path}"]);
+    }
+
+    /**
+     * @param list<string> $arguments
+     */
+    private function run(string $directory, array $arguments): ?string
+    {
         if ('' === $directory) {
             return null;
         }
 
         try {
-            $output = Shell\execute(
+            return Shell\execute(
                 command         : 'git',
                 arguments       : $arguments,
                 workingDirectory: $directory,
             );
-
-            $output = Str\trim($output);
-        } catch (
-            Shell\Exception\ExceptionInterface|Async\Exception\CancelledException|Str\Exception\InvalidArgumentException
-        ) {
+        } catch (Shell\Exception\ExceptionInterface|Async\Exception\CancelledException) {
             return null;
         }
-
-        return '' === $output ? null : $output;
     }
 }

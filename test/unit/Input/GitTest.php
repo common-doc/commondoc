@@ -21,6 +21,7 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+use function file_put_contents;
 use function mkdir;
 use function sys_get_temp_dir;
 use function uniqid;
@@ -32,6 +33,8 @@ use const DIRECTORY_SEPARATOR;
  */
 #[CoversClass(Git::class)]
 #[CoversMethod(Git::class, 'ask')]
+#[CoversMethod(Git::class, 'files')]
+#[CoversMethod(Git::class, 'show')]
 final class GitTest extends TestCase
 {
     private string $directory;
@@ -77,9 +80,45 @@ final class GitTest extends TestCase
     }
 
     #[Test]
+    public function listsNothingForARefOrPathThatIsNotThere(): void
+    {
+        $this->commitDocs();
+
+        static::assertSame([], new Git()->files($this->directory, ref: 'HEAD', path: 'absent'));
+        static::assertSame([], new Git()->files($this->directory, ref: 'nope', path: 'docs'));
+    }
+
+    #[Test]
+    public function listsTheFilesARefHoldsBeneathAPath(): void
+    {
+        $this->commitDocs();
+
+        static::assertSame(
+            ['docs/a b.md', 'docs/sub/c.md'],
+            new Git()->files($this->directory, ref: 'HEAD', path: 'docs'),
+        );
+    }
+
+    #[Test]
     public function refusesAnEmptyWorkingDirectoryRatherThanAskingWhereverTheProcessIs(): void
     {
         static::assertNull(new Git()->ask('', ['rev-parse', 'HEAD']));
+    }
+
+    #[Test]
+    public function showsAFileByteForByteWithItsTrailingNewline(): void
+    {
+        $this->commitDocs();
+
+        static::assertSame("# C\n", new Git()->show($this->directory, ref: 'HEAD', path: 'docs/sub/c.md'));
+    }
+
+    #[Test]
+    public function showsNullForAFileTheRefDoesNotHold(): void
+    {
+        $this->commitDocs();
+
+        static::assertNull(new Git()->show($this->directory, ref: 'HEAD', path: 'docs/missing.md'));
     }
 
     protected function setUp(): void
@@ -94,5 +133,20 @@ final class GitTest extends TestCase
     protected function tearDown(): void
     {
         GitCheckout::remove($this->directory);
+    }
+
+    private function commitDocs(): void
+    {
+        GitCheckout::create($this->directory);
+
+        mkdir(
+            directory: "{$this->directory}/docs/sub",
+            recursive: true,
+        );
+        file_put_contents("{$this->directory}/docs/a b.md", data: "# A\n");
+        file_put_contents("{$this->directory}/docs/sub/c.md", data: "# C\n");
+
+        GitCheckout::run($this->directory, arguments: 'add docs');
+        GitCheckout::run($this->directory, arguments: 'commit --quiet -m docs');
     }
 }
