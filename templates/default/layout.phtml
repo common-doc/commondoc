@@ -10,8 +10,14 @@
  * file that was distributed with this source code.
  *
  * The layout shell for one document. The view renderer writes the body render
- * into `content`, so this template reads that and nothing else: it must not
- * assume a page, because a render performed outside a build still wraps here.
+ * into `content`, so this template reads that and the navigation, and nothing
+ * else: it must not assume a page, because a render performed outside a build
+ * still wraps here.
+ *
+ * The navigation is read from the routing table, which a build populates before
+ * the first render. A render outside a build has no routes, so the menu is simply
+ * empty. Which item is active is not decided here: a build has no request to match
+ * a route against, so highlighting belongs to the browser.
  *
  * @var string $content
  */
@@ -23,6 +29,9 @@
     <?= $this->headTitle()->setSeparator(' | ') ?>
 </head>
 <body>
+    <nav class="site-nav">
+        <?= $this->navigation(\CommonDoc\Output\DocumentRoutes::NAVIGATION)->menu() ?>
+    </nav>
     <?= $this->content ?>
 </body>
 </html>
