@@ -71,6 +71,25 @@ final class VersionRootTest extends TestCase
     }
 
     #[Test]
+    public function readsADottedMajorDirectoryWhenTheTargetStatesOne(): void
+    {
+        GitCheckout::create($this->directory);
+        mkdir(
+            directory: "{$this->directory}/docs/2.0",
+            recursive: true,
+        );
+        file_put_contents("{$this->directory}/docs/2.0/index.md", data: "# Two\n");
+        GitCheckout::run($this->directory, arguments: 'add docs');
+        GitCheckout::run($this->directory, arguments: 'commit --quiet -m two');
+        GitCheckout::run($this->directory, arguments: 'tag v2.0.0');
+
+        $roots = new VersionRoot()->of($this->directory, new Target('docs/{major}.0'), $this->workspace);
+
+        static::assertCount(1, $roots);
+        static::assertSame('docs/2.0', $roots[0]->source?->prefix);
+    }
+
+    #[Test]
     public function readsEachTagFromItsOwnMajorDirectoryWhenTheTargetNamesOne(): void
     {
         GitCheckout::create($this->directory);

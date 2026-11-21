@@ -136,7 +136,8 @@ not read, because the version mounts are what make the versions a set.
   documentation.
 - The `target` may contain `{major}`, which each tag replaces with its own major
   version, so `docs/v{major}` reads `docs/v1` from a 1.x tag and `docs/v2` from a 2.x
-  tag. Without it the same target is read from every tag. The files are written to
+  tag. Text around the placeholder is kept, so `docs/{major}.0` reads `docs/2.0` from a
+  2.x tag. Without it the same target is read from every tag. The files are written to
   `commondoc-versions` in the system temporary directory, which is cleared for each
   version before it is written.
 
