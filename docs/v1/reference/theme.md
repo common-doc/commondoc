@@ -194,6 +194,30 @@ a null check rather than assuming it:
 It receives nothing else, and it is rendered for any page the renderer wraps, so it
 must not assume a page exists.
 
+## Navigation
+
+The built-in layout renders the site menu with the `navigation` view helper:
+
+```php
+<?= $this->navigation(\CommonDoc\Output\DocumentRoutes::NAVIGATION)->menu() ?>
+```
+
+The menu is read from the routing table. A build registers one route per document before
+it renders the first, and each route carries the `navigation`, `label` and `order` options
+that `webware-navigation` reads, so every page links to every other page by a URL the
+router generated. A render outside a build has no routes, so the menu is empty.
+
+Two things follow from a build having no request:
+
+- No item is marked active. The helper takes the active route from the request that
+  matched it, and a build never matches one, so highlighting is left to the browser.
+- Every label is the file name without its suffix, so each directory's index page reads
+  `index`. A better label needs a source this build does not have yet.
+
+A site that supplies its own configuration aggregates `Webware\Navigation\ConfigProvider`,
+which registers the helper, or a layout that calls it cannot resolve it. A site that
+replaces the layout is free not to render a menu at all.
+
 ## Where the built-in templates live
 
 This package ships `templates/default/`, holding `document.phtml` and `layout.phtml`.

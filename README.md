@@ -62,6 +62,11 @@ wrap, every view helper and the helper state reset come from the framework, so n
 render performed outside a build, where `PageContext` holds nothing, gets `null` and still
 succeeds.
 
+The layout also renders the site menu with the `navigation` view helper, which reads the
+routes a build registers. The host configuration has to aggregate
+`Webware\Navigation\ConfigProvider` for that helper to resolve; see
+[Theme and templates](docs/v1/reference/theme.md#navigation).
+
 ### Overriding the body template from configuration
 
 A site replaces the body template from its own configuration. Nothing in this package changes,

@@ -25,6 +25,7 @@ use Webware\Console\ConfigProvider as ConsoleProvider;
 use Webware\Event\ConfigProvider as EventProvider;
 use Webware\MessageBus\ConfigProvider as BusProvider;
 use Webware\MessageBus\Event\ConfigProvider as BusEventProvider;
+use Webware\Navigation\ConfigProvider as NavigationProvider;
 use Webware\Router\ConfigProvider as RouterProvider;
 use Webware\Theme\ConfigProvider as ThemeProvider;
 
@@ -45,6 +46,10 @@ $aggregator = new ConfigAggregator(
         ThemeProvider::class,
         HydratorProvider::class,
         HelperProvider::class,
+        // The layout renders `$this->navigation(...)`, so the navigation provider has to be
+        // aggregated: it registers that view helper. A site that supplies its own
+        // configuration aggregates it too, or its layout cannot resolve the helper.
+        NavigationProvider::class,
         // The event dispatcher has to be aggregated before webware-event: the latter
         // aliases EventDispatcherInterface to it but ships no factory for it.
         EventDispatcherProvider::class,

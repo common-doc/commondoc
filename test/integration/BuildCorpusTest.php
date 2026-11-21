@@ -49,6 +49,7 @@ use function sort;
 use function sprintf;
 use function str_replace;
 use function strlen;
+use function strpos;
 use function substr;
 use function sys_get_temp_dir;
 use function unlink;
@@ -136,10 +137,10 @@ final class BuildCorpusTest extends TestCase
             // The link from the second root's document resolves inside that root's
             // mount, so it was rewritten against the composed path, not the
             // repository-local one.
-            $document = $this->read(
+            $document = $this->body($this->read(
                 directory: $output,
                 relative : 'two/concepts/document/index.html',
-            );
+            ));
 
             static::assertStringContainsString('href="/two/concepts/paths/#the-index-rule"', $document);
             static::assertStringContainsString('href="/two/getting-started/"', $document);
@@ -190,6 +191,32 @@ final class BuildCorpusTest extends TestCase
     }
 
     #[Test]
+    public function rendersTheSiteMenuFromTheRoutingTableOnEveryPage(): void
+    {
+        $output = $this->temporaryDirectory();
+
+        try {
+            $this->build(self::CORPUS, $output);
+
+            $document = $this->read(
+                directory: $output,
+                relative : 'concepts/paths/index.html',
+            );
+
+            // Outside the body, so this is the layout's own contribution. The links are the
+            // routes the build registered, generated from the routing table.
+            static::assertStringContainsString('<nav class="site-nav">', $document);
+            static::assertStringContainsString('<a class="nav-link" href="/concepts/paths/">paths</a>', $document);
+            static::assertStringContainsString('<a class="nav-link" href="/reference/cli/">cli</a>', $document);
+            // No item is marked active: a build has no request to match a route against, so
+            // highlighting is left to the browser.
+            static::assertStringNotContainsString('nav-link active', $document);
+        } finally {
+            $this->removeDirectory($output);
+        }
+    }
+
+    #[Test]
     public function rendersThroughTheViewLayerRatherThanReturningMarkdownHtml(): void
     {
         $output = $this->temporaryDirectory();
@@ -222,10 +249,10 @@ final class BuildCorpusTest extends TestCase
         try {
             $this->build(self::CORPUS, $output);
 
-            $document = $this->read(
+            $document = $this->body($this->read(
                 directory: $output,
                 relative : 'concepts/document/index.html',
-            );
+            ));
 
             // A target relative to the document's own directory, carrying a
             // fragment that survives the rewrite untouched.
@@ -244,10 +271,10 @@ final class BuildCorpusTest extends TestCase
             // A target that climbs out of that directory.
             static::assertStringContainsString('href="/getting-started/"', $document);
 
-            $index = $this->read(
+            $index = $this->body($this->read(
                 directory: $output,
                 relative : 'index.html',
-            );
+            ));
 
             // The index rule: a link naming `concepts/index.md` becomes the
             // directory, not `/concepts/index/`.
@@ -320,6 +347,30 @@ final class BuildCorpusTest extends TestCase
         } finally {
             $this->removeDirectory($output);
         }
+    }
+
+    /**
+     * The document's own body, without the layout around it.
+     *
+     * Every page carries the site menu, which links to every other page. An assertion that a
+     * rewritten link is present would therefore pass on the menu alone, whether or not the
+     * rewrite worked, so link assertions are made against the body the author wrote.
+     */
+    private function body(string $document): string
+    {
+        $start = strpos(
+            haystack: $document,
+            needle  : '<main class="document">',
+        );
+        $end = strpos(
+            haystack: $document,
+            needle  : '</main>',
+        );
+
+        static::assertIsInt($start);
+        static::assertIsInt($end);
+
+        return substr($document, $start, $end - $start);
     }
 
     private function build(string $source, string $output): ResultInterface
