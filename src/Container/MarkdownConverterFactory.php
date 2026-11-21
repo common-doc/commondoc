@@ -14,15 +14,8 @@ declare(strict_types=1);
 
 namespace CommonDoc\Container;
 
-use CommonDoc\CommonMarkEvent;
-use CommonDoc\Input\Source;
-use CommonDoc\Output\DocumentRoot;
-use CommonDoc\Output\LinkRewriter;
 use Laminas\ServiceManager\Factory\FactoryInterface;
-use Laminas\ServiceManager\ServiceLocatorInterface;
-use League\CommonMark\Environment\Environment;
 use League\CommonMark\Environment\EnvironmentInterface;
-use League\CommonMark\Exception\AlreadyInitializedException;
 use League\CommonMark\MarkdownConverter;
 use Override;
 use Psl\Type;
@@ -30,89 +23,26 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
-use function is_array;
-
 /**
- * Construction seam for the Markdown converter, in its two modes.
+ * Construction seam for the shared Markdown converter.
  *
- * Asked without options, it returns a converter over the shared environment:
- * the option surface stays in config and this class only wires the pair
- * together. `CommonMarkConverter` cannot be used here, because it is final and
- * constructs its own environment, whereas `MarkdownConverter` accepts the
- * injected one.
+ * It returns a converter over the shared environment: the option surface stays in
+ * config and this class only wires the pair together. `CommonMarkConverter` cannot
+ * be used here, because it is final and constructs its own environment, whereas
+ * `MarkdownConverter` accepts the injected one.
  *
- * Asked with a scan, it returns a converter over a **fresh** environment that
- * carries a `LinkRewriter` bound to that scan. The two lists are the only
- * per-build inputs, so they are the only options, and the caller asks for one
- * with `build()`: the service manager never caches what it builds, so a second
- * build cannot inherit the first build's listener. That is the whole mechanism,
- * and it is why there is no callable type here to own the difference.
- *
- * The environment is built through the same service manager rather than through
- * a captured factory, so the extension list and the page listener are exactly
- * what the shared environment has. Only the rewriter differs.
+ * This converter has no link rewriter, so a link keeps the target exactly as written.
+ * A build does not use it: a build needs a converter bound to its own document and
+ * asset lists, which `ConverterFactoryFactory` supplies as a callable so that no
+ * caller has to ask a container for one while it runs.
  *
  * @internal
  */
 final readonly class MarkdownConverterFactory implements FactoryInterface
 {
     /**
-     * The scan a build passes in, or null when the request is the plain converter.
-     *
-     * A shape that does not match is treated as no scan rather than as an error.
-     * The options argument is open to any caller, and a build is the only thing
-     * that has lists to pass, so an unrecognised shape is a plain request.
-     *
      * @param ?array<array-key, mixed> $options
      *
-     * @return null|array{documents: list<non-empty-string>, assets: list<non-empty-string>, origins?: array<non-empty-string, Source>}
-     *
-     * @throws Type\Exception\ExceptionInterface When a shape key holds the wrong type
-     */
-    private static function scanFrom(?array $options): ?array
-    {
-        if (! is_array($options)) {
-            return null;
-        }
-
-        $lists = Type\shape([
-            'documents' => Type\vec(Type\non_empty_string()),
-            'assets'    => Type\vec(Type\non_empty_string()),
-        ]);
-
-        // Validated over a narrowed array rather than over the whole options
-        // argument: `Type\shape` refuses an unknown key, so pointing it at the
-        // options would make every caller that passes a third value look like "no
-        // scan" and silently drop the rewriter. Narrowing keeps the two lists
-        // strict and lets the map be optional.
-        $narrowed = [
-            'documents' => $options['documents'] ?? null,
-            'assets'    => $options['assets'] ?? null,
-        ];
-
-        if (! $lists->matches($narrowed)) {
-            return null;
-        }
-
-        $scan = $lists->coerce($narrowed);
-
-        /** @var mixed $origins Deliberately untyped: the shape below decides what it is */
-        $origins = $options['origins'] ?? [];
-
-        $origins = Type\dict(Type\non_empty_string(), Type\instance_of(Source::class))
-            ->coerce(is_array($origins) ? $origins : []);
-
-        return [
-            'documents' => $scan['documents'],
-            'assets'    => $scan['assets'],
-            'origins'   => $origins,
-        ];
-    }
-
-    /**
-     * @param ?array<array-key, mixed> $options The scan a build discovered, when there is one
-     *
-     * @throws AlreadyInitializedException When the built environment is already extended
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      * @throws Type\Exception\ExceptionInterface When a collaborator is the wrong type
@@ -123,29 +53,8 @@ final readonly class MarkdownConverterFactory implements FactoryInterface
         string $requestedName,
         ?array $options = null,
     ): MarkdownConverter {
-        $scan = self::scanFrom($options);
-
-        if (null === $scan) {
-            $environment = Type\instance_of(EnvironmentInterface::class)
-                ->coerce($container->get(EnvironmentInterface::class));
-
-            return new MarkdownConverter($environment);
-        }
-
-        $locator = Type\instance_of(ServiceLocatorInterface::class)->coerce($container);
-        $root    = Type\instance_of(DocumentRoot::class)->coerce($container->get(DocumentRoot::class));
-
-        // `build()` rather than `get()`, because the environment is a shared
-        // service: a listener added to the shared one would outlive this build
-        // and be consulted by the next, against a document list that no longer
-        // exists.
-        $environment = Type\instance_of(Environment::class)
-            ->coerce($locator->build(EnvironmentInterface::class));
-
-        $environment->addEventListener(
-            CommonMarkEvent::DocumentParsed->value,
-            new LinkRewriter($root, $scan['documents'], $scan['assets'], $scan['origins'] ?? []),
-        );
+        $environment = Type\instance_of(EnvironmentInterface::class)
+            ->coerce($container->get(EnvironmentInterface::class));
 
         return new MarkdownConverter($environment);
     }

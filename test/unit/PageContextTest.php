@@ -39,6 +39,7 @@ final class PageContextTest extends TestCase
             sourcePath  : 'docs/page.md',
             url         : '/page',
             versionLabel: '1.0',
+            routeName   : '/page',
         );
     }
 

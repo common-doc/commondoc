@@ -43,6 +43,7 @@
         "webware/webware-console": "^1.0.0-alpha.8",
         "webware/webware-filewriter": "^1.0.0-alpha.4",
         "webware/webware-log": "^2.0.0-alpha.7",
+        "webware/webware-navigation": "^1.0.0-alpha.9",
         "webware/webware-theme": "^1.0.0-alpha.5"
     },
     "require-dev": {

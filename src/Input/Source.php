@@ -14,6 +14,9 @@ declare(strict_types=1);
 
 namespace CommonDoc\Input;
 
+use CommonDoc\Exception\RuntimeException;
+use CommonDoc\Output\SourcePath;
+
 use function explode;
 use function implode;
 use function rawurlencode;
@@ -147,5 +150,50 @@ final readonly class Source
             rawurlencode($this->ref),
             ...$segments,
         ]);
+    }
+
+    /**
+     * The repository URL a link inside one document points at, or null when it stays
+     * inside this root.
+     *
+     * A document may link to something its own site does not publish: a benchmark
+     * result, a workflow file, a sibling directory. Those targets are not on the site,
+     * but they are in the repository, and pointing at it keeps a source tree publishable
+     * without editing the links it already had.
+     *
+     * The target is resolved in repository space rather than in site space, because a
+     * site path has already spent its mount and no longer says how many segments it
+     * climbed. `$from` is the document's path from the repository root, which the scan
+     * recorded while walking, so the climb is counted in the space the link was written
+     * for and no mount has to be subtracted back out.
+     *
+     * Two answers are null rather than a URL, because both leave the caller's own
+     * refusal in place:
+     *
+     * - a target that stays inside this root is a genuinely dead link, not a source link
+     * - a target that climbs above the repository names no file anywhere
+     *
+     * @param string $target The target exactly as the document wrote it
+     * @param string $from   The document's path from the repository root
+     */
+    public function link(string $target, string $from): ?string
+    {
+        if (str_starts_with($target, self::SEPARATOR)) {
+            // An absolute target is relative to the site root, which is the only
+            // absolute space a reader knows. Nothing about the repository applies.
+            return null;
+        }
+
+        try {
+            $resolved = SourcePath::resolve($target, $from);
+        } catch (RuntimeException) {
+            return null;
+        }
+
+        if ('' === $this->prefix || str_starts_with($resolved, $this->prefix . self::SEPARATOR)) {
+            return null;
+        }
+
+        return $this->at($resolved);
     }
 }

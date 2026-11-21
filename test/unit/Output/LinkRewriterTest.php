@@ -18,7 +18,6 @@ use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\LinkRewriter;
 use CommonDoc\Output\PathType;
-use CommonDoc\Output\SourceLinks;
 use CommonDoc\Output\SourcePath;
 use CommonDoc\View\Page;
 use League\CommonMark\Event\DocumentParsedEvent;
@@ -27,11 +26,19 @@ use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
 use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
 use League\CommonMark\Node\Block\Document;
 use League\CommonMark\Node\Block\Paragraph;
+use Mezzio\Helper\UrlHelper;
+use Mezzio\Router\Route;
+use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use RuntimeException;
+use Webware\Router\QueryParamRouter;
 
 /**
  * The rewriter answers one question per link: what path does this target have
@@ -43,7 +50,6 @@ use RuntimeException;
  * target unchanged would pass every happy-path test and still ship a dead site.
  */
 #[CoversClass(LinkRewriter::class)]
-#[CoversClass(SourceLinks::class)]
 #[CoversClass(SourcePath::class)]
 #[CoversMethod(LinkRewriter::class, '__construct')]
 #[CoversMethod(LinkRewriter::class, '__invoke')]
@@ -61,11 +67,33 @@ final class LinkRewriterTest extends TestCase
         'site.css',
     ];
 
+    private const string MOUNT = '/message-bus/v2/';
+
+    private static function checkout(string $prefix = 'docs/2.0'): Source
+    {
+        return new Source(
+            url   : 'https://github.com/example/message-bus',
+            ref   : 'abc123',
+            prefix: $prefix,
+        );
+    }
+
     /**
+     * A page for the document under test.
+     *
+     * `repositoryPath` is passed rather than derived, because deriving it here would
+     * repeat the inversion the production code no longer performs: the scan records both
+     * halves while walking, so a test that had to subtract a mount to build a fixture
+     * would be exercising the defect rather than the behaviour.
+     *
      * @param list<AbstractWebResource> $nodes
      */
-    private static function document(?string $sourcePath, array $nodes): Document
-    {
+    private static function document(
+        ?string $sourcePath,
+        array $nodes,
+        ?Source $source = null,
+        ?string $repositoryPath = null,
+    ): Document {
         $document  = new Document();
         $paragraph = new Paragraph();
 
@@ -77,16 +105,50 @@ final class LinkRewriterTest extends TestCase
 
         if (null !== $sourcePath) {
             $document->data->set('commondoc.page', new Page(
-                label       : 'Setup',
-                projectName : 'CommonDoc',
-                projectSlug : 'commondoc',
-                sourcePath  : $sourcePath,
-                url         : '/guide/setup/',
-                versionLabel: '1.0',
+                label         : 'Setup',
+                projectName   : 'CommonDoc',
+                projectSlug   : 'commondoc',
+                sourcePath    : $sourcePath,
+                url           : '/guide/setup/',
+                versionLabel  : '1.0',
+                routeName     : '/guide/setup/',
+                source        : $source,
+                repositoryPath: $repositoryPath,
             ));
         }
 
         return $document;
+    }
+
+    /**
+     * The helper the rewriter calls, over a router holding one route per document.
+     *
+     * The real router and the real helper are used rather than a stub, because the
+     * behaviour under test is that a document's address comes from the router: a stub
+     * would answer with whatever the test expected and would pass even if the route the
+     * build registers could not be generated from.
+     */
+    private static function url(DocumentRoot $root): UrlHelper
+    {
+        $middleware = new class implements MiddlewareInterface {
+            #[Override]
+            public function process(
+                ServerRequestInterface $request,
+                RequestHandlerInterface $handler,
+            ): ResponseInterface {
+                return $handler->handle($request);
+            }
+        };
+
+        $router = new QueryParamRouter();
+
+        foreach (self::DOCUMENTS as $document) {
+            // Registered the way the build registers them: at the published path, with no
+            // name, so the router derives one from that path.
+            $router->addRoute(new Route($root->published($document), $middleware));
+        }
+
+        return new UrlHelper($router);
     }
 
     #[Test]
@@ -142,11 +204,8 @@ final class LinkRewriterTest extends TestCase
             $this->targetOf(
                 $link,
                 from: 'message-bus/v2/guide/setup.md',
-                origins: ['/message-bus/v2/' => new Source(
-                    'https://github.com/example/message-bus',
-                    'abc123',
-                    'docs/2.0',
-                )],
+                source: self::checkout(),
+                repositoryPath: 'docs/2.0/guide/setup.md',
             ),
         );
     }
@@ -221,11 +280,8 @@ final class LinkRewriterTest extends TestCase
         $this->dispatch(
             [$link],
             sourcePath: 'message-bus/v2/guide/setup.md',
-            origins: ['/message-bus/v2/' => new Source(
-                'https://github.com/example/message-bus',
-                'abc123',
-                'docs/2.0',
-            )],
+            source: self::checkout(),
+            repositoryPath: 'docs/2.0/guide/setup.md',
         );
     }
 
@@ -242,11 +298,8 @@ final class LinkRewriterTest extends TestCase
         $this->dispatch(
             [$link],
             sourcePath: 'message-bus/v2/benchmark-results.md',
-            origins: ['/message-bus/v2/' => new Source(
-                'https://github.com/example/message-bus',
-                'abc123',
-                'docs/2.0',
-            )],
+            source: self::checkout(),
+            repositoryPath: 'docs/2.0/benchmark-results.md',
         );
     }
 
@@ -262,7 +315,8 @@ final class LinkRewriterTest extends TestCase
         $this->dispatch(
             [$link],
             sourcePath: 'message-bus/v2/guide/setup.md',
-            origins: ['/message-bus/v2/' => new Source('https://github.com/example/message-bus', 'abc123')],
+            source: new Source('https://github.com/example/message-bus', 'abc123'),
+            repositoryPath: 'guide/setup.md',
         );
     }
 
@@ -315,11 +369,8 @@ final class LinkRewriterTest extends TestCase
             $this->targetOf(
                 $link,
                 from: 'message-bus/v2/benchmark-results.md',
-                origins: ['/message-bus/v2/' => new Source(
-                    'https://github.com/example/message-bus',
-                    'abc123',
-                    'docs/2.0',
-                )],
+                source: self::checkout(),
+                repositoryPath: 'docs/2.0/benchmark-results.md',
             ),
         );
     }
@@ -338,11 +389,8 @@ final class LinkRewriterTest extends TestCase
             $this->targetOf(
                 $link,
                 from: 'benchmark-results.md',
-                origins: ['/' => new Source(
-                    'https://github.com/example/message-bus',
-                    'abc123',
-                    'docs/2.0',
-                )],
+                source: self::checkout(),
+                repositoryPath: 'docs/2.0/benchmark-results.md',
             ),
         );
     }
@@ -373,38 +421,32 @@ final class LinkRewriterTest extends TestCase
 
     /**
      * @param list<AbstractWebResource> $nodes
-     *
-     * @param array<non-empty-string, Source> $origins
      */
     private function dispatch(
         array $nodes,
         ?string $sourcePath,
         PathType $pathType = PathType::Directory,
-        array $origins = [],
+        ?Source $source = null,
+        ?string $repositoryPath = null,
     ): void {
-        $rewriter = new LinkRewriter(
-            new DocumentRoot('/repo/', $pathType),
-            self::DOCUMENTS,
-            self::ASSETS,
-            $origins,
-        );
+        $root     = new DocumentRoot('/repo/', $pathType);
+        $rewriter = new LinkRewriter($root, self::url($root), self::DOCUMENTS, self::ASSETS);
 
-        $rewriter(new DocumentParsedEvent(self::document($sourcePath, $nodes)));
+        $rewriter(new DocumentParsedEvent(self::document($sourcePath, $nodes, $source, $repositoryPath)));
     }
 
     /**
      * Runs the listener over one document and returns the rewritten target of
      * the node under test.
-     *
-     * @param array<non-empty-string, Source> $origins
      */
     private function targetOf(
         AbstractWebResource $node,
         string $from,
         PathType $pathType = PathType::Directory,
-        array $origins = [],
+        ?Source $source = null,
+        ?string $repositoryPath = null,
     ): string {
-        $this->dispatch([$node], $from, $pathType, $origins);
+        $this->dispatch([$node], $from, $pathType, $source, $repositoryPath);
 
         return $node->getUrl();
     }
