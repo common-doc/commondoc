@@ -39,6 +39,7 @@ use function mkdir;
 use function random_bytes;
 use function rmdir;
 use function sprintf;
+use function strpos;
 use function sys_get_temp_dir;
 use function unlink;
 
@@ -228,6 +229,23 @@ final class DocumentViewRenderingTest extends TestCase
         static::assertStringContainsString('<nav class="version-switcher"', $output);
         static::assertStringContainsString('<a href="&#x2F;bus&#x2F;v2&#x2F;">v2 (latest)</a>', $output);
         static::assertStringContainsString('<a href="&#x2F;bus&#x2F;v1&#x2F;" aria-current="page">v1</a>', $output);
+    }
+
+    #[Test]
+    public function setsTheThemeBeforeTheStylesheetAndSwitchesItWithoutReloading(): void
+    {
+        $output = $this->renderDocument($this->config());
+
+        $script     = strpos($output, needle: "setAttribute('data-bs-theme'");
+        $stylesheet = strpos($output, needle: 'bootstrap.min.css');
+
+        // The attribute is written before the stylesheet is requested, which is what keeps
+        // the first paint in the reader's theme, and the toggle only rewrites it.
+        static::assertIsInt($script);
+        static::assertIsInt($stylesheet);
+        static::assertLessThan($stylesheet, $script);
+        static::assertStringContainsString('data-theme-toggle', $output);
+        static::assertStringContainsString('localStorage.setItem(\'commondoc-theme\'', $output);
     }
 
     #[Test]

@@ -205,7 +205,7 @@ final class BuildCorpusTest extends TestCase
 
             // Outside the body, so this is the layout's own contribution. The links are the
             // routes the build registered, generated from the routing table.
-            static::assertStringContainsString('<nav class="site-nav">', $document);
+            static::assertStringContainsString('<nav class="site-nav ', $document);
             static::assertStringContainsString('<a class="nav-link" href="/concepts/paths/">paths</a>', $document);
             static::assertStringContainsString('<a class="nav-link" href="/reference/cli/">cli</a>', $document);
             // No item is marked active: a build has no request to match a route against, so

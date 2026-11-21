@@ -194,6 +194,23 @@ a null check rather than assuming it:
 It receives nothing else, and it is rendered for any page the renderer wraps, so it
 must not assume a page exists.
 
+## The default theme
+
+The built-in layout is Bootstrap 5.3 from a pinned CDN version with integrity hashes, with Bootstrap Icons. Resources are queued through the Laminas head helpers (`headMeta`, `headLink`, `headScript`, `headStyle`, `inlineScript`). The layout prepends its own and a replacement page template appends, so order does not depend on which template ran first.
+
+- **Dark and light mode.** Bootstrap styles itself from `data-bs-theme` on the root element. A script in the head sets it from the reader's saved choice, or from the operating system when there is none, before the stylesheet is requested, so the first paint is in the right theme. The toggle in the navbar rewrites the attribute and saves the choice in `localStorage`. Every colour is a CSS variable, so switching never reloads or flashes.
+- **Layout.** A navbar with the toggle, a sidebar holding the menu, and the document beside it.
+- **Admonitions.** The styles and markup contract are in place before the extension exists. An admonition is an alert with a title:
+
+```html
+<div class="admonition admonition-warning alert alert-warning" role="note">
+    <p class="admonition-title"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> Warning</p>
+    <p>Body.</p>
+</div>
+```
+
+  `note` pairs with `alert-info`, `tip` with `alert-success`, `warning` with `alert-warning` and `caution` with `alert-danger`. `important` uses `admonition-important`, which supplies a purple the alert variants lack.
+
 ## Navigation
 
 The built-in layout renders the site menu with the `navigation` view helper:
