@@ -26,6 +26,71 @@
 // placeholder. It is always written, including the base identifier when there is no
 // page, so a document rendered after one that had a page cannot inherit its menu.
 $this->placeholder('commondoc.scope')->set($page?->navigation ?? \CommonDoc\Output\NavigationScope::BASE);
+
+// Code highlighting and diagrams are only loaded by a page that has some, so every other page
+// stays as light as it was. Both come from a pinned version with an integrity hash, like
+// Bootstrap, and both follow the theme: the loaders read `data-bs-theme` and watch it, so the
+// toggle restyles what is already on the page without a reload.
+$hasMermaid = str_contains($documentBody, 'language-mermaid');
+$hasCode    = 1 === preg_match('/<code class="language-(?!mermaid)/', $documentBody);
+
+if ($hasCode) {
+    $this->headLink()
+        ->appendStylesheet('https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/styles/github.min.css', ['id' => 'hljs-light', 'integrity' => 'sha384-eFTL69TLRZTkNfYZOLM+G04821K1qZao/4QLJbet1pP4tcF+fdXq/9CdqAbWRl/L', 'crossorigin' => 'anonymous'])
+        ->appendStylesheet('https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/styles/github-dark.min.css', ['id' => 'hljs-dark', 'integrity' => 'sha384-wH75j6z1lH97ZOpMOInqhgKzFkAInZPPSPlZpYKYTOqsaizPvhQZmAtLcPKXpLyH', 'crossorigin' => 'anonymous']);
+
+    $this->inlineScript()
+        ->appendFile('https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js', ['integrity' => 'sha384-RH2xi4eIQ/gjtbs9fUXM68sLSi99C7ZWBRX1vDrVv6GQXRibxXLbwO2NGZB74MbU', 'crossorigin' => 'anonymous'])
+        ->appendScript(<<<'JS'
+            (function () {
+                var light = document.getElementById('hljs-light');
+                var dark = document.getElementById('hljs-dark');
+                function theme() {
+                    var isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+                    if (light) { light.disabled = isDark; }
+                    if (dark) { dark.disabled = !isDark; }
+                }
+                theme();
+                new MutationObserver(theme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
+                if (!window.hljs) { return; }
+                document.querySelectorAll('pre code').forEach(function (code) {
+                    if (/\blanguage-mermaid\b/.test(code.className) || code.hasAttribute('data-highlighted')) { return; }
+                    window.hljs.highlightElement(code);
+                });
+            })();
+            JS);
+}
+
+if ($hasMermaid) {
+    $this->inlineScript()
+        ->appendFile('https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js', ['integrity' => 'sha384-rbtjAdnIQE/aQJGEgXrVUlMibdfTSa4PQju4HDhN3sR2PmaKFzhEafuePsl9H/9I', 'crossorigin' => 'anonymous'])
+        ->appendScript(<<<'JS'
+            (function () {
+                var codes = [].slice.call(document.querySelectorAll('code.language-mermaid'));
+                if (codes.length === 0 || !window.mermaid) { return; }
+                // The source is kept on the host, so a theme change can draw the diagram again.
+                var hosts = codes.map(function (code) {
+                    var pre = code.parentNode;
+                    var host = document.createElement('div');
+                    host.className = 'mermaid mermaid-diagram';
+                    host.setAttribute('data-source', code.textContent);
+                    pre.parentNode.replaceChild(host, pre);
+                    return host;
+                });
+                function draw() {
+                    var isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+                    window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: isDark ? 'dark' : 'default' });
+                    hosts.forEach(function (host) {
+                        host.removeAttribute('data-processed');
+                        host.textContent = host.getAttribute('data-source');
+                    });
+                    window.mermaid.run({ nodes: hosts }).catch(function () {});
+                }
+                draw();
+                new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
+            })();
+            JS);
+}
 ?>
 <main class="document">
     <?= $documentBody ?>

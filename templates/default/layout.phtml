@@ -57,6 +57,8 @@ $this->headStyle()->appendStyle(<<<'CSS'
     [data-bs-theme="dark"] .theme-toggle .when-light { display: none; }
     .document img { max-width: 100%; height: auto; }
     .document pre { padding: 1rem; border-radius: var(--bs-border-radius); background: var(--bs-tertiary-bg); }
+    .document pre code.hljs { padding: 0; background: transparent; }
+    .mermaid-diagram { text-align: center; margin: 1rem 0; }
     .document table { width: 100%; margin-bottom: 1rem; }
     .document th, .document td { padding: .375rem .75rem; border: 1px solid var(--bs-border-color); }
     /* An admonition is an alert with a title. Each type picks one alert colour, and

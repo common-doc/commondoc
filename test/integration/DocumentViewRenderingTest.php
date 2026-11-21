@@ -78,6 +78,36 @@ final class DocumentViewRenderingTest extends TestCase
     }
 
     #[Test]
+    public function loadsMermaidOnlyForAPageThatHasADiagram(): void
+    {
+        $output = $this->renderDocument($this->config(), markdown: "```mermaid\ngraph TD; A-->B;\n```\n");
+
+        static::assertStringContainsString('mermaid.min.js', $output);
+        // A diagram is not code to colour, so a page of only diagrams loads no highlighter.
+        static::assertStringNotContainsString('highlight.min.js', $output);
+    }
+
+    #[Test]
+    public function loadsNeitherForAPageWithNeither(): void
+    {
+        $output = $this->renderDocument($this->config(), markdown: "Plain prose.\n\n```\nno language\n```\n");
+
+        static::assertStringNotContainsString('highlight.min.js', $output);
+        static::assertStringNotContainsString('mermaid.min.js', $output);
+    }
+
+    #[Test]
+    public function loadsTheHighlighterOnlyForAPageThatHasCode(): void
+    {
+        $output = $this->renderDocument($this->config(), markdown: "```php\necho 1;\n```\n");
+
+        static::assertStringContainsString('highlight.min.js', $output);
+        static::assertStringContainsString('id="hljs-light"', $output);
+        static::assertStringContainsString('id="hljs-dark"', $output);
+        static::assertStringNotContainsString('mermaid.min.js', $output);
+    }
+
+    #[Test]
     public function raisesTheTemplateNotFoundFailureWhenTheBodyNameResolvesToNothing(): void
     {
         $this->expectException(RenderingFailedException::class);
