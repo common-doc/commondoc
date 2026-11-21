@@ -130,10 +130,13 @@ checkout is never switched, and the latest tag of each major line is published a
 not read, because the version mounts are what make the versions a set.
 
 - `/{component}/` is a page that redirects to the newest version.
-- The site root is a home page with a card for each versioned component, linking to its
-  newest version and listing every version. It is written only when no document
-  publishes at the root, so it never replaces one, and `commondoc::home` can be
-  replaced like any other template.
+- The site root is a home page with a card for each component, linking to its newest
+  version and listing every version. A repository entry that is not versioned gets a card
+  too, named from its mount and with no version list, unless it is mounted at the site
+  root. The home page is written only when no document publishes at the root, so it never
+  replaces one, and `commondoc::home` can be replaced like any other template.
+- Every page's sidebar lists the released components, so a reader can move between them
+  without going back to the home page.
 - Every page of a versioned component lists all of its versions, so a reader can move
   between them.
 - A tag that has nothing at the target is skipped, because early tags often predate the

@@ -17,6 +17,7 @@ namespace CommonDoc\Middleware;
 use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Exception\LogicException;
+use CommonDoc\Output\ComponentIndex;
 use CommonDoc\Output\DocumentRoute;
 use CommonDoc\Output\VersionMenu;
 use InvalidArgumentException as NativeInvalidArgumentException;
@@ -34,7 +35,6 @@ use Webware\MessageBus\ResultInterface;
 
 use function htmlspecialchars;
 use function in_array;
-use function ltrim;
 use function rtrim;
 use function sprintf;
 
@@ -121,21 +121,21 @@ final readonly class ComponentPageMiddleware implements MiddlewareInterface
     private function write(BuildSiteCommand $command): void
     {
         $menu   = new VersionMenu($command->getRoots());
-        $latest = $menu->latest();
         $output = $command->getOutput();
         $cards  = [];
 
-        foreach ($latest as $segment => $root) {
-            $index = ltrim($root->mount, characters: '/') . self::INDEX;
-            $url   = $this->route->url($index);
+        foreach (new ComponentIndex($command->getRoots())->entries() as $entry) {
+            $url = $this->route->url($entry['target']);
 
-            $this->redirect($segment, $url, $output);
+            if (null !== $entry['segment']) {
+                $this->redirect($entry['segment'], $url, $output);
+            }
 
             $cards[] = [
-                'title'    => $root->release?->component->label ?? $segment,
-                'latest'   => $root->release?->version->tag ?? '',
+                'title'    => $entry['title'],
+                'latest'   => $entry['latest'],
                 'url'      => $url,
-                'versions' => $menu->links($index, $this->route),
+                'versions' => null === $entry['segment'] ? [] : $menu->links($entry['target'], $this->route),
             ];
         }
 

@@ -21,6 +21,12 @@
 <?php if (null !== $page) : ?>
     <?php $this->headTitle($page->label); ?>
 <?php endif ?>
+<?php
+// The layout renders after this template, so the page's menu is handed over through a
+// placeholder. It is always written, including the base identifier when there is no
+// page, so a document rendered after one that had a page cannot inherit its menu.
+$this->placeholder('commondoc.scope')->set($page?->navigation ?? \CommonDoc\Output\NavigationScope::BASE);
+?>
 <main class="document">
     <?= $documentBody ?>
 </main>

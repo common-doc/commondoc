@@ -129,7 +129,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
         $documents = $scan->documents;
         $assets    = $scan->assets;
 
-        $this->routes->register($documents);
+        $this->routes->register($documents, $command->getRoots());
 
         // Called rather than fetched: the converter carries a link rewriter bound
         // to these two lists, and a shared one would carry the previous build's.
