@@ -22,6 +22,7 @@ use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
+use CommonDoc\Container\ComponentPageMiddlewareFactory;
 use CommonDoc\Container\ConverterFactoryFactory;
 use CommonDoc\Container\DocumentRootFactory;
 use CommonDoc\Container\DocumentRouteFactory;
@@ -40,6 +41,7 @@ use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\AssetCopyMiddleware;
+use CommonDoc\Middleware\ComponentPageMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\DocumentRoute;
@@ -184,6 +186,12 @@ final readonly class ConfigProvider
                     'middleware' => AssetCopyMiddleware::class,
                     'priority'   => 40,
                 ],
+                // Writes the pages that belong to no document, after the handler has
+                // registered the routes their URLs are generated from.
+                [
+                    'middleware' => ComponentPageMiddleware::class,
+                    'priority'   => 30,
+                ],
             ],
         ];
     }
@@ -226,6 +234,7 @@ final readonly class ConfigProvider
                 RouteCollector::class            => RouteCollectorFactory::class,
                 SiteConfig::class                => SiteConfigFactory::class,
                 AssetCopyMiddleware::class       => AssetCopyMiddlewareFactory::class,
+                ComponentPageMiddleware::class   => ComponentPageMiddlewareFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],
             'invokables' => [
@@ -275,6 +284,7 @@ final readonly class ConfigProvider
         return [
             'map'    => [
                 'commondoc::document' => dirname(__DIR__) . '/templates/default/document.phtml',
+                'commondoc::home'     => dirname(__DIR__) . '/templates/default/home.phtml',
                 'commondoc::layout'   => dirname(__DIR__) . '/templates/default/layout.phtml',
             ],
             'layout' => 'commondoc::layout',

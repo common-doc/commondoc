@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * This file is part of the commondoc package.
+ *
+ * Copyright (c) 2026 Joey Smith <jsmith@webinertia.net>
+ * and contributors.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ *
+ * The home page: a card for each component, linking to its newest version and listing
+ * every version. It is written only when no document publishes at the site root.
+ *
+ * @var list<array{title: string, latest: string, url: string, versions: list<array{label: string, url: string, current: bool}>}> $cards
+ */
+
+$this->headTitle('Home');
+?>
+<main class="document">
+    <h1 class="mb-4">Documentation</h1>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        <?php foreach ($cards as $card) : ?>
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h2 class="card-title h5"><?= $this->escapeHtml($card['title']) ?></h2>
+                        <p class="card-text text-body-secondary">Latest: <?= $this->escapeHtml($card['latest']) ?></p>
+                        <a class="btn btn-primary btn-sm" href="<?= $this->escapeHtmlAttr($card['url']) ?>">Read the documentation</a>
+                    </div>
+                    <?php if (count($card['versions']) > 1) : ?>
+                        <div class="card-footer">
+                            <?php foreach ($card['versions'] as $version) : ?>
+                                <a class="me-2" href="<?= $this->escapeHtmlAttr($version['url']) ?>"><?= $this->escapeHtml($version['label']) ?></a>
+                            <?php endforeach ?>
+                        </div>
+                    <?php endif ?>
+                </div>
+            </div>
+        <?php endforeach ?>
+    </div>
+</main>
