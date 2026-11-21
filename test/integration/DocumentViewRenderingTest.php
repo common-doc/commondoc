@@ -236,8 +236,8 @@ final class DocumentViewRenderingTest extends TestCase
     {
         $output = $this->renderDocument($this->config());
 
-        $script     = strpos($output, "setAttribute('data-bs-theme'");
-        $stylesheet = strpos($output, 'bootstrap.min.css');
+        $script     = strpos($output, needle: "setAttribute('data-bs-theme'");
+        $stylesheet = strpos($output, needle: 'bootstrap.min.css');
 
         // The attribute is written before the stylesheet is requested, which is what keeps
         // the first paint in the reader's theme, and the toggle only rewrites it.
