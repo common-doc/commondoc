@@ -37,6 +37,7 @@ use Webware\MessageBus\MessageStatus;
 use Webware\MessageBus\PipelineHandlerInterface;
 use Webware\Router\QueryParamRouter;
 
+use function array_map;
 use function file_get_contents;
 use function is_file;
 
@@ -48,6 +49,9 @@ use function is_file;
 #[CoversMethod(ComponentPageMiddleware::class, 'process')]
 final class ComponentPageMiddlewareTest extends AbstractTemporaryTree
 {
+    /** @var list<array{template: string, params: array|object}> */
+    private array $renders = [];
+
     #[Test]
     public function leavesAnyOtherMessageAlone(): void
     {
@@ -103,10 +107,11 @@ final class ComponentPageMiddlewareTest extends AbstractTemporaryTree
             ),
         );
 
-        $this->process($command, $this->unusedRenderer());
+        $this->process($command, $this->renderer());
 
         static::assertFalse(is_file("{$this->tree}/build/index.html"));
         static::assertTrue(is_file("{$this->tree}/build/comp/index.html"));
+        static::assertSame(['commondoc::redirect'], $this->rendered());
     }
 
     #[Test]
@@ -114,40 +119,34 @@ final class ComponentPageMiddlewareTest extends AbstractTemporaryTree
     {
         $this->process($this->command([$this->root(1), $this->root(2)]), $this->renderer());
 
-        $redirect = (string) file_get_contents("{$this->tree}/build/comp/index.html");
-
-        static::assertStringContainsString('url=/comp/v2/', $redirect);
-        static::assertStringContainsString('<link rel="canonical" href="/comp/v2/">', $redirect);
+        static::assertTrue(is_file("{$this->tree}/build/comp/index.html"));
+        static::assertSame('commondoc::redirect', $this->renders[0]['template']);
+        static::assertSame(['url' => '/comp/v2/'], $this->renders[0]['params']);
     }
 
     #[Test]
     public function writesAHomePageWithACardForEachComponent(): void
     {
-        $renderer = $this->createMock(TemplateRendererInterface::class);
-        $renderer
-            ->expects($this->once())
-            ->method('render')
-            ->with(
-                'commondoc::home',
-                [
-                    'cards' => [
-                        [
-                            'title'    => 'Comp',
-                            'latest'   => 'v2.0.0',
-                            'url'      => '/comp/v2/',
-                            'versions' => [
-                                ['label' => 'v2 (latest)', 'url' => '/comp/v2/', 'current' => true],
-                                ['label' => 'v1', 'url' => '/comp/v1/', 'current' => false],
-                            ],
+        $this->process($this->command([$this->root(1), $this->root(2)]), $this->renderer());
+
+        static::assertSame(['commondoc::redirect', 'commondoc::home'], $this->rendered());
+        static::assertSame(
+            [
+                'cards' => [
+                    [
+                        'title'    => 'Comp',
+                        'latest'   => 'v2.0.0',
+                        'url'      => '/comp/v2/',
+                        'versions' => [
+                            ['label' => 'v2 (latest)', 'url' => '/comp/v2/', 'current' => true],
+                            ['label' => 'v1', 'url' => '/comp/v1/', 'current' => false],
                         ],
                     ],
                 ],
-            )
-            ->willReturn('<p>home</p>');
-
-        $this->process($this->command([$this->root(1), $this->root(2)]), $renderer);
-
-        static::assertSame('<p>home</p>', file_get_contents("{$this->tree}/build/index.html"));
+            ],
+            $this->renders[1]['params'],
+        );
+        static::assertSame('<p>commondoc::home</p>', file_get_contents("{$this->tree}/build/index.html"));
     }
 
     #[Test]
@@ -193,10 +192,29 @@ final class ComponentPageMiddlewareTest extends AbstractTemporaryTree
         $this->subject($renderer)->process($command, $next);
     }
 
+    /**
+     * @return list<string> The templates rendered, in order
+     */
+    private function rendered(): array
+    {
+        return array_map(
+            static fn(array $render): string => $render['template'],
+            $this->renders,
+        );
+    }
+
     private function renderer(): TemplateRendererInterface
     {
         $renderer = $this->createStub(TemplateRendererInterface::class);
-        $renderer->method('render')->willReturn('<p>home</p>');
+        $renderer
+            ->method('render')
+            ->willReturnCallback(
+                function (string $name, array|object $params = []): string {
+                    $this->renders[] = ['template' => $name, 'params' => $params];
+
+                    return "<p>{$name}</p>";
+                },
+            );
 
         return $renderer;
     }

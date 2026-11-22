@@ -33,12 +33,9 @@ use Webware\MessageBus\MiddlewareInterface;
 use Webware\MessageBus\PipelineHandlerInterface;
 use Webware\MessageBus\ResultInterface;
 
-use function htmlspecialchars;
 use function in_array;
 use function rtrim;
 use function sprintf;
-
-use const ENT_QUOTES;
 
 /**
  * Writes the pages that belong to no document: each component's own address, and the
@@ -57,11 +54,6 @@ use const ENT_QUOTES;
 final readonly class ComponentPageMiddleware implements MiddlewareInterface
 {
     private const string INDEX = 'index.md';
-
-    private const string REDIRECT =
-        '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Redirecting</title>'
-            . '<link rel="canonical" href="%s"><meta http-equiv="refresh" content="0; url=%s"></head>'
-            . '<body><a href="%s">Latest version</a></body></html>';
 
     public function __construct(
         private DocumentRoute $route,
@@ -91,21 +83,25 @@ final readonly class ComponentPageMiddleware implements MiddlewareInterface
     }
 
     /**
-     * A static site cannot redirect itself, so the page does: a refresh for browsers, a
-     * canonical link for search engines, and a plain link for anything that does neither.
+     * A static site cannot redirect itself, so the page does: a script replaces the
+     * location before the first paint, a refresh covers a reader without scripting, and
+     * the link is what is left when neither runs.
      *
+     * It is rendered through the layout, so it carries the reader's theme. A page
+     * outside the layout paints the browser's own canvas, which is white, and that
+     * frame is what a reader in dark mode sees when navigating between components.
+     *
+     * @throws TemplateException When the page cannot be rendered
      * @throws FileWriterException When the page cannot be written
      */
     private function redirect(string $segment, string $url, string $output): void
     {
-        $escaped = htmlspecialchars(
-            string: $url,
-            flags : ENT_QUOTES,
-        );
-
         FileWriter::writeTree(
             sprintf('%s/%s/index.html', rtrim($output, characters: '/\\'), $segment),
-            sprintf(self::REDIRECT, $escaped, $escaped, $escaped),
+            $this->renderer->render(
+                name  : 'commondoc::redirect',
+                params: ['url' => $url],
+            ),
         );
     }
 

@@ -129,7 +129,10 @@ checkout is never switched, and the latest tag of each major line is published a
 `/{component}/v{major}/`. The component is the repository's name. The entry's `mount` is
 not read, because the version mounts are what make the versions a set.
 
-- `/{component}/` is a page that redirects to the newest version.
+- `/{component}/` is a page that redirects to the newest version. It is rendered through
+  the layout like any other page, so it carries the reader's theme, and it redirects from a
+  script before its first paint with a refresh as the fallback for a reader without
+  scripting. `commondoc::redirect` can be replaced like any other template.
 - The site root is a home page with a card for each component, linking to its newest
   version and listing every version. A repository entry that is not versioned gets a card
   too, named from its mount and with no version list, unless it is mounted at the site
