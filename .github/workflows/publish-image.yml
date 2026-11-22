@@ -136,6 +136,92 @@ jobs:
             grep -q "id=\"the-index-rule\"" "${out}/index.html"
             echo "The entrypoint renders a document and gives its section an addressable id."
           '
+      - name: Assert git is present
+        run: |
+          set -eu
+          docker run --rm --entrypoint sh commondoc-runtime:assert -c '
+            set -eu
+            if ! git --version; then
+              echo "::error::the image carries no git. Versioned and organization builds shell out to git; check that the runtime stage installs it."
+              exit 1
+            fi
+            echo "The image carries git."
+          '
+      - name: Assert git reads a repository owned by another user
+        run: |
+          set -eu
+          docker run --rm --entrypoint sh commondoc-runtime:assert -c '
+            set -eu
+            work="$(mktemp -d)"
+            git -C "${work}" init --quiet
+            printf "one\n" > "${work}/file.txt"
+            git -C "${work}" -c user.name=ci -c user.email=ci@example.com add -A
+            git -C "${work}" -c user.name=ci -c user.email=ci@example.com commit --quiet -m one
+            chown -R 12345:12345 "${work}"
+            if ! git -C "${work}" rev-parse HEAD; then
+              echo "::error::git refuses a repository owned by another user. A container action runs as root and the checkout is owned by the runner, so safe.directory has to be set system wide."
+              exit 1
+            fi
+            echo "git reads a repository owned by another user."
+          '
+      - name: Assert the required PHP extensions load
+        run: |
+          set -eu
+          docker run --rm --entrypoint sh commondoc-runtime:assert -c '
+            set -eu
+            missing=""
+            for extension in bcmath curl intl mbstring
+            do
+              if ! php -m | grep -qx "${extension}"; then
+                missing="${missing} ${extension}"
+              fi
+            done
+            if [ -n "${missing}" ]; then
+              echo "::error::the image is missing PHP extensions:${missing}. A purge followed by autoremove can remove a shared library a kept extension links against."
+              exit 1
+            fi
+            echo "The image loads bcmath, curl, intl and mbstring."
+          '
+      - name: Assert a versioned build reads git tags and writes each version
+        run: |
+          set -eu
+          docker run --rm --entrypoint sh commondoc-runtime:assert -c '
+            set -eu
+            work="$(mktemp -d)"
+            repo="${work}/repo"
+            out="${work}/out"
+            mkdir -p "${repo}/docs/1.0"
+            printf "# One\n" > "${repo}/docs/1.0/index.md"
+            git -C "${repo}" init --quiet
+            git -C "${repo}" remote add origin https://github.com/example/demo.git
+            git -C "${repo}" -c user.name=ci -c user.email=ci@example.com add -A
+            git -C "${repo}" -c user.name=ci -c user.email=ci@example.com commit --quiet -m one
+            git -C "${repo}" tag 1.0.0
+            cat > "${work}/config.php" <<PHP
+          <?php
+          declare(strict_types=1);
+          use CommonDoc\Output\PathType;
+          use CommonDoc\SiteConfig;
+          return [
+              "view_helper_config" => ["base_path" => "/"],
+              SiteConfig::class => [
+                  "pathType" => PathType::Directory,
+                  "output" => "${out}",
+                  "target" => "docs/v1",
+                  "roots" => [
+                      ["repository" => "${repo}", "versions" => true, "target" => ["docs/{major}.0"]],
+                  ],
+              ],
+          ];
+          PHP
+            COMMONDOC_CONFIG="${work}/config.php" /usr/local/bin/entrypoint.sh > /dev/null
+            if [ ! -f "${out}/demo/v1/index.html" ]; then
+              echo "::error::a versioned build wrote no page for the only tag. Either git cannot read the tags, or the configuration did not reach the build."
+              find "${out}" -type f || true
+              exit 1
+            fi
+            echo "The image builds a v1 page from a git tag, and the fallback root did not swallow it."
+          '
       - name: Tag and push the asserted image
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
