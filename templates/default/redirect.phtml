@@ -1,0 +1,36 @@
+<?php
+
+/**
+ * This file is part of the commondoc package.
+ *
+ * Copyright (c) 2026 Joey Smith <jsmith@webinertia.net>
+ * and contributors.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ *
+ * The page a component's own address publishes, which sends the reader to its newest
+ * version. A static site has no server to redirect, so the page does, three ways: a
+ * script replaces the location before the first paint, a refresh header covers a
+ * reader without scripting, and the link is what is left when neither runs.
+ *
+ * It is rendered through the layout like every other page, so it carries the theme
+ * the reader chose. That is the reason it is a template rather than a fixed string:
+ * a page outside the layout paints the browser's own canvas and flashes white at a
+ * reader reading in dark mode.
+ *
+ * Every value is escaped by the helper that emits it. `escapeJs` is the escaper's
+ * own, not a hand-rolled `htmlspecialchars`, so the address is safe in a script
+ * string as well as in an attribute.
+ *
+ * @var string $url The address this page sends the reader to
+ */
+
+$this->headTitle('Redirecting');
+$this->headMeta()->appendHttpEquiv('refresh', '0; url=' . $url);
+$this->headLink(['rel' => 'canonical', 'href' => $url]);
+$this->headScript()->appendScript(sprintf('location.replace("%s");', $this->escapeJs($url)));
+?>
+<main class="document">
+    <p>This page has moved to the newest version. <a href="<?= $this->escapeHtmlAttr($url) ?>">Continue to <?= $this->escapeHtml($url) ?></a>.</p>
+</main>

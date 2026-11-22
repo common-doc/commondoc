@@ -30,6 +30,7 @@ use Laminas\ServiceManager\ServiceManager;
 use Mezzio\Router\RouteCollector;
 use Mezzio\Router\RouteCollectorInterface;
 use Mezzio\Router\RouterInterface;
+use Mezzio\Template\TemplateRendererInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -133,6 +134,23 @@ final class ConfigProviderWiringTest extends TestCase
 
         static::assertSame($provider['map'], $config['templates']['map']);
         static::assertSame($provider['layout'], $config['templates']['layout']);
+    }
+
+    #[Test]
+    public function rendersTheRedirectPageThroughTheLayout(): void
+    {
+        /** @var TemplateRendererInterface $renderer */
+        $renderer = $this->container()->get(TemplateRendererInterface::class);
+
+        $page = $renderer->render('commondoc::redirect', ['url' => '/comp/v2/']);
+
+        // The layout wrapped it, which is what puts the page in the reader's theme.
+        static::assertStringContainsString('<html lang="en" data-bs-theme="light">', $page);
+        static::assertStringContainsString("localStorage.getItem('commondoc-theme')", $page);
+        // The address is escaped for a script string by the escaper, not by hand.
+        static::assertStringContainsString('location.replace("\x2Fcomp\x2Fv2\x2F")', $page);
+        static::assertStringContainsString('http-equiv="refresh"', $page);
+        static::assertStringContainsString('rel="canonical"', $page);
     }
 
     #[Test]

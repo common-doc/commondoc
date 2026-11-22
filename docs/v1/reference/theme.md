@@ -24,6 +24,7 @@ uses:
 | --- | --- |
 | `commondoc::document` | One document's body |
 | `commondoc::layout` | The shell wrapped around every document |
+| `commondoc::redirect` | A component's own address, which redirects to its newest version |
 
 This package registers both in Laminas view's template map and sets
 `templates.layout` to `commondoc::layout`, so a site with no theme configured gets
@@ -194,6 +195,18 @@ a null check rather than assuming it:
 It receives nothing else, and it is rendered for any page the renderer wraps, so it
 must not assume a page exists.
 
+`commondoc::redirect` receives one variable:
+
+| Variable | Type | Contents |
+| --- | --- | --- |
+| `url` | `string` | The address of the newest version, which the page sends the reader to |
+
+It is rendered through the layout, so it inherits the theme and the first paint is in
+the theme the reader chose. A replacement template keeps the redirect working by
+pushing it through the head helpers: `headScript` for the script that runs before the
+first paint, and `headMeta` with `http-equiv="refresh"` for a reader without scripting.
+Both escape what they are given, so neither wants a hand-escaped address.
+
 ## The default theme
 
 The built-in layout is Bootstrap 5.3 from a pinned CDN version with integrity hashes, with Bootstrap Icons. Resources are queued through the Laminas head helpers (`headMeta`, `headLink`, `headScript`, `headStyle`, `inlineScript`). The layout prepends its own and a replacement page template appends, so order does not depend on which template ran first.
@@ -295,18 +308,22 @@ replaces the layout is free not to render a menu at all.
 
 ## Where the built-in templates live
 
-This package ships `templates/default/`, holding `document.phtml` and `layout.phtml`.
-The directory is named for the theme the resolver falls back to, so a site's own
+This package ships `templates/default/`, holding the four built-in templates. The
+directory is named for the theme the resolver falls back to, so a site's own
 theme directory is a sibling:
 
 ```
 templates/
   default/
     document.phtml
+    home.phtml
     layout.phtml
+    redirect.phtml
   webware/
     document.phtml
+    home.phtml
     layout.phtml
+    redirect.phtml
 ```
 
 A site does not edit anything under `default/`. It adds its own directory beside it
