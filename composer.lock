@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "31c5af09e3663cb046c046f5de014449",
+    "content-hash": "08b40508b0cbfeffa92b8618884d8594",
     "packages": [
         {
             "name": "brick/math",
@@ -2897,6 +2897,76 @@
             "published-time": "2026-10-28T15:57:48+00:00"
         },
         {
+            "name": "php-standard-library/json",
+            "version": "6.4.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-standard-library/json.git",
+                "reference": "3b17984cac8fb9245945552adc85620d7d2a5de2"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-standard-library/json/zipball/3b17984cac8fb9245945552adc85620d7d2a5de2",
+                "reference": "3b17984cac8fb9245945552adc85620d7d2a5de2",
+                "shasum": ""
+            },
+            "require": {
+                "ext-json": "*",
+                "php": "~8.4.0 || ~8.5.0 || ~8.6.0",
+                "php-standard-library/foundation": "^6.0",
+                "php-standard-library/type": "^6.4"
+            },
+            "conflict": {
+                "azjezz/psl": "*"
+            },
+            "require-dev": {
+                "php-standard-library/collection": "^6.0",
+                "php-standard-library/math": "^6.0",
+                "php-standard-library/str": "^6.0",
+                "phpunit/phpunit": "^13.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-next": "6.4.x-dev"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/Psl/bootstrap.php"
+                ],
+                "psr-4": {
+                    "Psl\\Json\\": "src/Psl/Json/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Seifeddine Gmati",
+                    "email": "azjezz@carthage.software"
+                },
+                {
+                    "name": "Contributors",
+                    "homepage": "https://github.com/php-standard-library/php-standard-library/graphs/contributors"
+                }
+            ],
+            "description": "JSON encoding and decoding with typed exceptions and sensible defaults",
+            "homepage": "https://php-standard-library.dev",
+            "keywords": [
+                "decoding",
+                "encoding",
+                "json"
+            ],
+            "support": {
+                "source": "https://github.com/php-standard-library/json/tree/6.4.2"
+            },
+            "time": "2026-10-27T23:29:50+00:00",
+            "published-time": "2026-10-28T15:57:48+00:00"
+        },
+        {
             "name": "php-standard-library/locale",
             "version": "6.4.2",
             "source": {
@@ -3355,6 +3425,72 @@
             "published-time": "2026-10-28T15:57:52+00:00"
         },
         {
+            "name": "php-standard-library/regex",
+            "version": "6.4.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-standard-library/regex.git",
+                "reference": "0019320b98c44991e7c63fd1fe54ca46bc017268"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-standard-library/regex/zipball/0019320b98c44991e7c63fd1fe54ca46bc017268",
+                "reference": "0019320b98c44991e7c63fd1fe54ca46bc017268",
+                "shasum": ""
+            },
+            "require": {
+                "php": "~8.4.0 || ~8.5.0 || ~8.6.0",
+                "php-standard-library/foundation": "^6.0",
+                "php-standard-library/type": "^6.4"
+            },
+            "conflict": {
+                "azjezz/psl": "*"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^13.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-next": "6.4.x-dev"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/Psl/bootstrap.php"
+                ],
+                "psr-4": {
+                    "Psl\\Regex\\": "src/Psl/Regex/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Seifeddine Gmati",
+                    "email": "azjezz@carthage.software"
+                },
+                {
+                    "name": "Contributors",
+                    "homepage": "https://github.com/php-standard-library/php-standard-library/graphs/contributors"
+                }
+            ],
+            "description": "Type-safe regular expressions with typed capture groups and proper error handling",
+            "homepage": "https://php-standard-library.dev",
+            "keywords": [
+                "preg",
+                "regex",
+                "regular-expression"
+            ],
+            "support": {
+                "source": "https://github.com/php-standard-library/regex/tree/6.4.2"
+            },
+            "time": "2026-10-27T23:29:50+00:00",
+            "published-time": "2026-10-28T15:57:51+00:00"
+        },
+        {
             "name": "php-standard-library/result",
             "version": "6.4.2",
             "source": {
@@ -3417,6 +3553,79 @@
             ],
             "support": {
                 "source": "https://github.com/php-standard-library/result/tree/6.4.2"
+            },
+            "time": "2026-10-27T23:29:50+00:00",
+            "published-time": "2026-10-28T15:57:48+00:00"
+        },
+        {
+            "name": "php-standard-library/shell",
+            "version": "6.4.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-standard-library/shell.git",
+                "reference": "6c2bf0b896174eda9b9f462786a2f0657490de5d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-standard-library/shell/zipball/6c2bf0b896174eda9b9f462786a2f0657490de5d",
+                "reference": "6c2bf0b896174eda9b9f462786a2f0657490de5d",
+                "shasum": ""
+            },
+            "require": {
+                "php": "~8.4.0 || ~8.5.0 || ~8.6.0",
+                "php-standard-library/async": "^6.4",
+                "php-standard-library/default": "^6.0",
+                "php-standard-library/foundation": "^6.0",
+                "php-standard-library/process": "^6.4"
+            },
+            "conflict": {
+                "azjezz/psl": "*"
+            },
+            "require-dev": {
+                "php-standard-library/date-time": "^6.0",
+                "php-standard-library/env": "^6.0",
+                "php-standard-library/os": "^6.0",
+                "php-standard-library/secure-random": "^6.0",
+                "php-standard-library/str": "^6.0",
+                "phpunit/phpunit": "^13.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-next": "6.4.x-dev"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/Psl/bootstrap.php"
+                ],
+                "psr-4": {
+                    "Psl\\Shell\\": "src/Psl/Shell/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Seifeddine Gmati",
+                    "email": "azjezz@carthage.software"
+                },
+                {
+                    "name": "Contributors",
+                    "homepage": "https://github.com/php-standard-library/php-standard-library/graphs/contributors"
+                }
+            ],
+            "description": "Shell command execution with argument escaping and error output management",
+            "homepage": "https://php-standard-library.dev",
+            "keywords": [
+                "command",
+                "execute",
+                "shell"
+            ],
+            "support": {
+                "source": "https://github.com/php-standard-library/shell/tree/6.4.2"
             },
             "time": "2026-10-27T23:29:50+00:00",
             "published-time": "2026-10-28T15:57:48+00:00"
@@ -7822,215 +8031,6 @@
             },
             "time": "2026-10-27T23:29:50+00:00",
             "published-time": "2026-10-28T15:57:49+00:00"
-        },
-        {
-            "name": "php-standard-library/json",
-            "version": "6.4.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/php-standard-library/json.git",
-                "reference": "3b17984cac8fb9245945552adc85620d7d2a5de2"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/php-standard-library/json/zipball/3b17984cac8fb9245945552adc85620d7d2a5de2",
-                "reference": "3b17984cac8fb9245945552adc85620d7d2a5de2",
-                "shasum": ""
-            },
-            "require": {
-                "ext-json": "*",
-                "php": "~8.4.0 || ~8.5.0 || ~8.6.0",
-                "php-standard-library/foundation": "^6.0",
-                "php-standard-library/type": "^6.4"
-            },
-            "conflict": {
-                "azjezz/psl": "*"
-            },
-            "require-dev": {
-                "php-standard-library/collection": "^6.0",
-                "php-standard-library/math": "^6.0",
-                "php-standard-library/str": "^6.0",
-                "phpunit/phpunit": "^13.0"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-next": "6.4.x-dev"
-                }
-            },
-            "autoload": {
-                "files": [
-                    "src/Psl/bootstrap.php"
-                ],
-                "psr-4": {
-                    "Psl\\Json\\": "src/Psl/Json/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Seifeddine Gmati",
-                    "email": "azjezz@carthage.software"
-                },
-                {
-                    "name": "Contributors",
-                    "homepage": "https://github.com/php-standard-library/php-standard-library/graphs/contributors"
-                }
-            ],
-            "description": "JSON encoding and decoding with typed exceptions and sensible defaults",
-            "homepage": "https://php-standard-library.dev",
-            "keywords": [
-                "decoding",
-                "encoding",
-                "json"
-            ],
-            "support": {
-                "source": "https://github.com/php-standard-library/json/tree/6.4.2"
-            },
-            "time": "2026-10-27T23:29:50+00:00",
-            "published-time": "2026-10-28T15:57:48+00:00"
-        },
-        {
-            "name": "php-standard-library/regex",
-            "version": "6.4.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/php-standard-library/regex.git",
-                "reference": "0019320b98c44991e7c63fd1fe54ca46bc017268"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/php-standard-library/regex/zipball/0019320b98c44991e7c63fd1fe54ca46bc017268",
-                "reference": "0019320b98c44991e7c63fd1fe54ca46bc017268",
-                "shasum": ""
-            },
-            "require": {
-                "php": "~8.4.0 || ~8.5.0 || ~8.6.0",
-                "php-standard-library/foundation": "^6.0",
-                "php-standard-library/type": "^6.4"
-            },
-            "conflict": {
-                "azjezz/psl": "*"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "^13.0"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-next": "6.4.x-dev"
-                }
-            },
-            "autoload": {
-                "files": [
-                    "src/Psl/bootstrap.php"
-                ],
-                "psr-4": {
-                    "Psl\\Regex\\": "src/Psl/Regex/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Seifeddine Gmati",
-                    "email": "azjezz@carthage.software"
-                },
-                {
-                    "name": "Contributors",
-                    "homepage": "https://github.com/php-standard-library/php-standard-library/graphs/contributors"
-                }
-            ],
-            "description": "Type-safe regular expressions with typed capture groups and proper error handling",
-            "homepage": "https://php-standard-library.dev",
-            "keywords": [
-                "preg",
-                "regex",
-                "regular-expression"
-            ],
-            "support": {
-                "source": "https://github.com/php-standard-library/regex/tree/6.4.2"
-            },
-            "time": "2026-10-27T23:29:50+00:00",
-            "published-time": "2026-10-28T15:57:51+00:00"
-        },
-        {
-            "name": "php-standard-library/shell",
-            "version": "6.4.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/php-standard-library/shell.git",
-                "reference": "6c2bf0b896174eda9b9f462786a2f0657490de5d"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/php-standard-library/shell/zipball/6c2bf0b896174eda9b9f462786a2f0657490de5d",
-                "reference": "6c2bf0b896174eda9b9f462786a2f0657490de5d",
-                "shasum": ""
-            },
-            "require": {
-                "php": "~8.4.0 || ~8.5.0 || ~8.6.0",
-                "php-standard-library/async": "^6.4",
-                "php-standard-library/default": "^6.0",
-                "php-standard-library/foundation": "^6.0",
-                "php-standard-library/process": "^6.4"
-            },
-            "conflict": {
-                "azjezz/psl": "*"
-            },
-            "require-dev": {
-                "php-standard-library/date-time": "^6.0",
-                "php-standard-library/env": "^6.0",
-                "php-standard-library/os": "^6.0",
-                "php-standard-library/secure-random": "^6.0",
-                "php-standard-library/str": "^6.0",
-                "phpunit/phpunit": "^13.0"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-next": "6.4.x-dev"
-                }
-            },
-            "autoload": {
-                "files": [
-                    "src/Psl/bootstrap.php"
-                ],
-                "psr-4": {
-                    "Psl\\Shell\\": "src/Psl/Shell/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Seifeddine Gmati",
-                    "email": "azjezz@carthage.software"
-                },
-                {
-                    "name": "Contributors",
-                    "homepage": "https://github.com/php-standard-library/php-standard-library/graphs/contributors"
-                }
-            ],
-            "description": "Shell command execution with argument escaping and error output management",
-            "homepage": "https://php-standard-library.dev",
-            "keywords": [
-                "command",
-                "execute",
-                "shell"
-            ],
-            "support": {
-                "source": "https://github.com/php-standard-library/shell/tree/6.4.2"
-            },
-            "time": "2026-10-27T23:29:50+00:00",
-            "published-time": "2026-10-28T15:57:48+00:00"
         },
         {
             "name": "php-standard-library/vec",

@@ -19,6 +19,13 @@ author: 'common-doc'
 # step's `env:`, because `commondoc:build` has no `--config` option: the
 # configuration is aggregated before any command runs. The image is public, so
 # pulling it needs no credentials.
+#
+# `github-token` is the one credential the action hands the container, as
+# GITHUB_TOKEN. It is used for one thing and nothing else: searching an
+# organization for the repositories that opt in with the `doc-target` custom
+# property. Clones are plain `git clone` calls against the repository's clone URL
+# and are given no credential, so a site whose roots are public repositories
+# needs no token at all.
 
 inputs:
   source:
@@ -32,6 +39,13 @@ inputs:
     description: 'Absolute path of the directory that receives the rendered site.'
     required: false
     default: '/github/workspace/build'
+  github-token:
+    description: >
+      Token used to search an organization for the repositories that opt in to
+      documentation. It must be able to read the organization's repositories and
+      their custom properties. Defaults to the workflow's own token.
+    required: false
+    default: ${{ github.token }}
 
 runs:
   using: 'docker'
@@ -40,6 +54,8 @@ runs:
     - ${{ inputs.source }}
     - '--output'
     - ${{ inputs.output }}
+  env:
+    GITHUB_TOKEN: ${{ inputs.github-token }}
 
 branding:
   icon: 'book-open'

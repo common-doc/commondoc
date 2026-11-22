@@ -111,10 +111,15 @@ LABEL org.opencontainers.image.title="commondoc" \
 # cannot open shared object file". Naming the runtime package instead would
 # hardcode the soname, which changes with every Debian release the base image
 # moves to. The cost of keeping it is the headers, which nothing here uses.
+#
+# git is installed because the package runs it: `Git` shells out to `git` to read a
+# repository's tags, and `Checkout` clones with it, so a versioned build or an
+# organization build needs the binary in the image.
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         ca-certificates \
+        git \
         libcurl4-openssl-dev \
         libicu-dev \
         libonig-dev \
@@ -133,6 +138,13 @@ RUN set -eux; \
     ; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*
+
+# The image runs as root, but a container action's caller mounts its checkout at
+# /github/workspace owned by the runner's uid, so git refuses to read a repository
+# there as "dubious ownership" and a versioned build silently finds no tags. The
+# container is single purpose and reads only the repositories it is given, so every
+# directory is trusted.
+RUN git config --system --add safe.directory '*'
 
 WORKDIR /app
 
