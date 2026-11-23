@@ -49,7 +49,6 @@ use function unlink;
 #[CoversClass(RootEntryReader::class)]
 #[CoversClass(VersionEntryReader::class)]
 #[CoversMethod(VersionEntryReader::class, 'read')]
-#[CoversMethod(VersionEntryReader::class, 'targets')]
 #[CoversMethod(RootReader::class, 'defaults')]
 #[CoversMethod(RootReader::class, 'read')]
 #[CoversMethod(RootEntryReader::class, 'read')]
@@ -136,6 +135,27 @@ final class RootReaderTest extends TestCase
     }
 
     #[Test]
+    public function honoursTheSiteTargetWhenItIsAList(): void
+    {
+        // The site states the layout of every release line once, and each repository is
+        // read from the first directory it actually holds. Reading this as a string left
+        // every repository whose documentation is somewhere else with no roots at all.
+        $root = $this->temporaryTree(['docs/2.0/index.md' => '# home']);
+
+        try {
+            $roots = new RootReader()->read(
+                configured: [['repository' => $root, 'mount' => '/']],
+                fallbacks : [new Target('docs/1.0'), new Target('docs/2.0')],
+            );
+
+            static::assertCount(1, $roots);
+            static::assertSame("{$root}/docs/2.0", $roots[0]->path);
+        } finally {
+            self::removeTree($root);
+        }
+    }
+
+    #[Test]
     public function letsAnEntryOverrideTheSiteTarget(): void
     {
         $root = $this->temporaryTree(['docs/book/index.md' => '# home']);
@@ -144,7 +164,7 @@ final class RootReaderTest extends TestCase
             // The one repository that kept its DocBook layout states its own target.
             $roots = new RootReader()->read(
                 configured: [['repository' => $root, 'mount' => '/', 'target' => 'docs/book']],
-                fallback  : new Target('docs/v1'),
+                fallbacks : [new Target('docs/v1')],
             );
 
             static::assertSame("{$root}/docs/book", $roots[0]->path);
@@ -197,6 +217,17 @@ final class RootReaderTest extends TestCase
     }
 
     #[Test]
+    public function refusesARepositoryEntryWhenNoTargetIsOfferedAtAll(): void
+    {
+        // The walk always supplies a fallback, so this is the reader called directly with
+        // nothing to try. It names the repository rather than failing on a null.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('states no target');
+
+        new RootEntryReader()->read(['repository' => 'checkouts/core', 'mount' => '/'], []);
+    }
+
+    #[Test]
     public function refusesARepositoryWhoseTargetHoldsNoDocumentation(): void
     {
         $root = $this->temporaryTree(['docs/book/index.md' => '# home']);
@@ -209,7 +240,7 @@ final class RootReaderTest extends TestCase
 
             new RootReader()->read(
                 configured: [['repository' => $root, 'mount' => '/']],
-                fallback  : new Target('docs/v1'),
+                fallbacks : [new Target('docs/v1')],
             );
         } finally {
             self::removeTree($root);
@@ -224,7 +255,7 @@ final class RootReaderTest extends TestCase
         try {
             $roots = new RootReader()->read(
                 configured: [['repository' => $root, 'mount' => '/']],
-                fallback  : new Target('docs/v1'),
+                fallbacks : [new Target('docs/v1')],
             );
 
             // The entry names a repository, not a directory: the target decides where inside.

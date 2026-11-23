@@ -101,6 +101,17 @@ working directory, and it cannot leave the repository it is resolved against. A
 segment of `..` is refused. A name that merely contains dots, such as `v1..2`, is
 not.
 
+Either place may state a list of directories instead of one, tried in order. That is
+what lets one site hold repositories whose layout changed between releases, and it is
+the shape a versioned entry usually needs:
+
+```php
+'target' => ['docs/{major}.0', 'docs/v{major}'],
+```
+
+The first directory a repository actually holds is the one it is read from. When no
+candidate holds anything, the refusal names the last one tried.
+
 ## The two entry shapes
 
 | Shape | Meaning |
