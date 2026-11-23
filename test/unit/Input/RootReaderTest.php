@@ -217,6 +217,17 @@ final class RootReaderTest extends TestCase
     }
 
     #[Test]
+    public function refusesARepositoryEntryWhenNoTargetIsOfferedAtAll(): void
+    {
+        // The walk always supplies a fallback, so this is the reader called directly with
+        // nothing to try. It names the repository rather than failing on a null.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('states no target');
+
+        new RootEntryReader()->read(['repository' => 'checkouts/core', 'mount' => '/'], []);
+    }
+
+    #[Test]
     public function refusesARepositoryWhoseTargetHoldsNoDocumentation(): void
     {
         $root = $this->temporaryTree(['docs/book/index.md' => '# home']);
