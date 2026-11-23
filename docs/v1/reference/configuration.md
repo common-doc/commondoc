@@ -39,7 +39,6 @@ return [
 ];
 ```
 
-
 ## Composition
 
 A site is one published site, and it may be composed from several repositories.

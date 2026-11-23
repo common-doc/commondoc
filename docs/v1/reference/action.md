@@ -228,7 +228,7 @@ The image is a normal container, and the entrypoint takes the command's own
 arguments. With nothing to pass it builds the site the configuration describes,
 which is what the command itself does when it has nothing to override:
 
-```
+```bash
 docker run --rm -v "$PWD:/workspace" ghcr.io/common-doc/commondoc:1 /workspace --output /workspace/build
 docker run --rm -v "$PWD:/workspace" ghcr.io/common-doc/commondoc:1 --output /workspace/build
 docker run --rm ghcr.io/common-doc/commondoc:1 --help

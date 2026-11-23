@@ -25,7 +25,7 @@ The console entry point changes directory to the consuming project root before
 the container is built. Every relative path in a command is therefore resolved
 against that root, not against your shell's working directory.
 
-```
+```bash
 # run from outside the project: these mean <project>/src and <project>/out
 php vendor/bin/webware commondoc:build src --output out
 ```

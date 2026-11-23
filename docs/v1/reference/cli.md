@@ -4,7 +4,7 @@
 
 Build the documentation site from a directory of Markdown sources.
 
-```
+```bash
 php vendor/bin/webware commondoc:build <source> [--output|-o <dir>]
 ```
 
@@ -27,7 +27,7 @@ build's own sources. The refusal happens before anything is removed.
 Each path written produces one line. Each failure produces one line naming the
 path and the reason:
 
-```
+```text
 Wrote README.md
 Wrote concepts/document.md
 Failed concepts/paths.md: The document "concepts/paths.md" links to "nope.md", which resolves to "concepts/nope.md" and is neither a document nor an asset the scan found.
