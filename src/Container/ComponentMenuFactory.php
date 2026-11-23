@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDoc\Container;
 
+use CommonDoc\View\Dropdown;
 use CommonDoc\View\Helper\ComponentMenu;
 use Laminas\Escaper\EscaperInterface;
 use Laminas\ServiceManager\Factory\FactoryInterface;
@@ -54,8 +55,10 @@ final readonly class ComponentMenuFactory implements FactoryInterface
 
         return new ComponentMenu(
             navigation: Type\instance_of(Navigation::class)->coerce($helpers->get(Navigation::class)),
-            escaper   : Type\instance_of(EscaperInterface::class)
-                ->coerce($container->get(EscaperInterface::class)),
+            dropdown  : new Dropdown(
+                Type\instance_of(EscaperInterface::class)
+                    ->coerce($container->get(EscaperInterface::class)),
+            ),
         );
     }
 }

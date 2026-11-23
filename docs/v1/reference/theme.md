@@ -273,11 +273,12 @@ the browser. There is no server and nothing to configure.
 
 ## Navigation
 
-The built-in layout has a components menu in the navbar and a pages menu in the sidebar,
-both rendered with the `navigation` view helper:
+The built-in layout has two menus in the navbar and one in the sidebar. The two navbar menus
+are this package's own helpers, and the sidebar's is the `navigation` view helper:
 
 ```php
 <?= $this->componentMenu() ?>
+<?= $this->versionSwitch() ?>
 <?= $this->navigation($scope)->menu() ?>
 ```
 
@@ -295,6 +296,17 @@ both rendered with the `navigation` view helper:
   or the class to change the menu's markup without touching the layout, and the helper
   takes the button's label as its only argument. The links it renders are the routes the
   build registered, so it repeats no label and no address.
+- **Versions.** The versions of the component being read, as a dropdown beside the components
+  menu, naming the version on its button and marking the one being read. The page carries that
+  list and says which entry is current, so the markup is complete in the file and needs no
+  script, unlike the components menu. A component with one version gets the button alone and
+  disabled, which says which version this is without offering a choice that does not exist; a
+  page that belongs to no versioned component gets nothing.
+
+  `versionSwitch` is registered the same way, under that alias and under
+  `CommonDoc\View\Helper\VersionSwitch`, and takes no argument because the page it describes
+  is the one being rendered. Both menus share the markup in `CommonDoc\View\Dropdown`, so a
+  theme that wants a different control for both has one place to change.
 - **Pages.** The pages of the component and version being read, and no others. Each root
   gets a menu of its own, named from its mount by `NavigationScope`, so a page lists
   `message-bus` v2 and not every version of everything. The document template hands its

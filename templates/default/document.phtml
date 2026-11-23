@@ -95,10 +95,3 @@ if ($hasMermaid) {
 <main class="document">
     <?= $documentBody ?>
 </main>
-<?php if (null !== $page && [] !== $page->versions) : ?>
-    <nav class="version-switcher" aria-label="Versions">
-        <?php foreach ($page->versions as $version) : ?>
-            <a href="<?= $this->escapeHtmlAttr($version['url']) ?>"<?= $version['current'] ? ' aria-current="page"' : '' ?>><?= $this->escapeHtml($version['label']) ?></a>
-        <?php endforeach ?>
-    </nav>
-<?php endif ?>

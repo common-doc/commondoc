@@ -16,6 +16,7 @@ namespace CommonDocTest;
 
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Output\RouteRegistrar;
+use CommonDoc\View\Dropdown;
 use CommonDoc\View\Helper\ComponentMenu;
 use Laminas\Escaper\Escaper;
 use Mezzio\Router\RouteCollector;
@@ -53,7 +54,7 @@ final class ComponentMenuTest extends TestCase
     public function namesTheButtonWithTheDefaultLabel(): void
     {
         static::assertStringContainsString(
-            'data-components-toggle>Components</button>',
+            'data-dropdown-toggle="components">Components</button>',
             $this->menu([['path' => '/comp/', 'label' => 'Comp']]),
         );
     }
@@ -63,7 +64,7 @@ final class ComponentMenuTest extends TestCase
     {
         $menu = $this->menu([['path' => '/comp/', 'label' => 'Comp']]);
 
-        static::assertStringContainsString('data-components', $menu);
+        static::assertStringContainsString('data-dropdown="components"', $menu);
         static::assertStringContainsString('data-bs-toggle="dropdown"', $menu);
         static::assertStringContainsString('href="&#x2F;comp&#x2F;">Comp</a>', $menu);
     }
@@ -78,7 +79,7 @@ final class ComponentMenuTest extends TestCase
     public function takesTheLabelItIsGiven(): void
     {
         static::assertStringContainsString(
-            'data-components-toggle>Artifacts</button>',
+            'data-dropdown-toggle="components">Artifacts</button>',
             $this->menu([['path' => '/comp/', 'label' => 'Comp']], label: 'Artifacts'),
         );
     }
@@ -108,7 +109,7 @@ final class ComponentMenuTest extends TestCase
 
         return new ComponentMenu(
             navigation: new Navigation(routeCollector: $collector),
-            escaper   : new Escaper(),
+            dropdown  : new Dropdown(new Escaper()),
         )($label);
     }
 }
