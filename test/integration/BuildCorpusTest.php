@@ -208,8 +208,8 @@ final class BuildCorpusTest extends TestCase
             static::assertStringContainsString('<nav class="site-nav ', $document);
             static::assertStringContainsString('<a class="nav-link" href="/concepts/paths/">paths</a>', $document);
             static::assertStringContainsString('<a class="nav-link" href="/reference/cli/">cli</a>', $document);
-            // No item is marked active: a build has no request to match a route against, so
-            // highlighting is left to the browser.
+            // No item is written as active: a build has no request to match a route against,
+            // so the layout's own script marks the current page in the browser instead.
             static::assertStringNotContainsString('nav-link active', $document);
         } finally {
             $this->removeDirectory($output);
