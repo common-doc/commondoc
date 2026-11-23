@@ -13,10 +13,14 @@ php vendor/bin/webware commondoc:build <source> [--output|-o <dir>]
 | Name | Required | Meaning |
 | --- | --- | --- |
 | `source` | yes | Directory holding the Markdown sources |
-| `output` | no | Directory the rendered site is written to. Defaults to `build` |
+| `output` | no | Directory the rendered site is written to. Defaults to `build`, and it is cleared before the build writes, so the output describes this build rather than every build run into it |
 
 Both accept an absolute path. See [Getting started](../getting-started.md) for
 why that matters on a machine where the entry point changes directory.
+
+Clearing is destructive, so a path that could not be a site's output is refused rather
+than emptied: an empty path, `.`, a filesystem root, or a directory that holds one of the
+build's own sources. The refusal happens before anything is removed.
 
 ### Report
 

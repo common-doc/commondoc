@@ -34,6 +34,7 @@ use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\HeadingListenerFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
+use CommonDoc\Container\OutputClearingMiddlewareFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\Container\PageFactoryFactory;
@@ -47,6 +48,7 @@ use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\AssetCopyMiddleware;
 use CommonDoc\Middleware\ComponentPageMiddleware;
+use CommonDoc\Middleware\OutputClearingMiddleware;
 use CommonDoc\Middleware\SearchIndexMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Output\DocumentRoot;
@@ -142,12 +144,16 @@ final class ConfigProviderTest extends TestCase
     }
 
     #[Test]
-    public function pipesTheSourceLoadingMiddlewareBeforeTheAssetCopy(): void
+    public function pipesTheOutputClearingMiddlewareFirst(): void
     {
         $config = new ConfigProvider()->__invoke();
 
         static::assertSame(
             [
+                [
+                    'middleware' => OutputClearingMiddleware::class,
+                    'priority'   => 60,
+                ],
                 [
                     'middleware' => SourceLoadingMiddleware::class,
                     'priority'   => 50,
@@ -244,6 +250,7 @@ final class ConfigProviderTest extends TestCase
                 SiteConfig::class                => SiteConfigFactory::class,
                 AssetCopyMiddleware::class       => AssetCopyMiddlewareFactory::class,
                 ComponentPageMiddleware::class   => ComponentPageMiddlewareFactory::class,
+                OutputClearingMiddleware::class  => OutputClearingMiddlewareFactory::class,
                 SearchIndexMiddleware::class     => SearchIndexMiddlewareFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],

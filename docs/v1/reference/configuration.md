@@ -14,7 +14,7 @@ than read, and the refusal names the key that is used instead.
 | Key | Meaning |
 | --- | --- |
 | `pathType` | `Directory` publishes `guide/setup.md` at `/guide/setup/`, served by an `index.html` inside it. `File` publishes it at `/guide/setup.html` |
-| `output` | The directory a build writes to |
+| `output` | The directory a build writes to. It is cleared before the first file is written, so a deploy never carries a page that was deleted or renamed |
 | `target` | Where a repository keeps its documentation, relative to that repository's root |
 | `roots` | The source roots the site is composed from |
 | `projectName` | The display name every page carries, or empty for none |

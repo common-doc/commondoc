@@ -20,6 +20,7 @@ use CommonDoc\Input\Root;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\SiteConfig;
 use Override;
+use Psl\Exception\ExceptionInterface as PslExceptionInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\ExceptionInterface as ConsoleExceptionInterface;
@@ -104,10 +105,12 @@ final class BuildCommand extends Command
     {
         try {
             $result = $this->bus->handle($this->request($input));
-        } catch (ExceptionInterface $refusal) {
+        } catch (ExceptionInterface|PslExceptionInterface $refusal) {
             // Rendered rather than thrown. The interactive menu reads a command's
             // exit code and does not catch, so an exception here would tear down
-            // the session instead of naming what was wrong with the request.
+            // the session instead of naming what was wrong with the request. The
+            // output directory's own failures arrive this way too: a path that cannot
+            // be cleared is a refusal the operator needs to read, not a stack trace.
             $output->writeln(sprintf('<error>%s</error>', $refusal->getMessage()));
 
             return Command::INVALID;
