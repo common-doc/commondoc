@@ -49,7 +49,6 @@ use function unlink;
 #[CoversClass(RootEntryReader::class)]
 #[CoversClass(VersionEntryReader::class)]
 #[CoversMethod(VersionEntryReader::class, 'read')]
-#[CoversMethod(VersionEntryReader::class, 'targets')]
 #[CoversMethod(RootReader::class, 'defaults')]
 #[CoversMethod(RootReader::class, 'read')]
 #[CoversMethod(RootEntryReader::class, 'read')]
