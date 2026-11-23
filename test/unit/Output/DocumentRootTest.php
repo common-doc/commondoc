@@ -26,6 +26,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversMethod(DocumentRoot::class, '__construct')]
 #[CoversMethod(DocumentRoot::class, 'asset')]
 #[CoversMethod(DocumentRoot::class, 'file')]
+#[CoversMethod(DocumentRoot::class, 'isIndex')]
 #[CoversMethod(DocumentRoot::class, 'pathOf')]
 final class DocumentRootTest extends TestCase
 {
@@ -211,6 +212,16 @@ final class DocumentRootTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         new DocumentRoot('/')->file('../setup.md');
+    }
+
+    #[Test]
+    public function reportsWhetherAPathIsADirectoryIndex(): void
+    {
+        $root = new DocumentRoot('/');
+
+        static::assertTrue($root->isIndex('guide/README.md'));
+        static::assertTrue($root->isIndex('guide/index.md'));
+        static::assertFalse($root->isIndex('guide/setup.md'));
     }
 
     #[Test]
