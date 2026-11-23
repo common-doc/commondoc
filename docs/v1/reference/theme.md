@@ -313,6 +313,11 @@ are this package's own helpers, and the sidebar's is the `navigation` view helpe
   page's menu to the layout through the `commondoc.scope` placeholder, because the layout
   renders after it. The page being read is marked by the layout's script, not by the build.
 
+  A directory's index is not in it. That page is the directory's landing page, addressed by
+  the directory itself, so listing it beside the directory's other pages would show one
+  place twice, once as the group and once as a member. A version whose only document is its
+  index therefore has no page menu at all, and the heading is omitted with it.
+
   Both menus are marked from the address in the browser, for the same reason: a built page
   carries no request, so nothing is marked in the file. The script marks the component whose
   address the page is beneath, and the page whose address matches exactly, and it sets

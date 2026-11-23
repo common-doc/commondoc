@@ -61,6 +61,20 @@ final readonly class DocumentRoute
     }
 
     /**
+     * Whether a global path is the index of its own directory.
+     *
+     * A directory's index is that directory's landing page: it is addressed by the directory
+     * itself, so listing it again beside the directory's other pages would show the same
+     * place twice, once as the group and once as a member of it.
+     *
+     * @throws InvalidArgumentException When the local path does not name a document
+     */
+    public function isIndex(string $localPath): bool
+    {
+        return $this->root->isIndex($localPath);
+    }
+
+    /**
      * The pattern the route is registered with, such as `/repo/{path}`.
      *
      * @return non-empty-string

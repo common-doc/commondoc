@@ -114,6 +114,16 @@ final readonly class RouteRegistrar
         $order = 0;
 
         foreach ($documents as $document) {
+            $options = ['order' => $order];
+
+            // A directory's index is that directory's landing page, addressed by the
+            // directory itself. Listing it beside the directory's pages would show one place
+            // twice, so its route is registered for links and kept out of the menu.
+            if (! $this->route->isIndex($document)) {
+                $options['navigation'] = $scope->of($document);
+                $options['label']      = self::labelFor($document);
+            }
+
             // `route()` rather than `get()`: these routes exist to be generated from and
             // read by the navigation helper, and are never dispatched, so the method they
             // accept is meaningless. It matters because the router derives the name from
@@ -124,11 +134,7 @@ final readonly class RouteRegistrar
                     path      : $this->route->url($document),
                     middleware: $this->middleware,
                 )
-                ->setOptions([
-                    'navigation' => $scope->of($document),
-                    'label'      => self::labelFor($document),
-                    'order'      => $order,
-                ]);
+                ->setOptions($options);
 
             $order++;
         }

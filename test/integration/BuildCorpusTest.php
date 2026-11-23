@@ -124,8 +124,8 @@ final class BuildCorpusTest extends TestCase
             static::assertSame([], $raw->failed);
 
             // Every path is named relative to the site, not to its repository.
-            static::assertContains('one/index.md', $raw->output);
-            static::assertContains('two/index.md', $raw->output);
+            static::assertContains('one/README.md', $raw->output);
+            static::assertContains('two/README.md', $raw->output);
             static::assertContains('one/assets/site.css', $raw->output);
             static::assertContains('two/assets/site.css', $raw->output);
 
@@ -276,7 +276,7 @@ final class BuildCorpusTest extends TestCase
                 relative : 'index.html',
             ));
 
-            // The index rule: a link naming `concepts/index.md` becomes the
+            // The index rule: a link naming `concepts/README.md` becomes the
             // directory, not `/concepts/index/`.
             static::assertStringContainsString('href="/concepts/"', $index);
             static::assertStringContainsString('href="/reference/cli/"', $index);
@@ -311,13 +311,13 @@ final class BuildCorpusTest extends TestCase
             static::assertSame([], $raw->failed);
             static::assertSame(
                 [
+                    'README.md',
                     'assets/flow.svg',
                     'assets/site.css',
+                    'concepts/README.md',
                     'concepts/document.md',
-                    'concepts/index.md',
                     'concepts/paths.md',
                     'getting-started.md',
-                    'index.md',
                     'reference/action.md',
                     'reference/cli.md',
                     'reference/configuration.md',

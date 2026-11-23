@@ -115,6 +115,26 @@ final class ComponentPageMiddlewareTest extends AbstractTemporaryTree
     }
 
     #[Test]
+    public function neverReplacesAReadmeThatPublishesAtTheSiteRoot(): void
+    {
+        $command = new BuildSiteCommand(
+            roots : [$this->root(2)],
+            output: "{$this->tree}/build",
+            scan  : new Scan(
+                sources  : ['README.md' => 'README.md'],
+                documents: ['README.md'],
+                assets   : [],
+            ),
+        );
+
+        $this->process($command, $this->renderer());
+
+        // A README is the root's directory index, so the cards would replace it.
+        static::assertFalse(is_file("{$this->tree}/build/index.html"));
+        static::assertSame(['commondoc::redirect'], $this->rendered());
+    }
+
+    #[Test]
     public function sendsAComponentsOwnAddressToItsLatestVersion(): void
     {
         $this->process($this->command([$this->root(1), $this->root(2)]), $this->renderer());

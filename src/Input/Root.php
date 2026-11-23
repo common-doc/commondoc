@@ -17,12 +17,12 @@ namespace CommonDoc\Input;
 use CommonDoc\Exception\InvalidArgumentException;
 use Psl\Filesystem;
 
-use function in_array;
 use function ltrim;
 use function rtrim;
 use function sprintf;
 use function str_ends_with;
 use function str_starts_with;
+use function strtolower;
 
 /**
  * One source root, mounted at a prefix inside the site.
@@ -50,6 +50,15 @@ final readonly class Root
     private const string SEPARATOR = '/';
 
     private const string SEPARATORS = '/\\';
+
+    /**
+     * The names a document has to have to be its directory's index, without the suffix.
+     *
+     * `readme` first, because GitHub renders a directory's `README.md` and ignores an
+     * `index.md`, so that is the name that makes one file the landing page both on GitHub and
+     * on the published site. `index` stays accepted because tags already cut carry it.
+     */
+    private const array DIRECTORY_INDEX = ['readme', 'index'];
 
     /**
      * The mount prefix, with exactly one trailing slash.
@@ -137,9 +146,16 @@ final readonly class Root
     /**
      * The document a reader lands on when they are sent to this root, as a site path.
      *
-     * Its own `index.md` when it has one, and otherwise the first document in sorted order, because
-     * a link to a page that does not exist is a dead link on a site that is otherwise fine, and
-     * most repositories keep their documentation as named pages with no index among them.
+     * Its own directory index when it has one, and otherwise the first document in sorted
+     * order, because a link to a page that does not exist is a dead link on a site that is
+     * otherwise fine, and most repositories keep their documentation as named pages with no
+     * index among them.
+     *
+     * `README.md` is the index, and `index.md` is accepted after it. That order is not a
+     * preference: GitHub renders a directory's `README.md` and ignores an `index.md`
+     * entirely, so a repository whose landing page is named `index.md` reads as a file list
+     * to anyone browsing it on GitHub. Naming the file for what GitHub renders means one
+     * file is the landing page in both places.
      *
      * A root with no document answers with the index it would have.
      *
@@ -147,10 +163,17 @@ final readonly class Root
      */
     public function landing(): string
     {
-        $index     = 'index' . Markdown::EXTENSION;
         $documents = $this->documents();
 
-        return $this->mountPath(in_array($index, $documents, strict: true) ? $index : $documents[0] ?? $index);
+        foreach (self::DIRECTORY_INDEX as $name) {
+            foreach ($documents as $document) {
+                if (strtolower($document) === $name . Markdown::EXTENSION) {
+                    return $this->mountPath($document);
+                }
+            }
+        }
+
+        return $this->mountPath($documents[0] ?? self::DIRECTORY_INDEX[0] . Markdown::EXTENSION);
     }
 
     /**

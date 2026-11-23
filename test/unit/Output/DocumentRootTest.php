@@ -38,6 +38,28 @@ final class DocumentRootTest extends TestCase
     }
 
     #[Test]
+    public function foldsAReadmeHoweverItIsCased(): void
+    {
+        $root = new DocumentRoot('/', PathType::Directory);
+
+        static::assertSame('guide/', $root->pathOf('guide/ReadMe.md'));
+        static::assertSame('guide/index.html', $root->file('guide/rEaDmE.md'));
+    }
+
+    #[Test]
+    public function foldsAReadmeToItsDirectoryAsADirectoryDoes(): void
+    {
+        $root = new DocumentRoot('/', PathType::Directory);
+
+        // GitHub renders a directory's README.md, so the same file is the directory's
+        // index here: one file serves the repository browser and the published site.
+        static::assertSame('guide/', $root->pathOf('guide/README.md'));
+        static::assertSame('guide/index.html', $root->file('guide/README.md'));
+        static::assertSame('', $root->pathOf('README.md'));
+        static::assertSame('index.html', $root->file('README.md'));
+    }
+
+    #[Test]
     public function keepsBothTheFileAndThePathRelativeToTheBasePath(): void
     {
         $root = new DocumentRoot('/repo/');
@@ -95,6 +117,19 @@ final class DocumentRootTest extends TestCase
 
         static::assertSame('guide/index.html', $root->pathOf('guide/index.md'));
         static::assertSame('guide/index.html', $root->file('guide/index.md'));
+    }
+
+    #[Test]
+    public function publishesAReadmeAsTheIndexFileWhenTheSiteUsesFilePaths(): void
+    {
+        $root = new DocumentRoot('/', PathType::File);
+
+        // In file mode the address is the file, so the README becomes the index file a
+        // server serves for the directory rather than a file named after itself.
+        static::assertSame('guide/index.html', $root->pathOf('guide/README.md'));
+        static::assertSame('guide/index.html', $root->file('guide/README.md'));
+        static::assertSame('index.html', $root->pathOf('README.md'));
+        static::assertSame('index.html', $root->file('README.md'));
     }
 
     #[Test]

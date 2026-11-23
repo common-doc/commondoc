@@ -57,11 +57,13 @@ final class RouteRegistrarTest extends TestCase
             $options[$route->getPath()] = $route->getOptions();
         }
 
+        // The index is registered so its address can be generated, and carries no
+        // navigation: it is the root's landing page, so it is not one of the root's pages.
         static::assertSame(
             [
                 '/{path}'       => [],
-                '/guide/setup/' => ['navigation' => NavigationScope::BASE, 'label' => 'setup', 'order' => 0],
-                '/'             => ['navigation' => NavigationScope::BASE, 'label' => 'index', 'order' => 1],
+                '/guide/setup/' => ['order' => 0, 'navigation' => NavigationScope::BASE, 'label' => 'setup'],
+                '/'             => ['order' => 1],
             ],
             $options,
         );
@@ -91,6 +93,25 @@ final class RouteRegistrarTest extends TestCase
     }
 
     #[Test]
+    public function keepsADirectoryIndexOutOfTheMenuButLeavesItsAddress(): void
+    {
+        $collector = $this->collector();
+
+        $this->routes($collector)->register(['guide/README.md', 'guide/setup.md']);
+
+        $options = [];
+
+        foreach ($collector->getRoutes() as $route) {
+            $options[$route->getPath()] = $route->getOptions();
+        }
+
+        // The README publishes as the guide's index, so it is the guide, not a page of it.
+        static::assertArrayHasKey('/guide/', $options);
+        static::assertArrayNotHasKey('navigation', $options['/guide/']);
+        static::assertSame(NavigationScope::BASE, $options['/guide/setup/']['navigation']);
+    }
+
+    #[Test]
     public function listsEachReleasedComponentAndScopesEachDocumentsMenuToItsVersion(): void
     {
         $collector = $this->collector();
@@ -107,8 +128,8 @@ final class RouteRegistrarTest extends TestCase
         static::assertSame(
             [
                 '/{path}'   => [],
-                '/comp/v1/' => ['navigation' => 'commondoc:/comp/v1/', 'label' => 'index', 'order' => 0],
-                '/comp/v2/' => ['navigation' => 'commondoc:/comp/v2/', 'label' => 'index', 'order' => 1],
+                '/comp/v1/' => ['order' => 0],
+                '/comp/v2/' => ['order' => 1],
                 '/comp/'    => ['navigation' => RouteRegistrar::COMPONENTS, 'label' => 'Comp', 'order' => 0],
             ],
             $options,

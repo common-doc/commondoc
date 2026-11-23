@@ -24,7 +24,7 @@ Each path written produces one line. Each failure produces one line naming the
 path and the reason:
 
 ```
-Wrote index.md
+Wrote README.md
 Wrote concepts/document.md
 Failed concepts/paths.md: The document "concepts/paths.md" links to "nope.md", which resolves to "concepts/nope.md" and is neither a document nor an asset the scan found.
 ```

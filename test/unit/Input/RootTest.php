@@ -77,16 +77,32 @@ final class RootTest extends AbstractTemporaryTree
         $this->writeFile('docs/logo.png');
 
         static::assertSame(
-            'guide/index.md',
+            'guide/readme.md',
             new Root(
                 path : "{$this->tree}/docs",
                 mount: '/guide/',
             )->landing(),
         );
         static::assertSame(
-            'guide/index.md',
+            'guide/readme.md',
             new Root(
                 path : "{$this->tree}/missing",
+                mount: '/guide/',
+            )->landing(),
+        );
+    }
+
+    #[Test]
+    public function matchesTheReadmeHoweverItIsCased(): void
+    {
+        $this->makeTree();
+        $this->writeFile('docs/ReadMe.md');
+        $this->writeFile('docs/index.md');
+
+        static::assertSame(
+            'guide/ReadMe.md',
+            new Root(
+                path : "{$this->tree}/docs",
                 mount: '/guide/',
             )->landing(),
         );
@@ -102,6 +118,22 @@ final class RootTest extends AbstractTemporaryTree
 
         static::assertSame('/other/', $root->mount);
         static::assertSame('other/index.md', $root->mountPath('index.md'));
+    }
+
+    #[Test]
+    public function prefersTheReadmeBecauseThatIsTheNameGitHubRenders(): void
+    {
+        $this->makeTree();
+        $this->writeFile('docs/index.md');
+        $this->writeFile('docs/README.md');
+
+        static::assertSame(
+            'guide/README.md',
+            new Root(
+                path : "{$this->tree}/docs",
+                mount: '/guide/',
+            )->landing(),
+        );
     }
 
     #[Test]

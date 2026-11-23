@@ -47,8 +47,8 @@ final class ComponentIndexTest extends TestCase
             [
                 [
                     'title'   => 'Email Sender',
-                    'index'   => 'email-sender/index.md',
-                    'target'  => 'email-sender/index.md',
+                    'index'   => 'email-sender/readme.md',
+                    'target'  => 'email-sender/readme.md',
                     'latest'  => '',
                     'segment' => null,
                 ],
@@ -67,7 +67,7 @@ final class ComponentIndexTest extends TestCase
                 [
                     'title'   => 'Comp',
                     'index'   => 'comp/index.md',
-                    'target'  => 'comp/v2/index.md',
+                    'target'  => 'comp/v2/readme.md',
                     'latest'  => 'v2.0.0',
                     'segment' => 'comp',
                 ],

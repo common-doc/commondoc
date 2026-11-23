@@ -64,8 +64,8 @@ With `base_path` at `/`:
 
 | Entry | Publishes |
 | --- | --- |
-| `['repository' => 'checkouts/core', 'mount' => '/']` | `checkouts/core/docs/v1/concepts/index.md` as `/concepts/` |
-| `['repository' => 'checkouts/email', 'mount' => '/email/']` | `checkouts/email/docs/v1/index.md` as `/email/` |
+| `['repository' => 'checkouts/core', 'mount' => '/']` | `checkouts/core/docs/v1/concepts/README.md` as `/concepts/` |
+| `['repository' => 'checkouts/email', 'mount' => '/email/']` | `checkouts/email/docs/v1/README.md` as `/email/` |
 
 The identity mount is `/`. A repository mounted at `/email/` needs no change to
 its own sources, because link rewriting translates against the mounted path.
@@ -146,7 +146,8 @@ not read, because the version mounts are what make the versions a set.
 - A tag that has nothing at the target is skipped, because early tags often predate the
   documentation. So is a tag whose target holds files but no Markdown document, such as one
   that kept only an earlier format: a version with nothing to read is not a version.
-- Where a version has no `index.md`, the first document in sorted order is its landing page.
+- Where a version has no `README.md` or `index.md`, the first document in sorted order is
+  its landing page.
   The component redirect, the home page card and the version switcher all lead there, so
   none of them points at a page that does not exist.
 - The `target` may be a list of directories, tried in order for each tag, so a
