@@ -140,7 +140,8 @@ not read, because the version mounts are what make the versions a set.
   replaces one, and `commondoc::home` can be replaced like any other template.
 - Every page carries a components menu in its navbar, so a reader can move between them
   without going back to the home page.
-- Every page of a versioned component lists all of its versions, so a reader can move
+- Every page of a versioned component carries a version menu in the navbar naming the version
+  being read, so a reader can move
   between them.
 - A tag that has nothing at the target is skipped, because early tags often predate the
   documentation. So is a tag whose target holds files but no Markdown document, such as one

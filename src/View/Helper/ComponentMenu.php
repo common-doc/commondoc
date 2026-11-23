@@ -15,17 +15,15 @@ declare(strict_types=1);
 namespace CommonDoc\View\Helper;
 
 use CommonDoc\Output\RouteRegistrar;
-use Laminas\Escaper\EscaperInterface;
+use CommonDoc\View\Dropdown;
 use Laminas\View\Helper\HelperInterface;
 use Webware\Navigation\NavigationItem;
 use Webware\Navigation\View\Helper\Navigation;
 
 use function array_map;
-use function implode;
-use function sprintf;
 
 /**
- * The released components as a Bootstrap dropdown, for the navbar.
+ * The released components as a navbar dropdown.
  *
  * It exists so the menu is a named seam rather than a loop in the layout: a theme supplies
  * its own helper of the same name, or a site replaces the markup here, without editing a
@@ -33,11 +31,10 @@ use function sprintf;
  * navigation container every menu comes from, built from the routing table the build
  * registered, so nothing repeats an address or a label the build already wrote.
  *
- * The button names the component being read, and that item is marked, in the layout's own
- * script rather than here: a built page carries no request, so which component is current
- * is the browser's to answer, and the script reads the addresses this helper emits. The
- * `data-components`, `data-components-toggle` and `data-components-menu` attributes are
- * the contract with that script.
+ * No item is current in the markup, because a built page carries no request and the build
+ * cannot know which component a reader is in. The layout's script marks that item and names
+ * the component on the button, finding this menu by the `data-dropdown` name it passes to
+ * `Dropdown`.
  *
  * The label is an argument so a site can say something else without replacing the helper.
  */
@@ -45,8 +42,22 @@ final readonly class ComponentMenu implements HelperInterface
 {
     public function __construct(
         private Navigation $navigation,
-        private EscaperInterface $escaper,
+        private Dropdown $dropdown,
     ) {}
+
+    /**
+     * One link, in the shape the dropdown renders.
+     *
+     * @return array{url: string, label: string, current: bool}
+     */
+    private function item(NavigationItem $item): array
+    {
+        return [
+            'url'     => $item->getHref(),
+            'label'   => $item->label,
+            'current' => false,
+        ];
+    }
 
     public function __invoke(string $label = 'Components'): string
     {
@@ -56,24 +67,10 @@ final readonly class ComponentMenu implements HelperInterface
             return '';
         }
 
-        $links = array_map(
-            fn(NavigationItem $item): string => sprintf(
-                '<li><a class="dropdown-item" href="%s">%s</a></li>',
-                $this->escaper->escapeHtmlAttr($item->getHref()),
-                $this->escaper->escapeHtml($item->label),
-            ),
-            $items,
-        );
-
-        return sprintf(
-            '<div class="dropdown me-1" data-components>'
-                . '<button class="btn btn-outline-secondary btn-sm dropdown-toggle" '
-                . 'type="button" data-bs-toggle="dropdown" aria-expanded="false" '
-                . 'data-components-toggle>%s</button>'
-                . '<ul class="dropdown-menu" data-components-menu>%s</ul>'
-                . '</div>',
-            $this->escaper->escapeHtml($label),
-            implode('', $links),
+        return $this->dropdown->render(
+            label: $label,
+            name : 'components',
+            items: array_map($this->item(...), $items),
         );
     }
 }

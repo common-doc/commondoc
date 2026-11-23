@@ -40,6 +40,7 @@ use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Container\SearchIndexMiddlewareFactory;
 use CommonDoc\Container\SiteConfigFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
+use CommonDoc\Container\VersionSwitchFactory;
 use CommonDoc\Extension\Admonition\AdmonitionExtension;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
@@ -54,6 +55,7 @@ use CommonDoc\SiteConfig;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\HeadingListener;
 use CommonDoc\View\Helper\ComponentMenu;
+use CommonDoc\View\Helper\VersionSwitch;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use League\CommonMark\ConverterInterface;
@@ -250,15 +252,6 @@ final class ConfigProviderTest extends TestCase
     }
 
     #[Test]
-    public function registersTheComponentsMenuUnderItsAlias(): void
-    {
-        $helpers = new ConfigProvider()->getViewHelpers();
-
-        static::assertSame(['componentMenu' => ComponentMenu::class], $helpers['aliases']);
-        static::assertSame([ComponentMenu::class => ComponentMenuFactory::class], $helpers['factories']);
-    }
-
-    #[Test]
     public function registersTheMiddlewareABuildRouteCarries(): void
     {
         // A route cannot be registered without middleware, and this one has
@@ -267,6 +260,27 @@ final class ConfigProviderTest extends TestCase
         static::assertSame(
             [NotServedMiddleware::class => NotServedMiddleware::class],
             new ConfigProvider()->getDependencies()['invokables'],
+        );
+    }
+
+    #[Test]
+    public function registersTheNavbarMenusUnderTheirAliases(): void
+    {
+        $helpers = new ConfigProvider()->getViewHelpers();
+
+        static::assertSame(
+            [
+                'componentMenu' => ComponentMenu::class,
+                'versionSwitch' => VersionSwitch::class,
+            ],
+            $helpers['aliases'],
+        );
+        static::assertSame(
+            [
+                ComponentMenu::class => ComponentMenuFactory::class,
+                VersionSwitch::class => VersionSwitchFactory::class,
+            ],
+            $helpers['factories'],
         );
     }
 

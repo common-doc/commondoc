@@ -39,6 +39,7 @@ use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Container\SearchIndexMiddlewareFactory;
 use CommonDoc\Container\SiteConfigFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
+use CommonDoc\Container\VersionSwitchFactory;
 use CommonDoc\Extension\Admonition\AdmonitionExtension;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
 use CommonDoc\Listener\CommandPostHandleListener;
@@ -52,6 +53,7 @@ use CommonDoc\Output\DocumentRoute;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\HeadingListener;
 use CommonDoc\View\Helper\ComponentMenu;
+use CommonDoc\View\Helper\VersionSwitch;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use League\CommonMark\ConverterInterface;
@@ -322,8 +324,14 @@ final readonly class ConfigProvider
     public function getViewHelpers(): array
     {
         return [
-            'aliases'   => ['componentMenu' => ComponentMenu::class],
-            'factories' => [ComponentMenu::class => ComponentMenuFactory::class],
+            'aliases'   => [
+                'componentMenu' => ComponentMenu::class,
+                'versionSwitch' => VersionSwitch::class,
+            ],
+            'factories' => [
+                ComponentMenu::class => ComponentMenuFactory::class,
+                VersionSwitch::class => VersionSwitchFactory::class,
+            ],
         ];
     }
 

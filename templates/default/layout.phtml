@@ -189,10 +189,10 @@ $this->inlineScript()
         }
 
         (function () {
-            var box = document.querySelector('[data-components]');
-            var current = mark('[data-components-menu] a.dropdown-item', true);
+            var box = document.querySelector('[data-dropdown="components"]');
+            var current = mark('[data-dropdown-menu="components"] a.dropdown-item', true);
             if (box && current) {
-                box.querySelector('[data-components-toggle]').textContent = current.textContent;
+                box.querySelector('[data-dropdown-toggle="components"]').textContent = current.textContent;
             }
             mark('.site-nav a.nav-link', false);
         })();
@@ -212,6 +212,7 @@ $this->inlineScript()
         <div class="container-fluid">
             <a class="navbar-brand" href="<?= $this->escapeHtmlAttr($this->basePath('/')) ?>">Documentation</a>
             <?= $this->componentMenu() ?>
+            <?= $this->versionSwitch() ?>
             <div class="position-relative flex-grow-1 mx-3" style="max-width: 32rem" data-search data-index="<?= $this->escapeHtmlAttr($this->basePath('search-index.json')) ?>">
                 <input type="search" class="form-control form-control-sm" placeholder="Search the documentation" aria-label="Search the documentation" autocomplete="off">
                 <div class="list-group position-absolute w-100 shadow mt-1" style="z-index: 1050" data-search-results hidden></div>

@@ -212,7 +212,7 @@ final class DocumentViewRenderingTest extends TestCase
     #[Test]
     public function rendersNoSwitcherForAPageWithoutVersions(): void
     {
-        static::assertStringNotContainsString('version-switcher', $this->renderDocument($this->config()));
+        static::assertStringNotContainsString('data-dropdown="versions"', $this->renderDocument($this->config()));
     }
 
     #[Test]
@@ -256,9 +256,17 @@ final class DocumentViewRenderingTest extends TestCase
         $output = (string) $converter->convert("# Guide\n");
         $context->clear();
 
-        static::assertStringContainsString('<nav class="version-switcher"', $output);
-        static::assertStringContainsString('<a href="&#x2F;bus&#x2F;v2&#x2F;">v2 (latest)</a>', $output);
-        static::assertStringContainsString('<a href="&#x2F;bus&#x2F;v1&#x2F;" aria-current="page">v1</a>', $output);
+        // The navbar renders after the document body, from the page the context still holds.
+        static::assertStringContainsString('data-dropdown="versions"', $output);
+        static::assertStringContainsString(
+            '<a class="dropdown-item" href="&#x2F;bus&#x2F;v2&#x2F;">v2 (latest)</a>',
+            $output,
+        );
+        static::assertStringContainsString(
+            '<a class="dropdown-item active" href="&#x2F;bus&#x2F;v1&#x2F;" aria-current="page">v1</a>',
+            $output,
+        );
+        static::assertStringContainsString('>v1</button>', $output);
     }
 
     #[Test]
