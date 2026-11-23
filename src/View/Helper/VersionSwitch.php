@@ -67,7 +67,14 @@ final readonly class VersionSwitch implements HelperInterface
         $label = $found['label'] ?? $versions[0]['label'];
 
         return 1 === count($versions)
-            ? $this->dropdown->renderInert($label, 'versions')
-            : $this->dropdown->render($label, 'versions', $versions);
+            ? $this->dropdown->renderInert(
+                label: $label,
+                name : 'versions',
+            )
+            : $this->dropdown->render(
+                label: $label,
+                name : 'versions',
+                items: $versions,
+            );
     }
 }
