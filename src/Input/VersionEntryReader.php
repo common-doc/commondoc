@@ -12,12 +12,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CommonDoc\Container;
+namespace CommonDoc\Input;
 
 use CommonDoc\Exception\InvalidArgumentException;
-use CommonDoc\Input\Root;
-use CommonDoc\Input\Target;
-use CommonDoc\Input\VersionRoot;
 use Psl\Filesystem;
 use Psl\Regex;
 use Psl\Type;

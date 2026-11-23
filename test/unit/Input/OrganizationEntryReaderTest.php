@@ -12,9 +12,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CommonDocTest\Container;
+namespace CommonDocTest\Input;
 
-use CommonDoc\Container\OrganizationEntryReader;
+use CommonDoc\Input\OrganizationEntryReader;
 use CommonDoc\Input\Target;
 use CommonDocTest\Support\GitCheckout;
 use Laminas\Diactoros\Response\JsonResponse;

@@ -12,9 +12,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CommonDocTest\Container;
+namespace CommonDocTest\Input;
 
-use CommonDoc\Container\OrganizationEntry;
+use CommonDoc\Input\OrganizationEntry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;

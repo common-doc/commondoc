@@ -17,6 +17,7 @@ namespace CommonDoc\Container;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Exception\RuntimeException;
 use CommonDoc\Input\Root;
+use CommonDoc\Input\RootReader;
 use CommonDoc\Input\Target;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\PathType;
@@ -42,9 +43,12 @@ use function sprintf;
 /**
  * Construction seam for the site, and the only reader of its section.
  *
- * The section is keyed by `SiteConfig::class`, the same way the CommonMark
- * environment is keyed by `EnvironmentInterface::class`, so a deployment states
- * its own values in its own autoload file without touching this package.
+ * The section is an entry in the `'config'` service, keyed by `SiteConfig::class`, the same
+ * way the CommonMark environment is keyed by `EnvironmentInterface::class`. A deployment
+ * states its own values in its own autoload file, the aggregator merges them into that one
+ * service, and this factory is the only thing in the package that reads them back: a
+ * setting with two readers is a setting that can drift, and the defaults and the refusals
+ * below are only correct while there is one.
  *
  * Reading is separated from validating. A value that is absent or of the wrong type
  * is replaced with its default rather than refusing the build, because a deployment
