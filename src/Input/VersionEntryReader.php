@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace CommonDoc\Input;
 
 use CommonDoc\Exception\InvalidArgumentException;
+use Override;
 use Psl\Filesystem;
 use Psl\Regex;
 use Psl\Type;
@@ -36,10 +37,11 @@ use function sys_get_temp_dir;
  *
  * @internal
  */
-final readonly class VersionEntryReader
+final readonly class VersionEntryReader implements EntryReaderInterface
 {
     /**
-     * @param mixed $entry Deliberately untyped: configuration is
+     * @param mixed        $entry     Deliberately untyped: configuration is
+     * @param list<Target> $fallbacks The site's targets, used when the entry states none
      *
      * @return ?list<Root> Null when the entry does not ask for versions
      *
@@ -51,7 +53,8 @@ final readonly class VersionEntryReader
      * @throws Type\Exception\ExceptionInterface When the captured groups are not the shape the
      *         pattern promises, which the fixed pattern makes unreachable
      */
-    public function read(mixed $entry, Target $fallback): ?array
+    #[Override]
+    public function read(mixed $entry, array $fallbacks): ?array
     {
         if (! is_array($entry) || true !== ($entry['versions'] ?? null)) {
             return null;
@@ -64,35 +67,12 @@ final readonly class VersionEntryReader
             return null;
         }
 
-        $targets = $this->targets($entry['target'] ?? null);
+        $targets = new TargetReader()->read($entry['target'] ?? null);
 
         return new VersionRoot()->of(
             repository: $repository,
-            targets   : [] === $targets ? [$fallback] : $targets,
+            targets   : [] === $targets ? $fallbacks : $targets,
             workspace : sys_get_temp_dir() . '/commondoc-versions',
         );
-    }
-
-    /**
-     * @param mixed $value Deliberately untyped: configuration is
-     *
-     * @return list<Target>
-     *
-     * @throws InvalidArgumentException When a candidate cannot name a directory
-     */
-    private function targets(mixed $value): array
-    {
-        $targets = [];
-
-        /** @var mixed $candidate Deliberately untyped: the check below decides what it is */
-        foreach (is_array($value) ? $value : [$value] as $candidate) {
-            if (! (is_string($candidate) && '' !== $candidate)) {
-                continue;
-            }
-
-            $targets[] = new Target($candidate);
-        }
-
-        return $targets;
     }
 }

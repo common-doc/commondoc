@@ -44,22 +44,21 @@ use function is_array;
  * @internal
  */
 final readonly class RootReader
-{
-    /**
-     * The default site: this repository's own documentation.
-     *
-     * A library default cannot know a deployment's layout, so it states the one layout
-     * that is true of this repository and is a working example for any other. A
-     * deployment overrides it in its own autoload file or in the manifest a workflow
-     * writes.
-     *
-     * It names a repository root of `.` rather than a directory, so the default resolves
-     * through the same code every composed site uses.
-     *
-     * @return list<Root>
-     *
-     * @throws InvalidArgumentException When the default root cannot be constructed
-     */
+{ /**
+ * The default site: this repository's own documentation.
+ *
+ * A library default cannot know a deployment's layout, so it states the one layout
+ * that is true of this repository and is a working example for any other. A
+ * deployment overrides it in its own autoload file or in the manifest a workflow
+ * writes.
+ *
+ * It names a repository root of `.` rather than a directory, so the default resolves
+ * through the same code every composed site uses.
+ *
+ * @return list<Root>
+ *
+ * @throws InvalidArgumentException When the default root cannot be constructed
+ */
     public function defaults(): array
     {
         return [new Root(path: new Target()->at(repositoryRoot: '.'))];
@@ -68,15 +67,15 @@ final readonly class RootReader
     /**
      * The configured roots, or the default list when none of them is usable.
      *
-     * @param mixed   $configured The configured list, untyped because configuration is
-     * @param ?Target $fallback   The site's target, used by every `repository` entry that
-     *                            states no target of its own
+     * @param mixed        $configured The configured list, untyped because configuration is
+     * @param list<Target> $fallbacks  The site's targets, used by every entry that states no
+     *                                 target of its own
      *
      * @return list<Root>
      *
      * @throws InvalidArgumentException When an entry names a mount that cannot prefix a
      *                                  path, or a repository whose documentation is not
-     *                                  at its target
+     *                                  at any of its targets
      * @throws FileWriterException When a version's files cannot be written
      * @throws Filesystem\Exception\ExceptionInterface When a previous extraction cannot be cleared
      * @throws ClientExceptionInterface When an organization search cannot be sent
@@ -88,36 +87,33 @@ final readonly class RootReader
      * @throws Type\Exception\ExceptionInterface When the captured groups are not the shape the
      *         pattern promises, which the fixed pattern makes unreachable
      */
-    public function read(mixed $configured, ?Target $fallback = null): array
+    public function read(mixed $configured, array $fallbacks = []): array
     {
         if (! is_array($configured)) {
             return $this->defaults();
         }
 
-        $target = $fallback ?? new Target();
+        if ([] === $fallbacks) {
+            $fallbacks = [new Target()];
+        }
+
         $reader = new RootEntryReader();
         $roots  = [];
 
+        /** @var list<EntryReaderInterface> $readers Tried in order: the first to answer wins */
+        $readers = [new VersionEntryReader(), new OrganizationEntryReader(), $reader];
+
         /** @var mixed $entry Deliberately untyped: the entry reader decides what it is */
         foreach ($configured as $entry) {
-            // An entry that expands into several roots: a repository's versions, or every
-            // repository of an organization that opts in.
-            $expanded = new VersionEntryReader()->read($entry, $target)
-                ?? new OrganizationEntryReader()->read($entry, $target);
+            foreach ($readers as $candidate) {
+                $expanded = $candidate->read($entry, $fallbacks);
 
-            if (null !== $expanded) {
-                array_push($roots, ...$expanded);
+                if (null !== $expanded) {
+                    array_push($roots, ...$expanded);
 
-                continue;
+                    continue 2;
+                }
             }
-
-            $root = $reader->read($entry, $target);
-
-            if (null === $root) {
-                continue;
-            }
-
-            $roots[] = $root;
         }
 
         return [] === $roots ? $this->defaults() : $roots;

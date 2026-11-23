@@ -53,7 +53,7 @@ final class OrganizationEntryReaderTest extends TestCase
     {
         $roots = $this->reader()->read(
             ['organization' => 'example', 'target' => ['docs/v{major}']],
-            new Target(),
+            [new Target()],
         );
 
         // The checkout is the real one, with its tags.
@@ -68,7 +68,7 @@ final class OrganizationEntryReaderTest extends TestCase
     #[Test]
     public function isNotThisReadersEntryWithoutAnOrganization(): void
     {
-        static::assertNull($this->reader()->read(['repository' => 'x'], new Target()));
+        static::assertNull($this->reader()->read(['repository' => 'x'], [new Target()]));
     }
 
     #[Test]
@@ -76,7 +76,7 @@ final class OrganizationEntryReaderTest extends TestCase
     {
         $roots = $this->reader()->read(
             ['organization' => 'example', 'exclude' => ['fixture'], 'target' => 'docs/v{major}'],
-            new Target(),
+            [new Target()],
         );
 
         static::assertSame([], $roots);
@@ -88,7 +88,7 @@ final class OrganizationEntryReaderTest extends TestCase
     {
         putenv('GIT_CONFIG_COUNT');
 
-        static::assertSame([], $this->reader()->read(['organization' => 'example'], new Target()));
+        static::assertSame([], $this->reader()->read(['organization' => 'example'], [new Target()]));
     }
 
     protected function setUp(): void

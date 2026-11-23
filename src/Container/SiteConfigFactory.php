@@ -19,6 +19,7 @@ use CommonDoc\Exception\RuntimeException;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\RootReader;
 use CommonDoc\Input\Target;
+use CommonDoc\Input\TargetReader;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\PathType;
 use CommonDoc\SiteConfig;
@@ -107,6 +108,28 @@ final readonly class SiteConfigFactory implements FactoryInterface
     }
 
     /**
+     * The targets the site states, which answer for every entry that states none.
+     *
+     * A site may state one directory or a list tried in order, and so may an entry. The list
+     * is what lets one site hold repositories whose layout changed between releases: the
+     * directory a tag actually holds is the one it is read from. Reading it here rather than
+     * as a single value is the difference between a list being honoured and a list being
+     * replaced by `docs/v1` without a word.
+     *
+     * @param array<array-key, mixed> $section
+     *
+     * @return list<Target>
+     *
+     * @throws InvalidArgumentException When a configured target cannot name a directory
+     */
+    private static function fallbacks(array $section): array
+    {
+        $targets = new TargetReader()->read($section['target'] ?? null);
+
+        return [] === $targets ? [new Target(Target::DEFAULT)] : $targets;
+    }
+
+    /**
      * The output layout, or the directory layout when the configured value is not
      * one of the two the type defines.
      *
@@ -167,11 +190,7 @@ final readonly class SiteConfigFactory implements FactoryInterface
             ),
             'roots'        => new RootReader()->read(
                 configured: $section['roots'] ?? null,
-                fallback  : new Target(self::text(
-                    section: $section,
-                    key    : 'target',
-                    default: Target::DEFAULT,
-                )),
+                fallbacks : self::fallbacks($section),
             ),
             'projectName'  => self::text(
                 section: $section,

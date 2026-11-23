@@ -15,9 +15,11 @@ declare(strict_types=1);
 namespace CommonDoc\Input;
 
 use CommonDoc\Exception\InvalidArgumentException;
+use Override;
 
 use function is_array;
 use function is_string;
+use function sprintf;
 
 /**
  * Reads one configured entry as a root.
@@ -41,38 +43,36 @@ use function is_string;
  *
  * @internal
  */
-final readonly class RootEntryReader
+// @mago-expect lint:cyclomatic-complexity
+final readonly class RootEntryReader implements EntryReaderInterface
 {
     /**
-     * The root this entry describes, or null when it describes none.
+     * The roots this entry describes, which is at most one.
      *
-     * @param mixed $entry Deliberately untyped: this class decides what it is
+     * A list because that is what every entry reader answers, so the reader walking the
+     * configured entries does not branch on which kind it holds. `null` means the entry is
+     * not this reader's kind rather than that it described nothing.
+     *
+     * @param mixed        $entry     Deliberately untyped: this class decides what it is
+     * @param list<Target> $fallbacks The site's targets, used by an entry that states none
+     *
+     * @return ?list<Root> Null when the entry names neither a repository nor a path
      *
      * @throws InvalidArgumentException When the entry's mount cannot prefix a path, or
-     *                                  its repository holds no documentation at its target
+     *                                  its repository holds no documentation at any of
+     *                                  the candidate targets
      *
-     * @infection-ignore-all The `is_array` guard is reported as an equivalent mutant
-     * because `??` tests with isset(), which answers null for an offset on a scalar, so a
-     * removed guard reaches the same `null` return. It is kept because it states that
+     * @infection-ignore-all The `is_array` guard in `root()` is reported as an equivalent
+     * mutant because `??` tests with isset(), which answers null for an offset on a scalar,
+     * so a removed guard reaches the same `null` return. It is kept because it states that
      * only a shaped entry can be a root, rather than relying on that coincidence.
      */
-    public function read(mixed $entry, Target $fallback): ?Root
+    #[Override]
+    public function read(mixed $entry, array $fallbacks): ?array
     {
-        if (! is_array($entry)) {
-            return null;
-        }
+        $root = $this->root($entry, $fallbacks);
 
-        /** @var mixed $mount Deliberately untyped: the constructor decides */
-        $mount = $entry['mount'] ?? '/';
-
-        if (! is_string($mount)) {
-            return null;
-        }
-
-        return (
-            $this->fromRepository($entry, $mount, $fallback)
-                ?? $this->fromPath($entry, $mount)
-        );
+        return null === $root ? null : [$root];
     }
 
     /**
@@ -100,10 +100,12 @@ final readonly class RootEntryReader
      * The root an entry describes by naming a repository, or null when it names none.
      *
      * @param array<array-key, mixed> $entry
+     * @param list<Target>            $fallbacks
      *
-     * @throws InvalidArgumentException When the repository holds no documentation at its target
+     * @throws InvalidArgumentException When the repository holds no documentation at any
+     *                                  candidate target
      */
-    private function fromRepository(array $entry, string $mount, Target $fallback): ?Root
+    private function fromRepository(array $entry, string $mount, array $fallbacks): ?Root
     {
         $repository = $this->text($entry['repository'] ?? null);
 
@@ -112,28 +114,78 @@ final readonly class RootEntryReader
         }
 
         return new Root(
-            path : $this->targetOf($entry, $fallback)->assertConsumable($repository),
+            path : $this->targetOf($entry, $fallbacks, $repository),
             mount: $mount,
         );
     }
 
     /**
-     * The target a `repository` entry asks for.
+     * The root this entry describes, or null when it describes none.
      *
-     * An override is the entry's own value; the site's target is the fallback. An entry
-     * whose override is of no use takes the fallback, because a mistyped override should
-     * not cost that repository the whole build.
+     * @param mixed        $entry     Deliberately untyped: this class decides what it is
+     * @param list<Target> $fallbacks
+     *
+     * @throws InvalidArgumentException When the entry's mount cannot prefix a path, or
+     *                                  its repository holds no documentation at any of
+     *                                  the candidate targets
+     */
+    private function root(mixed $entry, array $fallbacks): ?Root
+    {
+        if (! is_array($entry)) {
+            return null;
+        }
+
+        /** @var mixed $mount Deliberately untyped: the constructor decides */
+        $mount = $entry['mount'] ?? '/';
+
+        if (! is_string($mount)) {
+            return null;
+        }
+
+        return (
+            $this->fromRepository($entry, $mount, $fallbacks)
+                ?? $this->fromPath($entry, $mount)
+        );
+    }
+
+    /**
+     * The directory a `repository` entry is read from.
+     *
+     * The entry's own value is the answer when it states one, and the site's targets are the
+     * fallback, so a mistyped override does not cost that repository the whole build. Either
+     * may name a list, tried in order: a repository whose layout changed keeps one directory
+     * for older releases and one for newer, and the first directory that exists is the one
+     * it is read from. When none of them exists the last refusal is raised, which names the
+     * directory the operator wrote last.
      *
      * @param array<array-key, mixed> $entry
+     * @param list<Target>            $fallbacks
      *
-     * @throws InvalidArgumentException When the entry's target cannot name a directory
-     *                                  relative to a repository root
+     * @throws InvalidArgumentException When the repository holds no documentation at any
+     *                                  candidate, or there is no candidate at all
      */
-    private function targetOf(array $entry, Target $fallback): Target
+    private function targetOf(array $entry, array $fallbacks, string $repository): string
     {
-        $target = $this->text($entry['target'] ?? null);
+        $own        = new TargetReader()->read($entry['target'] ?? null);
+        $candidates = [] === $own ? $fallbacks : $own;
+        $refusal    = null;
 
-        return null === $target ? $fallback : new Target($target);
+        foreach ($candidates as $candidate) {
+            try {
+                return $candidate->assertConsumable($repository);
+            } catch (InvalidArgumentException $thrown) {
+                $refusal = $thrown;
+            }
+        }
+
+        if (null === $refusal) {
+            throw new InvalidArgumentException(sprintf(
+                'The repository "%s" states no target, and the site states none either, so there is no directory to read it from.',
+                $repository,
+            ));
+        }
+
+        throw $refusal;
     }
 
     /**

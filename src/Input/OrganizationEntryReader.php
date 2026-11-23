@@ -18,6 +18,7 @@ use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Exception\RuntimeException;
 use CommonDoc\Http\CurlHttpTransport;
 use InvalidArgumentException as NativeInvalidArgumentException;
+use Override;
 use Psl\Filesystem;
 use Psl\Json;
 use Psl\Regex;
@@ -49,7 +50,7 @@ use function sys_get_temp_dir;
  *
  * @internal
  */
-final readonly class OrganizationEntryReader
+final readonly class OrganizationEntryReader implements EntryReaderInterface
 {
     public function __construct(
         private ClientInterface $client = new CurlHttpTransport(),
@@ -59,7 +60,8 @@ final readonly class OrganizationEntryReader
     ) {}
 
     /**
-     * @param mixed $entry Deliberately untyped: configuration is
+     * @param mixed        $entry     Deliberately untyped: configuration is
+     * @param list<Target> $fallbacks The site's targets, used by an entry that states none
      *
      * @return ?list<Root> Null when the entry names no organization
      *
@@ -74,7 +76,8 @@ final readonly class OrganizationEntryReader
      *         pattern makes unreachable
      * @throws Type\Exception\ExceptionInterface When an answer is not the shape expected
      */
-    public function read(mixed $entry, Target $fallback): ?array
+    #[Override]
+    public function read(mixed $entry, array $fallbacks): ?array
     {
         $organization = OrganizationEntry::from($entry);
 
@@ -100,8 +103,8 @@ final readonly class OrganizationEntryReader
             }
 
             $versioned = $this->versions->read(
-                entry   : ['repository' => $directory, 'versions' => true, 'target' => $organization->target],
-                fallback: $fallback,
+                entry    : ['repository' => $directory, 'versions' => true, 'target' => $organization->target],
+                fallbacks: $fallbacks,
             );
 
             array_push($roots, ...$versioned ?? []);
