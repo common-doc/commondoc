@@ -17,6 +17,7 @@ namespace CommonDoc\View\Helper;
 use CommonDoc\Output\RouteRegistrar;
 use CommonDoc\View\Dropdown;
 use Laminas\View\Helper\HelperInterface;
+use Mezzio\Router\Exception\RuntimeException;
 use Webware\Navigation\NavigationItem;
 use Webware\Navigation\View\Helper\Navigation;
 
@@ -49,6 +50,8 @@ final readonly class ComponentMenu implements HelperInterface
      * One link, in the shape the dropdown renders.
      *
      * @return array{url: string, label: string, current: bool}
+     *
+     * @throws RuntimeException When the item's address cannot be generated
      */
     private function item(NavigationItem $item): array
     {
@@ -59,6 +62,9 @@ final readonly class ComponentMenu implements HelperInterface
         ];
     }
 
+    /**
+     * @throws RuntimeException When an item's address cannot be generated
+     */
     public function __invoke(string $label = 'Components'): string
     {
         $items = $this->navigation->__invoke(RouteRegistrar::COMPONENTS)->getItems();

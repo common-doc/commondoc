@@ -4439,16 +4439,16 @@
         },
         {
             "name": "revolt/event-loop",
-            "version": "v1.0.9",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/revoltphp/event-loop.git",
-                "reference": "44061cf513e53c6200372fc935ac42271566295d"
+                "reference": "93999a4ffca70aaa3890c553001e9f8313a1895c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/revoltphp/event-loop/zipball/44061cf513e53c6200372fc935ac42271566295d",
-                "reference": "44061cf513e53c6200372fc935ac42271566295d",
+                "url": "https://api.github.com/repos/revoltphp/event-loop/zipball/93999a4ffca70aaa3890c553001e9f8313a1895c",
+                "reference": "93999a4ffca70aaa3890c553001e9f8313a1895c",
                 "shasum": ""
             },
             "require": {
@@ -4458,7 +4458,7 @@
                 "ext-json": "*",
                 "jetbrains/phpstorm-stubs": "^2019.3",
                 "phpunit/phpunit": "^9",
-                "psalm/phar": "6.16.*"
+                "psalm/phar": "6.20.*"
             },
             "type": "library",
             "extra": {
@@ -4505,10 +4505,10 @@
             ],
             "support": {
                 "issues": "https://github.com/revoltphp/event-loop/issues",
-                "source": "https://github.com/revoltphp/event-loop/tree/v1.0.9"
+                "source": "https://github.com/revoltphp/event-loop/tree/v1.1.0"
             },
-            "time": "2026-05-16T17:55:38+00:00",
-            "published-time": "2026-05-16T18:04:08+00:00"
+            "time": "2026-11-14T19:05:53+00:00",
+            "published-time": "2026-11-19T18:36:08+00:00"
         },
         {
             "name": "symfony/console",
@@ -5353,20 +5353,20 @@
         },
         {
             "name": "webware/message-bus",
-            "version": "2.0.0-beta.9",
+            "version": "2.0.0-beta.11",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/message-bus.git",
-                "reference": "fdb067305767ba012cc5d7c3b0f8abc14b2f0cb7"
+                "reference": "dd13b62700228868ebe7c630ceac009496cfc553"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/message-bus/zipball/fdb067305767ba012cc5d7c3b0f8abc14b2f0cb7",
-                "reference": "fdb067305767ba012cc5d7c3b0f8abc14b2f0cb7",
+                "url": "https://api.github.com/repos/webinertia/message-bus/zipball/dd13b62700228868ebe7c630ceac009496cfc553",
+                "reference": "dd13b62700228868ebe7c630ceac009496cfc553",
                 "shasum": ""
             },
             "require": {
-                "php": "~8.4.1 || ~8.5.0",
+                "php": "~8.4.1 || ~8.5.0 || ~8.6.0",
                 "psr/container": "^2.0"
             },
             "require-dev": {
@@ -5377,7 +5377,7 @@
                 "phpunit/phpunit": "^13.4.4",
                 "roave/backward-compatibility-check": "^8.21.0",
                 "roave/security-advisories": "dev-master",
-                "webware/webware-tools": "^1.0.0-rc.14"
+                "webware/webware-tools": "^1.1.4"
             },
             "suggest": {
                 "laminas/laminas-servicemanager": "Laminas\\ServiceManager component"
@@ -5413,25 +5413,25 @@
                 "issues": "https://github.com/webinertia/message-bus/issues",
                 "source": "https://github.com/webinertia/message-bus"
             },
-            "time": "2026-11-14T02:05:27+00:00",
-            "published-time": "2026-11-14T02:09:47+00:00"
+            "time": "2026-11-22T09:29:37+00:00",
+            "published-time": "2026-11-22T09:31:47+00:00"
         },
         {
             "name": "webware/messagebus-event",
-            "version": "2.0.0-beta.7",
+            "version": "2.0.0-beta.10",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/messagebus-event.git",
-                "reference": "da1d558ef3a45a6fa43da30737018ae6158304a1"
+                "reference": "4699bdc6bfc18680ca194a8443dbc1664041fdcb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/messagebus-event/zipball/da1d558ef3a45a6fa43da30737018ae6158304a1",
-                "reference": "da1d558ef3a45a6fa43da30737018ae6158304a1",
+                "url": "https://api.github.com/repos/webinertia/messagebus-event/zipball/4699bdc6bfc18680ca194a8443dbc1664041fdcb",
+                "reference": "4699bdc6bfc18680ca194a8443dbc1664041fdcb",
                 "shasum": ""
             },
             "require": {
-                "php": "~8.4.1 || ~8.5.0",
+                "php": "~8.4.1 || ~8.5.0 || ~8.6.0",
                 "psr/event-dispatcher": "^1.0",
                 "webware/message-bus": "^2.0.0-beta.3",
                 "webware/webware-event": "^1.0.0-alpha.2"
@@ -5443,7 +5443,7 @@
                 "phpbench/phpbench": "^1.7",
                 "phpunit/phpunit": "^13.4.4",
                 "roave/security-advisories": "dev-master",
-                "webware/webware-tools": "^1.0.0-rc.14"
+                "webware/webware-tools": "^1.1.4"
             },
             "type": "library",
             "extra": {
@@ -5476,28 +5476,28 @@
             ],
             "support": {
                 "issues": "https://github.com/webinertia/messagebus-event/issues",
-                "source": "https://github.com/webinertia/messagebus-event/tree/2.0.0-beta.7"
+                "source": "https://github.com/webinertia/messagebus-event/tree/2.0.0-beta.10"
             },
-            "time": "2026-11-14T02:05:32+00:00",
-            "published-time": "2026-11-14T02:10:18+00:00"
+            "time": "2026-11-22T16:08:43+00:00",
+            "published-time": "2026-11-22T17:21:03+00:00"
         },
         {
             "name": "webware/query-param-router",
-            "version": "1.0.0-alpha.6",
+            "version": "1.0.0-alpha.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/query-param-router.git",
-                "reference": "835441ce8dfc009df6c6f0f96feea3c549d301ab"
+                "reference": "ebe9f06ab19dd0f8464afba0faffbc38c828952d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/query-param-router/zipball/835441ce8dfc009df6c6f0f96feea3c549d301ab",
-                "reference": "835441ce8dfc009df6c6f0f96feea3c549d301ab",
+                "url": "https://api.github.com/repos/webinertia/query-param-router/zipball/ebe9f06ab19dd0f8464afba0faffbc38c828952d",
+                "reference": "ebe9f06ab19dd0f8464afba0faffbc38c828952d",
                 "shasum": ""
             },
             "require": {
                 "mezzio/mezzio-router": "^3.15 || ^4.0",
-                "php": "~8.4.1 || ~8.5.0",
+                "php": "~8.4.1 || ~8.5.0 || ~8.6.0",
                 "psr/container": "^2.0",
                 "psr/http-message": "^2.0",
                 "psr/http-server-middleware": "^1.0"
@@ -5510,7 +5510,7 @@
                 "psr/http-server-handler": "^1.0",
                 "roave/backward-compatibility-check": "^8.21.0",
                 "roave/security-advisories": "dev-master",
-                "webware/webware-tools": "^1.0.0-rc.14"
+                "webware/webware-tools": "^1.1.4"
             },
             "type": "library",
             "extra": {
@@ -5547,27 +5547,27 @@
                 "issues": "https://github.com/webinertia/query-param-router/issues",
                 "source": "https://github.com/webinertia/query-param-router"
             },
-            "time": "2026-11-14T15:10:58+00:00",
-            "published-time": "2026-11-14T15:11:57+00:00"
+            "time": "2026-11-22T17:17:16+00:00",
+            "published-time": "2026-11-22T17:20:59+00:00"
         },
         {
             "name": "webware/webware-configmanager",
-            "version": "1.0.0-alpha.4",
+            "version": "1.0.0-alpha.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/webware-configmanager.git",
-                "reference": "366524ca8223aa1403a11d5341f042d7da43d4b9"
+                "reference": "6061074dc83139595aaeb76b410e89d8c875a1d3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/webware-configmanager/zipball/366524ca8223aa1403a11d5341f042d7da43d4b9",
-                "reference": "366524ca8223aa1403a11d5341f042d7da43d4b9",
+                "url": "https://api.github.com/repos/webinertia/webware-configmanager/zipball/6061074dc83139595aaeb76b410e89d8c875a1d3",
+                "reference": "6061074dc83139595aaeb76b410e89d8c875a1d3",
                 "shasum": ""
             },
             "require": {
                 "brick/varexporter": "^0.7.0",
                 "ext-json": "*",
-                "php": "~8.4.1 || ~8.5.0",
+                "php": "~8.4.1 || ~8.5.0 || ~8.6.0",
                 "php-standard-library/type": "^6.4.2",
                 "psr/container": "^2.0",
                 "webware/webware-filewriter": "^1.0.0-alpha.2"
@@ -5583,7 +5583,7 @@
                 "roave/backward-compatibility-check": "^8.21.0",
                 "roave/security-advisories": "dev-master",
                 "symfony/yaml": "^7.4 || ^8.0",
-                "webware/webware-tools": "1.0.0-rc.15"
+                "webware/webware-tools": "^1.1.4"
             },
             "suggest": {
                 "laminas/laminas-filter": "Install to use the Filter processor",
@@ -5623,28 +5623,28 @@
             "support": {
                 "chat": "https://discord.gg/9TxQ74EPsG",
                 "issues": "https://github.com/webinertia/webware-configmanager/issues",
-                "source": "https://github.com/webinertia/webware-configmanager/tree/1.0.0-alpha.4"
+                "source": "https://github.com/webinertia/webware-configmanager/tree/1.0.0-alpha.6"
             },
-            "time": "2026-11-16T14:39:08+00:00",
-            "published-time": "2026-11-16T14:40:22+00:00"
+            "time": "2026-11-22T09:29:46+00:00",
+            "published-time": "2026-11-22T09:31:56+00:00"
         },
         {
             "name": "webware/webware-console",
-            "version": "1.0.0-alpha.11",
+            "version": "1.0.0-alpha.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/webware-console.git",
-                "reference": "a8abce8a40af891b67cda0af81c453cf82bd78be"
+                "reference": "72e4e095724f04e85c4ff23d68cc98944a52fee5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/webware-console/zipball/a8abce8a40af891b67cda0af81c453cf82bd78be",
-                "reference": "a8abce8a40af891b67cda0af81c453cf82bd78be",
+                "url": "https://api.github.com/repos/webinertia/webware-console/zipball/72e4e095724f04e85c4ff23d68cc98944a52fee5",
+                "reference": "72e4e095724f04e85c4ff23d68cc98944a52fee5",
                 "shasum": ""
             },
             "require": {
                 "laminas/laminas-servicemanager": "^4.5",
-                "php": "~8.4.1 || ~8.5.0",
+                "php": "~8.4.1 || ~8.5.0 || ~8.6.0",
                 "php-standard-library/terminal": "^6.4.2",
                 "symfony/console": "^7.4 || ^8.0",
                 "webware/webware-configmanager": "^1.0.0-alpha.4"
@@ -5652,7 +5652,7 @@
             "require-dev": {
                 "infection/infection": "^0.35",
                 "phpunit/phpunit": "^13.4.4",
-                "webware/webware-tools": "^1.0.0-rc.14"
+                "webware/webware-tools": "^1.1.4"
             },
             "bin": [
                 "bin/webware"
@@ -5684,28 +5684,28 @@
             ],
             "support": {
                 "issues": "https://github.com/webinertia/webware-console/issues",
-                "source": "https://github.com/webinertia/webware-console/tree/1.0.0-alpha.11"
+                "source": "https://github.com/webinertia/webware-console/tree/1.0.0-alpha.12"
             },
-            "time": "2026-11-17T00:25:34+00:00",
-            "published-time": "2026-11-17T00:26:13+00:00"
+            "time": "2026-11-22T09:29:41+00:00",
+            "published-time": "2026-11-22T09:31:51+00:00"
         },
         {
             "name": "webware/webware-event",
-            "version": "1.0.0-alpha.7",
+            "version": "1.0.0-alpha.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/webware-event.git",
-                "reference": "82cde4347c0c55ddfd05e868e2ec8249c7e30eb8"
+                "reference": "17ebb3edffbfe0847579e41fbc9f201dbd65a929"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/webware-event/zipball/82cde4347c0c55ddfd05e868e2ec8249c7e30eb8",
-                "reference": "82cde4347c0c55ddfd05e868e2ec8249c7e30eb8",
+                "url": "https://api.github.com/repos/webinertia/webware-event/zipball/17ebb3edffbfe0847579e41fbc9f201dbd65a929",
+                "reference": "17ebb3edffbfe0847579e41fbc9f201dbd65a929",
                 "shasum": ""
             },
             "require": {
                 "phly/phly-event-dispatcher": "^1.5.0",
-                "php": "~8.4.1 || ~8.5.0",
+                "php": "~8.4.1 || ~8.5.0 || ~8.6.0",
                 "psr/http-message": "^2.0",
                 "psr/http-server-handler": "^1.0",
                 "psr/http-server-middleware": "^1.0"
@@ -5717,7 +5717,7 @@
                 "phpunit/phpunit": "^13.4.4",
                 "roave/backward-compatibility-check": "^8.21.0",
                 "roave/security-advisories": "dev-master",
-                "webware/webware-tools": "^1.0.0-rc.14"
+                "webware/webware-tools": "^1.1.4"
             },
             "type": "library",
             "autoload": {
@@ -5745,27 +5745,27 @@
             ],
             "support": {
                 "issues": "https://github.com/webinertia/webware-event/issues",
-                "source": "https://github.com/webinertia/webware-event/tree/1.0.0-alpha.7"
+                "source": "https://github.com/webinertia/webware-event/tree/1.0.0-alpha.8"
             },
-            "time": "2026-11-14T02:05:51+00:00",
-            "published-time": "2026-11-14T02:10:29+00:00"
+            "time": "2026-11-22T09:29:50+00:00",
+            "published-time": "2026-11-22T09:32:00+00:00"
         },
         {
             "name": "webware/webware-filewriter",
-            "version": "1.0.0-alpha.4",
+            "version": "1.0.0-alpha.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/webware-filewriter.git",
-                "reference": "27978b862238c56b73bf0d62d1805e90d10ed02e"
+                "reference": "67eafeb8416a2fa42edcabab424af387fdde54d6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/webware-filewriter/zipball/27978b862238c56b73bf0d62d1805e90d10ed02e",
-                "reference": "27978b862238c56b73bf0d62d1805e90d10ed02e",
+                "url": "https://api.github.com/repos/webinertia/webware-filewriter/zipball/67eafeb8416a2fa42edcabab424af387fdde54d6",
+                "reference": "67eafeb8416a2fa42edcabab424af387fdde54d6",
                 "shasum": ""
             },
             "require": {
-                "php": "~8.4.1 || ~8.5.0",
+                "php": "~8.4.1 || ~8.5.0 || ~8.6.0",
                 "php-standard-library/file": "^6.4.2",
                 "php-standard-library/filesystem": "^6.4.2"
             },
@@ -5775,7 +5775,7 @@
                 "phpunit/phpunit": "^13.4.4",
                 "roave/backward-compatibility-check": "^8.21.0",
                 "roave/security-advisories": "dev-master",
-                "webware/webware-tools": "^1.0.0-rc.8"
+                "webware/webware-tools": "^1.1.4"
             },
             "type": "library",
             "autoload": {
@@ -5803,23 +5803,23 @@
             ],
             "support": {
                 "issues": "https://github.com/webinertia/webware-filewriter/issues",
-                "source": "https://github.com/webinertia/webware-filewriter/tree/1.0.0-alpha.4"
+                "source": "https://github.com/webinertia/webware-filewriter/tree/1.0.0-alpha.6"
             },
-            "time": "2026-11-19T05:00:26+00:00",
-            "published-time": "2026-11-19T05:03:29+00:00"
+            "time": "2026-11-22T09:29:54+00:00",
+            "published-time": "2026-11-22T09:32:03+00:00"
         },
         {
             "name": "webware/webware-log",
-            "version": "2.0.0-alpha.8",
+            "version": "2.0.0-beta.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/webware-log.git",
-                "reference": "d4d264730b349a06f9db8e74d98c74c527ca2d69"
+                "reference": "a79a9945d6d5aa8b1c64a1427cff53da93b960ff"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/webware-log/zipball/d4d264730b349a06f9db8e74d98c74c527ca2d69",
-                "reference": "d4d264730b349a06f9db8e74d98c74c527ca2d69",
+                "url": "https://api.github.com/repos/webinertia/webware-log/zipball/a79a9945d6d5aa8b1c64a1427cff53da93b960ff",
+                "reference": "a79a9945d6d5aa8b1c64a1427cff53da93b960ff",
                 "shasum": ""
             },
             "require": {
@@ -5827,7 +5827,7 @@
                 "laminas/laminas-hydrator": "^4.15.0 || ^5.0.0",
                 "monolog/monolog": "^3.4",
                 "phly/phly-event-dispatcher": "^1.5.0",
-                "php": "~8.4.1 || ~8.5.0",
+                "php": "~8.4.1 || ~8.5.0 || ~8.6.0",
                 "ramsey/uuid": "^4.7"
             },
             "require-dev": {
@@ -5845,7 +5845,7 @@
                 "roave/security-advisories": "dev-master",
                 "webware/webware-console": "1.0.x-dev",
                 "webware/webware-core": "^1.0.0-alpha.9",
-                "webware/webware-tools": "^1.0.0-rc.14"
+                "webware/webware-tools": "^1.1.4"
             },
             "suggest": {
                 "php-db/phpdb-mysql": "Required when using PhpDbHandler with a MySQL/MariaDB database",
@@ -5885,29 +5885,29 @@
             "support": {
                 "chat": "https://discord.gg/89DfgmuF6C",
                 "issues": "https://github.com/webinertia/webware-log/issues",
-                "source": "https://github.com/webinertia/webware-log/tree/2.0.0-alpha.8"
+                "source": "https://github.com/webinertia/webware-log/tree/2.0.0-beta.3"
             },
-            "time": "2026-11-14T02:05:55+00:00",
-            "published-time": "2026-11-14T02:10:31+00:00"
+            "time": "2026-11-22T09:29:25+00:00",
+            "published-time": "2026-11-22T09:32:11+00:00"
         },
         {
             "name": "webware/webware-navigation",
-            "version": "1.0.0-alpha.9",
+            "version": "1.0.0-alpha.11",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/webware-navigation.git",
-                "reference": "3291bc9b484e488e2243b19ca98e578173e93bef"
+                "reference": "fdaea98be08c31a1fd1eab99f7d528b5c414cdf2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/webware-navigation/zipball/3291bc9b484e488e2243b19ca98e578173e93bef",
-                "reference": "3291bc9b484e488e2243b19ca98e578173e93bef",
+                "url": "https://api.github.com/repos/webinertia/webware-navigation/zipball/fdaea98be08c31a1fd1eab99f7d528b5c414cdf2",
+                "reference": "fdaea98be08c31a1fd1eab99f7d528b5c414cdf2",
                 "shasum": ""
             },
             "require": {
                 "laminas/laminas-view": "^3.0",
                 "mezzio/mezzio-router": "^3.15 || ^4.0",
-                "php": "~8.4.1 || ~8.5.0",
+                "php": "~8.4.1 || ~8.5.0 || ~8.6.0",
                 "psr/container": "^2.0",
                 "psr/http-message": "^2.0",
                 "psr/http-server-handler": "^1.0",
@@ -5921,7 +5921,7 @@
                 "roave/backward-compatibility-check": "^8.21.0",
                 "roave/security-advisories": "dev-master",
                 "webware/webware-core": "^1.0.0-alpha.6",
-                "webware/webware-tools": "^1.0.0-rc.14"
+                "webware/webware-tools": "^1.1.4"
             },
             "suggest": {
                 "webware/webware-core": "Only needed to filter navigation by ACL; without it the helper builds with a null ACL and the ACL check is skipped"
@@ -5957,29 +5957,29 @@
             ],
             "support": {
                 "issues": "https://github.com/webinertia/webware-navigation/issues",
-                "source": "https://github.com/webinertia/webware-navigation/tree/1.0.0-alpha.9"
+                "source": "https://github.com/webinertia/webware-navigation/tree/1.0.0-alpha.11"
             },
-            "time": "2026-11-19T23:53:18+00:00",
-            "published-time": "2026-11-21T02:29:26+00:00"
+            "time": "2026-11-22T09:29:29+00:00",
+            "published-time": "2026-11-22T09:31:38+00:00"
         },
         {
             "name": "webware/webware-theme",
-            "version": "1.0.0-alpha.7",
+            "version": "1.0.0-alpha.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/webware-theme.git",
-                "reference": "b1a04ce0e6526c77be78f70812c7f7703ec8cc26"
+                "reference": "a797dac60b832fdbd81693b9a0c21fab6927fed7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/webware-theme/zipball/b1a04ce0e6526c77be78f70812c7f7703ec8cc26",
-                "reference": "b1a04ce0e6526c77be78f70812c7f7703ec8cc26",
+                "url": "https://api.github.com/repos/webinertia/webware-theme/zipball/a797dac60b832fdbd81693b9a0c21fab6927fed7",
+                "reference": "a797dac60b832fdbd81693b9a0c21fab6927fed7",
                 "shasum": ""
             },
             "require": {
                 "laminas/laminas-view": "^3.0",
                 "mezzio/mezzio-laminasviewrenderer": "^3.0",
-                "php": "~8.4.1 || ~8.5.0",
+                "php": "~8.4.1 || ~8.5.0 || ~8.6.0",
                 "psr/container": "^2.0"
             },
             "require-dev": {
@@ -5989,7 +5989,7 @@
                 "roave/backward-compatibility-check": "^8.21.0",
                 "roave/security-advisories": "dev-master",
                 "webware/webware-configmanager": "^1.0.0-alpha.4",
-                "webware/webware-tools": "^1.0.0-rc.14"
+                "webware/webware-tools": "^1.1.4"
             },
             "type": "library",
             "extra": {
@@ -6022,10 +6022,10 @@
             ],
             "support": {
                 "issues": "https://github.com/webinertia/webware-theme/issues",
-                "source": "https://github.com/webinertia/webware-theme/tree/1.0.0-alpha.7"
+                "source": "https://github.com/webinertia/webware-theme/tree/1.0.0-alpha.8"
             },
-            "time": "2026-11-20T02:05:51+00:00",
-            "published-time": "2026-11-20T02:09:02+00:00"
+            "time": "2026-11-22T09:29:33+00:00",
+            "published-time": "2026-11-22T09:31:43+00:00"
         }
     ],
     "packages-dev": [
@@ -8156,16 +8156,16 @@
         },
         {
             "name": "phpbench/phpbench",
-            "version": "1.7.0",
+            "version": "1.7.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpbench/phpbench.git",
-                "reference": "3d13c0d5dcf8730a67b70fa7fb03b4556b5cc0fe"
+                "reference": "a745fa340629d0b2cba5197e44b1a9428797ba1b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpbench/phpbench/zipball/3d13c0d5dcf8730a67b70fa7fb03b4556b5cc0fe",
-                "reference": "3d13c0d5dcf8730a67b70fa7fb03b4556b5cc0fe",
+                "url": "https://api.github.com/repos/phpbench/phpbench/zipball/a745fa340629d0b2cba5197e44b1a9428797ba1b",
+                "reference": "a745fa340629d0b2cba5197e44b1a9428797ba1b",
                 "shasum": ""
             },
             "require": {
@@ -8176,7 +8176,7 @@
                 "ext-reflection": "*",
                 "ext-spl": "*",
                 "ext-tokenizer": "*",
-                "php": "^8.2",
+                "php": "^8.3",
                 "phpbench/container": "^2.2",
                 "psr/log": "^1.1 || ^2.0 || ^3.0",
                 "seld/jsonlint": "^1.1",
@@ -8243,7 +8243,7 @@
             ],
             "support": {
                 "issues": "https://github.com/phpbench/phpbench/issues",
-                "source": "https://github.com/phpbench/phpbench/tree/1.7.0"
+                "source": "https://github.com/phpbench/phpbench/tree/1.7.1"
             },
             "funding": [
                 {
@@ -8251,8 +8251,8 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-06-08T19:09:20+00:00",
-            "published-time": "2026-06-08T19:11:37+00:00"
+            "time": "2026-11-21T19:11:14+00:00",
+            "published-time": "2026-11-21T19:12:24+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",
@@ -8643,16 +8643,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "13.4.7",
+            "version": "13.4.8",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "e6458d44279e3b4fc492d4c41fe8e677efed7a2c"
+                "reference": "291e66a76eb39f2fb8f880d38edc30dbd7acd9a2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/e6458d44279e3b4fc492d4c41fe8e677efed7a2c",
-                "reference": "e6458d44279e3b4fc492d4c41fe8e677efed7a2c",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/291e66a76eb39f2fb8f880d38edc30dbd7acd9a2",
+                "reference": "291e66a76eb39f2fb8f880d38edc30dbd7acd9a2",
                 "shasum": ""
             },
             "require": {
@@ -8723,7 +8723,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/13.4.7"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/13.4.8"
             },
             "funding": [
                 {
@@ -8731,8 +8731,8 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-11-13T11:10:10+00:00",
-            "published-time": "2026-11-13T11:11:23+00:00"
+            "time": "2026-11-19T12:17:15+00:00",
+            "published-time": "2026-11-19T12:18:28+00:00"
         },
         {
             "name": "psr/cache",
@@ -9072,12 +9072,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Roave/SecurityAdvisories.git",
-                "reference": "58dd0699bbc208d2db0b73af8099535601f9b820"
+                "reference": "9b14985ecfc98a89626ef5c83c7af75a9f39b350"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/58dd0699bbc208d2db0b73af8099535601f9b820",
-                "reference": "58dd0699bbc208d2db0b73af8099535601f9b820",
+                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/9b14985ecfc98a89626ef5c83c7af75a9f39b350",
+                "reference": "9b14985ecfc98a89626ef5c83c7af75a9f39b350",
                 "shasum": ""
             },
             "conflict": {
@@ -9105,7 +9105,7 @@
                 "algolia/algoliasearch-magento-2": "<=3.16.1|>=3.17.0.0-beta1,<=3.17.1",
                 "almirhodzic/nova-toggle-5": "<1.3",
                 "alt-design/alt-redirect": "<1.6.4",
-                "altcha-org/altcha": "<1.3.1",
+                "altcha-org/altcha": "<1.3.1|>=2,<2.0.3",
                 "alterphp/easyadmin-extension-bundle": ">=1.2,<1.2.11|>=1.3,<1.3.1",
                 "amazing/media2click": ">=1,<1.3.3",
                 "ameos/ameos_filemanager": "<3.1.3",
@@ -9154,10 +9154,12 @@
                 "bacula-web/bacula-web": "<9.7.1",
                 "badaso/core": "<=2.9.11",
                 "bagisto/bagisto": "<=2.3.15",
+                "baldinof/roadrunner-bundle": ">=3.0.1,<3.2.4",
                 "barrelstrength/sprout-base-email": "<1.2.7",
                 "barrelstrength/sprout-forms": "<3.9",
                 "barryvdh/laravel-translation-manager": "<0.6.8",
                 "barzahlen/barzahlen-php": "<2.0.1",
+                "baserproject/baser-core": "<5.3",
                 "baserproject/basercms": "<=5.2.2",
                 "bassjobsen/bootstrap-3-typeahead": ">4.0.2",
                 "bazaarvoice/bazaarvoice-magento2-ext": ">=8,<9.1.11",
@@ -9175,7 +9177,7 @@
                 "blueways/bw-captcha": ">=4,<5.4.2",
                 "bmarshall511/wordpress_zero_spam": "<5.2.13",
                 "bolt/bolt": "<3.7.2",
-                "bolt/core": "<=4.2",
+                "bolt/core": "<6.1.5",
                 "born05/craft-twofactorauthentication": "<3.3.4",
                 "bottelet/flarepoint": "<2.2.1",
                 "bref/bref": "<2.1.17",
@@ -9397,6 +9399,7 @@
                 "flightphp/core": "<3.18.1",
                 "floriangaerber/magnesium": "<0.3.1",
                 "fluidtypo3/vhs": "<5.1.1",
+                "flux-se/sylius-stripe-plugin": ">=1,<1.2|>=2,<2.0.3|>=2.1,<2.1.1",
                 "fof/byobu": ">=0.3.0.0-beta2,<1.1.7",
                 "fof/oauth": "<1.7.4|>=2.0.0.0-beta1,<2.0.0.0-beta4",
                 "fof/pretty-mail": "<=1.1.2",
@@ -9504,6 +9507,7 @@
                 "jambagecom/div2007": "<0.10.2",
                 "james-heinrich/getid3": "<1.9.21",
                 "james-heinrich/phpthumb": "<=1.7.23",
+                "jane-php/open-api-3": "<7.12",
                 "jasig/phpcas": "<1.3.3",
                 "jayanta/laravel-threat-detection": "<1.9",
                 "jbartels/wec-map": "<3.0.3",
@@ -9681,7 +9685,7 @@
                 "nette/application": ">=2,<2.0.19|>=2.1,<2.1.13|>=2.2,<2.2.10|>=2.3,<2.3.14|>=2.4,<2.4.16|>=3,<3.0.6",
                 "nette/nette": ">=2,<2.0.19|>=2.1,<2.1.13",
                 "neuron-core/neuron-ai": "<=2.8.11",
-                "nilsteampassnet/teampass": "<3.1.3.1-dev",
+                "nilsteampassnet/teampass": "<3.2.2",
                 "nitsan/ns-backup": "<13.0.1",
                 "nitsan/ns-t3ai": "<14.0.2",
                 "nonfiction/nterchange": "<4.1.1",
@@ -9696,7 +9700,7 @@
                 "nzo/url-encryptor-bundle": ">=4,<4.3.2|>=5,<5.0.1",
                 "october/backend": "<1.1.2",
                 "october/cms": "<1.0.469|==1.0.469|==1.0.471|==1.1.1",
-                "october/october": "<3.7.14|>=4,<4.1.10|>=4.3,<4.3.4",
+                "october/october": "<3.7.14|>=4,<4.3.4",
                 "october/rain": "<=3.7.13|>=4,<=4.1.9",
                 "october/system": "<3.7.17|>=4,<4.2.23",
                 "oliverklee/phpunit": "<3.5.15",
@@ -9748,7 +9752,7 @@
                 "phanan/koel": "<=9.7",
                 "pheditor/pheditor": "<2.0.8",
                 "phenx/php-svg-lib": "<0.5.2",
-                "php": "<8.2.35|>=8.3,<8.3.36|>=8.4,<8.4.27|>=8.5,<8.5.12",
+                "php": "<8.2.36|>=8.3,<8.3.37|>=8.4,<8.4.28|>=8.5,<8.5.13",
                 "php-censor/php-censor": "<2.0.13|>=2.1,<2.1.5",
                 "php-mod/curl": "<2.3.2",
                 "php-standard-library/h2": ">=6.1,<6.1.2|>=6.2,<6.2.1",
@@ -9793,7 +9797,7 @@
                 "pocketmine/pocketmine-mp": "<5.44.2",
                 "pocketmine/raklib": ">=0.14,<0.14.6|>=0.15,<0.15.1",
                 "pontedilana/php-weasyprint": "<=2.5.1",
-                "poweradmin/poweradmin": "<4.2.5|>=4.3,<4.3.4",
+                "poweradmin/poweradmin": "<4.2.6|>=4.3,<4.3.5|>=4.4,<4.4.1",
                 "predis/predis": ">=3.0.0.0-RC1,<3.3",
                 "pressbooks/pressbooks": "<5.18",
                 "prestashop/autoupgrade": ">=4,<4.10.1",
@@ -9954,7 +9958,8 @@
                 "sylius/mollie-plugin": "<2.2.8|>=3,<3.2.4|>=3.3,<3.3.1",
                 "sylius/paypal-plugin": "<1.6.2|>=1.7,<1.7.2|>=2,<2.0.2",
                 "sylius/resource-bundle": ">=1,<1.3.14|>=1.4,<1.4.7|>=1.5,<1.5.2|>=1.6,<1.6.4",
-                "sylius/sylius": "<1.14.21|>=2,<2.1.17|>=2.2,<2.2.12|>=2.3,<2.3.2",
+                "sylius/sylius": "<1.14.22|>=2,<2.2.13|>=2.3,<2.3.3",
+                "sylius/theme-bundle": ">=2,<2.3.1|>=2.4,<2.4.2|>=2.5,<2.5.1",
                 "symbiote/silverstripe-advancedworkflow": "<6.4.6|>=7,<7.2.4",
                 "symbiote/silverstripe-multivaluefield": ">=3,<3.1",
                 "symbiote/silverstripe-queuedjobs": ">=3,<3.0.2|>=3.1,<3.1.4|>=4,<4.0.7|>=4.1,<4.1.2|>=4.2,<4.2.4|>=4.3,<4.3.3|>=4.4,<4.4.3|>=4.5,<4.5.1|>=4.6,<4.6.4",
@@ -10243,8 +10248,8 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-11-17T23:45:35+00:00",
-            "published-time": "2026-11-17T23:45:40+00:00"
+            "time": "2026-11-22T21:37:04+00:00",
+            "published-time": "2026-11-22T21:37:09+00:00"
         },
         {
             "name": "sanmai/di-container",
@@ -12672,20 +12677,20 @@
         },
         {
             "name": "webware/webware-tools",
-            "version": "1.0.0",
+            "version": "1.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webinertia/webware-tools.git",
-                "reference": "93690901938244db1a6ba0bd64d3b2779d2041b0"
+                "reference": "fad0bc28ac049364ade3ff26debc6cc7c1afc89b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webinertia/webware-tools/zipball/93690901938244db1a6ba0bd64d3b2779d2041b0",
-                "reference": "93690901938244db1a6ba0bd64d3b2779d2041b0",
+                "url": "https://api.github.com/repos/webinertia/webware-tools/zipball/fad0bc28ac049364ade3ff26debc6cc7c1afc89b",
+                "reference": "fad0bc28ac049364ade3ff26debc6cc7c1afc89b",
                 "shasum": ""
             },
             "require": {
-                "php": "~8.4.0 || ~8.5.0"
+                "php": "~8.4.0 || ~8.5.0 || ~8.6.0"
             },
             "require-dev": {
                 "roave/security-advisories": "dev-master"
@@ -12710,10 +12715,10 @@
             ],
             "support": {
                 "issues": "https://github.com/webinertia/webware-tools/issues",
-                "source": "https://github.com/webinertia/webware-tools/tree/1.0.0"
+                "source": "https://github.com/webinertia/webware-tools/tree/1.1.4"
             },
-            "time": "2026-11-17T00:57:01+00:00",
-            "published-time": "2026-11-17T00:57:26+00:00"
+            "time": "2026-11-22T08:54:14+00:00",
+            "published-time": "2026-11-22T08:54:20+00:00"
         }
     ],
     "aliases": [],
