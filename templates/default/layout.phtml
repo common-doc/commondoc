@@ -25,6 +25,12 @@
  * empty. Which item is active is not decided here: a build has no request to match
  * a route against, so highlighting belongs to the browser.
  *
+ * The released components are a menu in the navbar rather than a block in the sidebar,
+ * because that list is identical on every page and the sidebar belongs to the page being
+ * read. The item names the component the reader is in, which the browser decides from the
+ * address: a static page has no request, so the same script that would highlight an item
+ * reads the links the build wrote instead of repeating them.
+ *
  * @var string $content
  */
 ?>
@@ -157,6 +163,27 @@ $this->inlineScript()
             root.setAttribute('data-bs-theme', next);
             try { localStorage.setItem('commondoc-theme', next); } catch (e) {}
         });
+
+        // The components menu names the component being read rather than saying "Components"
+        // on every page, and marks that item, so the reader sees where they are without
+        // opening it. The label and the addresses are the ones the build wrote, so nothing
+        // is spelled a second time here.
+        (function () {
+            var box = document.querySelector('[data-components]');
+            if (!box) { return; }
+            var toggle = box.querySelector('[data-components-toggle]');
+            var here = window.location.pathname;
+            var current = null;
+            [].slice.call(box.querySelectorAll('a.dropdown-item')).forEach(function (link) {
+                if (current) { return; }
+                var path = new URL(link.href).pathname;
+                if (here === path || 0 === here.indexOf(path)) {
+                    link.classList.add('active');
+                    current = link.textContent;
+                }
+            });
+            if (current) { toggle.textContent = current; }
+        })();
         JS);
 ?>
 <!DOCTYPE html>
@@ -172,6 +199,7 @@ $this->inlineScript()
     <nav class="navbar border-bottom bg-body-tertiary">
         <div class="container-fluid">
             <a class="navbar-brand" href="<?= $this->escapeHtmlAttr($this->basePath('/')) ?>">Documentation</a>
+            <?= $this->componentMenu() ?>
             <div class="position-relative flex-grow-1 mx-3" style="max-width: 32rem" data-search data-index="<?= $this->escapeHtmlAttr($this->basePath('search-index.json')) ?>">
                 <input type="search" class="form-control form-control-sm" placeholder="Search the documentation" aria-label="Search the documentation" autocomplete="off">
                 <div class="list-group position-absolute w-100 shadow mt-1" style="z-index: 1050" data-search-results hidden></div>
@@ -185,12 +213,6 @@ $this->inlineScript()
     <div class="container-fluid">
         <div class="row">
             <nav class="site-nav col-md-3 col-xl-2 py-3 border-end">
-                <?php $components = $this->navigation(\CommonDoc\Output\RouteRegistrar::COMPONENTS); ?>
-                <?php if ([] !== $components->getItems()) : ?>
-                    <h2 class="h6 text-uppercase text-body-secondary px-2">Components</h2>
-                    <?= $components->menu() ?>
-                    <hr>
-                <?php endif ?>
                 <h2 class="h6 text-uppercase text-body-secondary px-2">Pages</h2>
                 <?= $this->navigation((string) $this->placeholder('commondoc.scope'))->menu() ?>
             </nav>
