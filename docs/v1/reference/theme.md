@@ -299,7 +299,12 @@ both rendered with the `navigation` view helper:
   gets a menu of its own, named from its mount by `NavigationScope`, so a page lists
   `message-bus` v2 and not every version of everything. The document template hands its
   page's menu to the layout through the `commondoc.scope` placeholder, because the layout
-  renders after it.
+  renders after it. The page being read is marked by the layout's script, not by the build.
+
+  Both menus are marked from the address in the browser, for the same reason: a built page
+  carries no request, so nothing is marked in the file. The script marks the component whose
+  address the page is beneath, and the page whose address matches exactly, and it sets
+  `aria-current="page"` on each.
 
 The menus are read from the routing table. A build registers the routes before it renders
 the first document, and each route carries the `navigation`, `label` and `order` options
