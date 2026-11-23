@@ -12,7 +12,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CommonDoc\Container;
+namespace CommonDoc\Input;
 
 use function is_array;
 use function is_string;

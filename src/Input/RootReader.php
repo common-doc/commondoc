@@ -12,12 +12,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CommonDoc\Container;
+namespace CommonDoc\Input;
 
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Exception\RuntimeException;
-use CommonDoc\Input\Root;
-use CommonDoc\Input\Target;
 use InvalidArgumentException as NativeInvalidArgumentException;
 use Psl\Filesystem;
 use Psl\Json;

@@ -12,14 +12,14 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace CommonDocTest\Container;
+namespace CommonDocTest\Input;
 
-use CommonDoc\Container\RootEntryReader;
-use CommonDoc\Container\RootReader;
-use CommonDoc\Container\VersionEntryReader;
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Input\Root;
+use CommonDoc\Input\RootEntryReader;
+use CommonDoc\Input\RootReader;
 use CommonDoc\Input\Target;
+use CommonDoc\Input\VersionEntryReader;
 use CommonDocTest\Support\GitCheckout;
 use DirectoryIterator;
 use PHPUnit\Framework\Attributes\CoversClass;
