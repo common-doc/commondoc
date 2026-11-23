@@ -27,7 +27,7 @@ use Psr\Container\NotFoundExceptionInterface;
 /**
  * Serves the route every document URL is generated from.
  *
- * One instance is shared by the registrar that registers its pattern, the page factory
+ * One instance is shared by the provider that registers its pattern, the page factory
  * that generates a page's URL, and the link rewriter that generates a link's, so all three
  * agree on the pattern because there is only one.
  *

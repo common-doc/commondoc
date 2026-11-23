@@ -15,7 +15,7 @@ declare(strict_types=1);
 namespace CommonDocTest;
 
 use CommonDoc\Http\Middleware\NotServedMiddleware;
-use CommonDoc\Output\RouteRegistrar;
+use CommonDoc\Output\RouteProvider;
 use CommonDoc\View\Dropdown;
 use CommonDoc\View\Helper\ComponentMenu;
 use Laminas\Escaper\Escaper;
@@ -99,7 +99,7 @@ final class ComponentMenuTest extends TestCase
                     middleware: new NotServedMiddleware(),
                 )
                 ->setOptions([
-                    'navigation' => RouteRegistrar::COMPONENTS,
+                    'navigation' => RouteProvider::COMPONENTS,
                     'label'      => $component['label'],
                     'order'      => $order,
                 ]);

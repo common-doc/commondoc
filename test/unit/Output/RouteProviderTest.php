@@ -22,7 +22,7 @@ use CommonDoc\Input\Version;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\DocumentRoute;
 use CommonDoc\Output\NavigationScope;
-use CommonDoc\Output\RouteRegistrar;
+use CommonDoc\Output\RouteProvider;
 use Mezzio\Helper\UrlHelper;
 use Mezzio\Router\Exception\DuplicateRouteException;
 use Mezzio\Router\RouteCollector;
@@ -36,11 +36,11 @@ use Webware\Router\QueryParamRouter;
  * Registration is the one place a document becomes a route, so what the route carries
  * is asserted here rather than through a whole build.
  */
-#[CoversClass(RouteRegistrar::class)]
-#[CoversMethod(RouteRegistrar::class, '__construct')]
-#[CoversMethod(RouteRegistrar::class, 'labelFor')]
-#[CoversMethod(RouteRegistrar::class, 'register')]
-final class RouteRegistrarTest extends TestCase
+#[CoversClass(RouteProvider::class)]
+#[CoversMethod(RouteProvider::class, '__construct')]
+#[CoversMethod(RouteProvider::class, 'labelFor')]
+#[CoversMethod(RouteProvider::class, 'register')]
+final class RouteProviderTest extends TestCase
 {
     private ?QueryParamRouter $router = null;
 
@@ -74,8 +74,8 @@ final class RouteRegistrarTest extends TestCase
     {
         // A better label needs a source this build does not have yet, so every index page
         // is labelled `index` and that is stated rather than hidden.
-        static::assertSame('setup', RouteRegistrar::labelFor('guide/setup.md'));
-        static::assertSame('index', RouteRegistrar::labelFor('index.md'));
+        static::assertSame('setup', RouteProvider::labelFor('guide/setup.md'));
+        static::assertSame('index', RouteProvider::labelFor('index.md'));
     }
 
     #[Test]
@@ -130,7 +130,7 @@ final class RouteRegistrarTest extends TestCase
                 '/{path}'   => [],
                 '/comp/v1/' => ['order' => 0],
                 '/comp/v2/' => ['order' => 1],
-                '/comp/'    => ['navigation' => RouteRegistrar::COMPONENTS, 'label' => 'Comp', 'order' => 0],
+                '/comp/'    => ['navigation' => RouteProvider::COMPONENTS, 'label' => 'Comp', 'order' => 0],
             ],
             $options,
         );
@@ -196,11 +196,11 @@ final class RouteRegistrarTest extends TestCase
         );
     }
 
-    private function routes(RouteCollector $collector): RouteRegistrar
+    private function routes(RouteCollector $collector): RouteProvider
     {
         $root = new DocumentRoot('/');
 
-        return new RouteRegistrar(
+        return new RouteProvider(
             route     : new DocumentRoute($root, new UrlHelper($this->router ?? new QueryParamRouter())),
             collector : $collector,
             middleware: new NotServedMiddleware(),

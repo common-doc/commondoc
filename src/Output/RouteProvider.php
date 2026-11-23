@@ -29,17 +29,20 @@ use function strlen;
 use function substr;
 
 /**
- * Registers the routes a build generates URLs from and the menu reads.
+ * Provides the routes a build generates URLs from and the menu reads.
  *
  * A build dispatches nothing. First the one pattern route every URL is generated from,
  * then one route per document at the URL that pattern yields, so the navigation helper
- * has a tree to read whose every path was composed by the router. That is why registration
- * is its own collaborator rather than a step buried in the coordinator: it is the one place
- * a document becomes a route, and it is where a route tree grows.
+ * has a tree to read whose every path was composed by the router. That is why providing
+ * the routes is its own collaborator rather than a step buried in the coordinator: it is
+ * the one place a document becomes a route, and it is where a route tree grows.
+ *
+ * The name follows the ecosystem's, where a type that contributes routes to the routing
+ * table is a provider.
  *
  * @api
  */
-final readonly class RouteRegistrar
+final readonly class RouteProvider
 {
     private const string SEPARATOR = '/';
 

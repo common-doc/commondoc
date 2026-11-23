@@ -24,7 +24,7 @@ use CommonDoc\Input\Scan;
 use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\DocumentRoute;
-use CommonDoc\Output\RouteRegistrar;
+use CommonDoc\Output\RouteProvider;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\Record\Progress;
 use CommonDoc\View\Page;
@@ -369,7 +369,7 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
         }
 
         return new BuildSiteHandler(
-            routes    : new RouteRegistrar(
+            routes    : new RouteProvider(
                 route     : $route,
                 collector : $collector,
                 middleware: new NotServedMiddleware(),

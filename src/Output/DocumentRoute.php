@@ -29,7 +29,7 @@ use function sprintf;
  * value `DocumentRoot::pathOf()` answers substituted in. So the router composes every URL,
  * and nothing else prefixes a base path or appends a slash.
  *
- * The pattern route has to be registered before a URL is asked for. `RouteRegistrar` does
+ * The pattern route has to be registered before a URL is asked for. `RouteProvider` does
  * that at the start of a build, and a document asked for before it has no route to
  * generate from, which is a defect in the order of the build and is not answered with an
  * address composed here.
