@@ -34,7 +34,7 @@ conversion.
 
 A build that runs cleanly reports every path it wrote, or why it did not:
 
-```
+```text
 Wrote README.md
 Wrote guide/setup.md
 Failed guide/broken.md: The document "guide/broken.md" links to "missing.md", which resolves to "guide/missing.md" and is neither a document nor an asset the scan found.
@@ -45,7 +45,7 @@ link on the published site, so the build names it rather than publishing it.
 
 ## Layout of a source tree
 
-```
+```text
 docs/v1/
   README.md           -> /
   getting-started.md  -> /getting-started/

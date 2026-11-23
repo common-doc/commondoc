@@ -127,7 +127,7 @@ The helper returns a path; it does not copy anything. For
 published at that path. It already is, provided the theme directory sits inside
 the site's own source root:
 
-```
+```text
 theme/
   webware/
     css/theme.css
@@ -135,7 +135,7 @@ theme/
 
 A build of that root, measured:
 
-```
+```text
 Wrote theme/webware/css/theme.css
 ```
 
@@ -345,7 +345,7 @@ This package ships `templates/default/`, holding the four built-in templates. Th
 directory is named for the theme the resolver falls back to, so a site's own
 theme directory is a sibling:
 
-```
+```text
 templates/
   default/
     document.phtml
