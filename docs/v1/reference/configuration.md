@@ -138,7 +138,7 @@ not read, because the version mounts are what make the versions a set.
   too, named from its mount and with no version list, unless it is mounted at the site
   root. The home page is written only when no document publishes at the root, so it never
   replaces one, and `commondoc::home` can be replaced like any other template.
-- Every page's sidebar lists the released components, so a reader can move between them
+- Every page carries a components menu in its navbar, so a reader can move between them
   without going back to the home page.
 - Every page of a versioned component lists all of its versions, so a reader can move
   between them.

@@ -22,6 +22,7 @@ use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
+use CommonDoc\Container\ComponentMenuFactory;
 use CommonDoc\Container\ComponentPageMiddlewareFactory;
 use CommonDoc\Container\ConverterFactoryFactory;
 use CommonDoc\Container\DocumentRootFactory;
@@ -50,6 +51,7 @@ use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\DocumentRoute;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\HeadingListener;
+use CommonDoc\View\Helper\ComponentMenu;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use League\CommonMark\ConverterInterface;
@@ -155,9 +157,14 @@ use function dirname;
  * }
  * @type TemplateMap = array<non-empty-string, non-empty-string>
  * @type ViewConfig = array{map: TemplateMap, layout: non-empty-string}
+ * @type ViewHelperConfig = array{
+ *   aliases: array<non-empty-string, class-string>,
+ *   factories: array<class-string, class-string>,
+ * }
  * @type ProviderConfig = array{
  *   dependencies: Dependencies,
  *   templates: ViewConfig,
+ *   view_helpers: ViewHelperConfig,
  *   Webware\Console\ConsoleInterface: ConsoleConfig,
  *   Webware\MessageBus\MessageBusInterface: BusConfig,
  *   listeners: ListenerConfig,
@@ -304,12 +311,29 @@ final readonly class ConfigProvider
         ];
     }
 
+    /**
+     * The view helpers this package registers.
+     *
+     * A helper is registered by class name and given a short alias, because a template
+     * calls it by alias while a site overrides it by class name in `view_helpers`.
+     *
+     * @return ViewHelperConfig
+     */
+    public function getViewHelpers(): array
+    {
+        return [
+            'aliases'   => ['componentMenu' => ComponentMenu::class],
+            'factories' => [ComponentMenu::class => ComponentMenuFactory::class],
+        ];
+    }
+
     /** @return ProviderConfig */
     public function __invoke(): array
     {
         return [
             'dependencies'                => $this->getDependencies(),
             'templates'                   => $this->getViewConfig(),
+            'view_helpers'                => $this->getViewHelpers(),
             ConsoleInterface::class       => $this->getConsoleConfig(),
             MessageBusInterface::class    => $this->getBusConfig(),
             EventProvider::LISTENER_KEY   => $this->getListenerConfig(),

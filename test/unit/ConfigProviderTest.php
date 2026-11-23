@@ -23,6 +23,7 @@ use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
 use CommonDoc\Container\CommandPreHandleListenerFactory;
+use CommonDoc\Container\ComponentMenuFactory;
 use CommonDoc\Container\ComponentPageMiddlewareFactory;
 use CommonDoc\Container\ConverterFactoryFactory;
 use CommonDoc\Container\DocumentRootFactory;
@@ -52,6 +53,7 @@ use CommonDoc\Output\DocumentRoute;
 use CommonDoc\SiteConfig;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\HeadingListener;
+use CommonDoc\View\Helper\ComponentMenu;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
 use League\CommonMark\ConverterInterface;
@@ -85,6 +87,7 @@ use function substr;
 #[CoversMethod(ConfigProvider::class, 'getExtensions')]
 #[CoversMethod(ConfigProvider::class, 'getListenerConfig')]
 #[CoversMethod(ConfigProvider::class, 'getViewConfig')]
+#[CoversMethod(ConfigProvider::class, 'getViewHelpers')]
 final class ConfigProviderTest extends TestCase
 {
     #[Test]
@@ -96,6 +99,7 @@ final class ConfigProviderTest extends TestCase
             [
                 'dependencies'                => $provider->getDependencies(),
                 'templates'                   => $provider->getViewConfig(),
+                'view_helpers'                => $provider->getViewHelpers(),
                 ConsoleInterface::class       => $provider->getConsoleConfig(),
                 MessageBusInterface::class    => $provider->getBusConfig(),
                 EventProvider::LISTENER_KEY   => $provider->getListenerConfig(),
@@ -243,6 +247,15 @@ final class ConfigProviderTest extends TestCase
             ],
             $dependencies['factories'],
         );
+    }
+
+    #[Test]
+    public function registersTheComponentsMenuUnderItsAlias(): void
+    {
+        $helpers = new ConfigProvider()->getViewHelpers();
+
+        static::assertSame(['componentMenu' => ComponentMenu::class], $helpers['aliases']);
+        static::assertSame([ComponentMenu::class => ComponentMenuFactory::class], $helpers['factories']);
     }
 
     #[Test]

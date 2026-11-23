@@ -212,7 +212,8 @@ Both escape what they are given, so neither wants a hand-escaped address.
 The built-in layout is Bootstrap 5.3 from a pinned CDN version with integrity hashes, with Bootstrap Icons. Resources are queued through the Laminas head helpers (`headMeta`, `headLink`, `headScript`, `headStyle`, `inlineScript`). The layout prepends its own and a replacement page template appends, so order does not depend on which template ran first.
 
 - **Dark and light mode.** Bootstrap styles itself from `data-bs-theme` on the root element. A script in the head sets it from the reader's saved choice, or from the operating system when there is none, before the stylesheet is requested, so the first paint is in the right theme. The toggle in the navbar rewrites the attribute and saves the choice in `localStorage`. Every colour is a CSS variable, so switching never reloads or flashes.
-- **Layout.** A navbar with the toggle, a sidebar holding the menu, and the document beside it.
+- **Layout.** A navbar with the components menu and the toggle, a sidebar holding the page
+  menu, and the document beside it.
 - **Admonitions.** The `AdmonitionExtension` writes this markup from a GitHub alert (`> [!WARNING]`, see [Extensions](extensions.md#admonitions)), and the theme styles it. An admonition is an alert with a title:
 
 ```html
@@ -272,18 +273,28 @@ the browser. There is no server and nothing to configure.
 
 ## Navigation
 
-The built-in layout's sidebar has two menus, both rendered with the `navigation` view helper:
+The built-in layout has a components menu in the navbar and a pages menu in the sidebar,
+both rendered with the `navigation` view helper:
 
 ```php
-<?= $this->navigation(\CommonDoc\Output\RouteRegistrar::COMPONENTS)->menu() ?>
+<?= $this->componentMenu() ?>
 <?= $this->navigation($scope)->menu() ?>
 ```
 
 - **Components.** One link for each released component, at the component's own address,
-  which redirects to its newest version. It is the same on every page, so a reader can
-  move from one component to another without going back to the home page. It is omitted
-  when the site has no released components. Components that are not released versions
-  are not listed; see [Not settled yet](#not-settled-yet).
+  which redirects to its newest version. It is a dropdown beside the brand rather than a
+  block in the sidebar, because the list is identical on every page and would otherwise
+  spend the sidebar's height saying the same thing. The button names the component being
+  read, and that item is marked, which the browser decides from the address; a static page
+  has no request to match, so nothing is marked at build time. It is omitted when the site
+  has no released components. Components that are not released versions are not listed;
+  see [Not settled yet](#not-settled-yet).
+
+  `componentMenu` is this package's own helper, registered in `view_helpers` under that
+  alias and under `CommonDoc\View\Helper\ComponentMenu`. A site replaces either the alias
+  or the class to change the menu's markup without touching the layout, and the helper
+  takes the button's label as its only argument. The links it renders are the routes the
+  build registered, so it repeats no label and no address.
 - **Pages.** The pages of the component and version being read, and no others. Each root
   gets a menu of its own, named from its mount by `NavigationScope`, so a page lists
   `message-bus` v2 and not every version of everything. The document template hands its
