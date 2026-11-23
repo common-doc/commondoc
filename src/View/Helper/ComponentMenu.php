@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace CommonDoc\View\Helper;
 
-use CommonDoc\Output\RouteRegistrar;
+use CommonDoc\Output\RouteProvider;
 use CommonDoc\View\Dropdown;
 use Laminas\View\Helper\HelperInterface;
 use Mezzio\Router\Exception\RuntimeException;
@@ -67,7 +67,7 @@ final readonly class ComponentMenu implements HelperInterface
      */
     public function __invoke(string $label = 'Components'): string
     {
-        $items = $this->navigation->__invoke(RouteRegistrar::COMPONENTS)->getItems();
+        $items = $this->navigation->__invoke(RouteProvider::COMPONENTS)->getItems();
 
         if ([] === $items) {
             return '';

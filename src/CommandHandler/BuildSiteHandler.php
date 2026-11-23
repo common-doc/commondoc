@@ -21,7 +21,7 @@ use CommonDoc\Exception\LogicException;
 use CommonDoc\Input\Scan;
 use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoute;
-use CommonDoc\Output\RouteRegistrar;
+use CommonDoc\Output\RouteProvider;
 use CommonDoc\Record\BuildRecord;
 use CommonDoc\Record\Progress;
 use CommonDoc\Record\Reason;
@@ -86,7 +86,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
      *        Builds the page for one document. Called once per document.
      */
     public function __construct(
-        private RouteRegistrar $routes,
+        private RouteProvider $routes,
         private DocumentRoute $route,
         private PageContext $context,
         private Closure $converters,
@@ -211,7 +211,7 @@ final readonly class BuildSiteHandler implements CommandHandlerInterface
     ): void {
         $this->context->set(($this->pages)(
             localPath     : $document,
-            label         : RouteRegistrar::labelFor($document),
+            label         : RouteProvider::labelFor($document),
             source        : $scan->ownerOf($document),
             repositoryPath: $scan->repositoryPathOf($document),
         ));

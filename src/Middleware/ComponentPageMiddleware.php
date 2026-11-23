@@ -33,7 +33,6 @@ use Webware\MessageBus\MiddlewareInterface;
 use Webware\MessageBus\PipelineHandlerInterface;
 use Webware\MessageBus\ResultInterface;
 
-use function in_array;
 use function rtrim;
 use function sprintf;
 
@@ -137,8 +136,18 @@ final readonly class ComponentPageMiddleware implements MiddlewareInterface
 
         $home = $this->route->file(localPath: self::INDEX);
 
-        if ([] === $cards || in_array(self::INDEX, $command->getScan()->documents, strict: true)) {
+        if ([] === $cards) {
             return;
+        }
+
+        // A document that publishes at the site root is the home page, so the cards would
+        // replace it. Which name that document has is not decided here: `file()` folds every
+        // directory index to the same output, so asking it covers README.md, index.md and
+        // anything else the fold learns to accept.
+        foreach ($command->getScan()->documents as $document) {
+            if ($home === $this->route->file(localPath: $document)) {
+                return;
+            }
         }
 
         FileWriter::writeTree(

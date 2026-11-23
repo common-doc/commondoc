@@ -93,7 +93,7 @@ final readonly class PageFactoryFactory implements FactoryInterface
             ?Source $source = null,
             ?string $repositoryPath = null,
         ) use ($site, $route, $menu, $scope): Page {
-            // The page's route name is its URL: the registrar registers each document's
+            // The page's route name is its URL: the provider registers each document's
             // route at the URL the pattern yields and names it by that path.
             $url = $route->url($localPath);
 

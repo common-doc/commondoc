@@ -29,17 +29,20 @@ use function strlen;
 use function substr;
 
 /**
- * Registers the routes a build generates URLs from and the menu reads.
+ * Provides the routes a build generates URLs from and the menu reads.
  *
  * A build dispatches nothing. First the one pattern route every URL is generated from,
  * then one route per document at the URL that pattern yields, so the navigation helper
- * has a tree to read whose every path was composed by the router. That is why registration
- * is its own collaborator rather than a step buried in the coordinator: it is the one place
- * a document becomes a route, and it is where a route tree grows.
+ * has a tree to read whose every path was composed by the router. That is why providing
+ * the routes is its own collaborator rather than a step buried in the coordinator: it is
+ * the one place a document becomes a route, and it is where a route tree grows.
+ *
+ * The name follows the ecosystem's, where a type that contributes routes to the routing
+ * table is a provider.
  *
  * @api
  */
-final readonly class RouteRegistrar
+final readonly class RouteProvider
 {
     private const string SEPARATOR = '/';
 
@@ -114,6 +117,16 @@ final readonly class RouteRegistrar
         $order = 0;
 
         foreach ($documents as $document) {
+            $options = ['order' => $order];
+
+            // A directory's index is that directory's landing page, addressed by the
+            // directory itself. Listing it beside the directory's pages would show one place
+            // twice, so its route is registered for links and kept out of the menu.
+            if (! $this->route->isIndex($document)) {
+                $options['navigation'] = $scope->of($document);
+                $options['label']      = self::labelFor($document);
+            }
+
             // `route()` rather than `get()`: these routes exist to be generated from and
             // read by the navigation helper, and are never dispatched, so the method they
             // accept is meaningless. It matters because the router derives the name from
@@ -124,11 +137,7 @@ final readonly class RouteRegistrar
                     path      : $this->route->url($document),
                     middleware: $this->middleware,
                 )
-                ->setOptions([
-                    'navigation' => $scope->of($document),
-                    'label'      => self::labelFor($document),
-                    'order'      => $order,
-                ]);
+                ->setOptions($options);
 
             $order++;
         }

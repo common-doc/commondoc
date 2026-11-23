@@ -29,7 +29,7 @@ use function sprintf;
  * value `DocumentRoot::pathOf()` answers substituted in. So the router composes every URL,
  * and nothing else prefixes a base path or appends a slash.
  *
- * The pattern route has to be registered before a URL is asked for. `RouteRegistrar` does
+ * The pattern route has to be registered before a URL is asked for. `RouteProvider` does
  * that at the start of a build, and a document asked for before it has no route to
  * generate from, which is a defect in the order of the build and is not answered with an
  * address composed here.
@@ -58,6 +58,20 @@ final readonly class DocumentRoute
     public function file(string $localPath): string
     {
         return $this->root->file($localPath);
+    }
+
+    /**
+     * Whether a global path is the index of its own directory.
+     *
+     * A directory's index is that directory's landing page: it is addressed by the directory
+     * itself, so listing it again beside the directory's other pages would show the same
+     * place twice, once as the group and once as a member of it.
+     *
+     * @throws InvalidArgumentException When the local path does not name a document
+     */
+    public function isIndex(string $localPath): bool
+    {
+        return $this->root->isIndex($localPath);
     }
 
     /**

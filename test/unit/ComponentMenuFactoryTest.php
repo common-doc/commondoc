@@ -16,7 +16,7 @@ namespace CommonDocTest;
 
 use CommonDoc\Container\ComponentMenuFactory;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
-use CommonDoc\Output\RouteRegistrar;
+use CommonDoc\Output\RouteProvider;
 use CommonDoc\View\Helper\ComponentMenu;
 use Laminas\Escaper\Escaper;
 use Laminas\Escaper\EscaperInterface;
@@ -69,7 +69,7 @@ final class ComponentMenuFactoryTest extends TestCase
                 middleware: new NotServedMiddleware(),
             )
             ->setOptions([
-                'navigation' => RouteRegistrar::COMPONENTS,
+                'navigation' => RouteProvider::COMPONENTS,
                 'label'      => 'Comp',
                 'order'      => 0,
             ]);

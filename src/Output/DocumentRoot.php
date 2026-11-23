@@ -45,11 +45,6 @@ final readonly class DocumentRoot
 {
     private const string DOCUMENT_PATTERN = '~^[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$~';
 
-    private const string INDEX = 'index';
-
-    /** The segment `directoryOf()` strips, spelled once so no offset is counted by hand. */
-    private const string NESTED_INDEX = '/index';
-
     /** @var non-empty-string */
     public string $basePath;
 
@@ -63,29 +58,6 @@ final readonly class DocumentRoot
         public PathType $pathType = PathType::Directory,
     ) {
         $this->basePath = self::prefix($basePath);
-    }
-
-    /**
-     * The directory a document is served from, relative to the root.
-     *
-     * A document named `index` is the index of its own directory rather than a
-     * directory of its own, so `guide/index.md` becomes `guide` and not
-     * `guide/index`. That single rule is what keeps a published path and the file
-     * serving it in agreement.
-     */
-    private static function directoryOf(string $relative): string
-    {
-        if (self::INDEX === $relative) {
-            return '';
-        }
-
-        return str_ends_with($relative, self::NESTED_INDEX)
-            ? substr(
-                string: $relative,
-                offset: 0,
-                length: -strlen(self::NESTED_INDEX),
-            )
-            : $relative;
     }
 
     /**
@@ -187,15 +159,17 @@ final readonly class DocumentRoot
      */
     public function file(string $localPath): string
     {
-        $relative = self::relativeOf($localPath);
+        return new DocumentPath($this->pathType)->file(self::relativeOf($localPath));
+    }
 
-        if (PathType::File === $this->pathType) {
-            return "{$relative}.html";
-        }
-
-        $directory = self::directoryOf($relative);
-
-        return '' === $directory ? self::INDEX . '.html' : "{$directory}/" . self::INDEX . '.html';
+    /**
+     * Whether a local path is the index of its own directory.
+     *
+     * @throws InvalidArgumentException When the local path does not name a document
+     */
+    public function isIndex(string $localPath): bool
+    {
+        return new DocumentPath($this->pathType)->isIndex(self::relativeOf($localPath));
     }
 
     /**
@@ -203,21 +177,14 @@ final readonly class DocumentRoot
      *
      * Not a URL: it carries no base path and no leading slash, and it is empty for the root
      * document. The router composes the URL from the route's own pattern and this value, so
-     * the fold lives here, beside `file()`, and nowhere else. The two share one rule, and
-     * asking one type is what keeps an output file and the path that serves it together.
+     * the fold lives beside `file()`, in `DocumentPath`, and nowhere else: the two answers
+     * are produced together, which is what keeps an output file and the path that serves it
+     * in agreement.
      *
      * @throws InvalidArgumentException When the local path does not name a document
      */
     public function pathOf(string $localPath): string
     {
-        $relative = self::relativeOf($localPath);
-
-        if (PathType::File === $this->pathType) {
-            return "{$relative}.html";
-        }
-
-        $directory = self::directoryOf($relative);
-
-        return '' === $directory ? '' : "{$directory}/";
+        return new DocumentPath($this->pathType)->pathOf(self::relativeOf($localPath));
     }
 }

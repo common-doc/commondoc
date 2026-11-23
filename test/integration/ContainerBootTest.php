@@ -25,6 +25,7 @@ use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\AssetCopyMiddleware;
 use CommonDoc\Middleware\ComponentPageMiddleware;
+use CommonDoc\Middleware\OutputClearingMiddleware;
 use CommonDoc\Middleware\SearchIndexMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Record\BuildRecord;
@@ -246,6 +247,7 @@ final class ContainerBootTest extends TestCase
         static::assertSame(
             [
                 CommandPreHandleMiddleware::class,
+                OutputClearingMiddleware::class,
                 SourceLoadingMiddleware::class,
                 AssetCopyMiddleware::class,
                 ComponentPageMiddleware::class,

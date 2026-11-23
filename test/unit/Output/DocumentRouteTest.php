@@ -29,6 +29,8 @@ use Webware\Router\QueryParamRouter;
 
 #[CoversClass(DocumentRoute::class)]
 #[CoversMethod(DocumentRoute::class, '__construct')]
+#[CoversMethod(DocumentRoute::class, 'file')]
+#[CoversMethod(DocumentRoute::class, 'isIndex')]
 #[CoversMethod(DocumentRoute::class, 'pattern')]
 #[CoversMethod(DocumentRoute::class, 'url')]
 final class DocumentRouteTest extends TestCase
@@ -75,6 +77,21 @@ final class DocumentRouteTest extends TestCase
         $this->expectException(RouterException::class);
 
         new DocumentRoute(new DocumentRoot('/'), new UrlHelper(new QueryParamRouter()))->url('index.md');
+    }
+
+    #[Test]
+    public function reportsWhetherADocumentIsItsDirectorysIndex(): void
+    {
+        $subject = $this->subject('/');
+
+        static::assertTrue($subject->isIndex('guide/README.md'));
+        static::assertFalse($subject->isIndex('guide/setup.md'));
+    }
+
+    #[Test]
+    public function writesADocumentToTheFileTheRootNames(): void
+    {
+        static::assertSame('guide/setup/index.html', $this->subject('/')->file('guide/setup.md'));
     }
 
     private function subject(string $basePath, PathType $type = PathType::Directory): DocumentRoute

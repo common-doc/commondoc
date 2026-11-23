@@ -33,6 +33,7 @@ use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\HeadingListenerFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
+use CommonDoc\Container\OutputClearingMiddlewareFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\Container\PageFactoryFactory;
@@ -46,6 +47,7 @@ use CommonDoc\Listener\CommandPostHandleListener;
 use CommonDoc\Listener\CommandPreHandleListener;
 use CommonDoc\Middleware\AssetCopyMiddleware;
 use CommonDoc\Middleware\ComponentPageMiddleware;
+use CommonDoc\Middleware\OutputClearingMiddleware;
 use CommonDoc\Middleware\SearchIndexMiddleware;
 use CommonDoc\Middleware\SourceLoadingMiddleware;
 use CommonDoc\Output\DocumentRoot;
@@ -184,7 +186,14 @@ final readonly class ConfigProvider
                 BuildSiteCommand::class => BuildSiteHandler::class,
             ],
             MessageBusConfigProvider::MIDDLEWARE_PIPELINE_KEY => [
-                // The scan first: it answers which files exist, and every phase
+                // Clearing first, because everything below it writes: the scan only reads,
+                // but the assets, the documents, the pages that belong to no document and the
+                // search index all land in a directory that has to be empty first.
+                [
+                    'middleware' => OutputClearingMiddleware::class,
+                    'priority'   => 60,
+                ],
+                // The scan next: it answers which files exist, and every phase
                 // below it reads that answer rather than walking the tree itself.
                 [
                     'middleware' => SourceLoadingMiddleware::class,
@@ -252,6 +261,7 @@ final readonly class ConfigProvider
                 SiteConfig::class                => SiteConfigFactory::class,
                 AssetCopyMiddleware::class       => AssetCopyMiddlewareFactory::class,
                 ComponentPageMiddleware::class   => ComponentPageMiddlewareFactory::class,
+                OutputClearingMiddleware::class  => OutputClearingMiddlewareFactory::class,
                 SearchIndexMiddleware::class     => SearchIndexMiddlewareFactory::class,
                 SourceLoadingMiddleware::class   => SourceLoadingMiddlewareFactory::class,
             ],

@@ -22,7 +22,7 @@ conversion.
 ## Where to go next
 
 - [Getting started](getting-started.md) explains how to run a build.
-- [Concepts](concepts/index.md) covers the two ideas the whole tool rests on.
+- [Concepts](concepts/README.md) covers the two ideas the whole tool rests on.
 - [Site configuration](reference/configuration.md) covers composition, mounts and targets.
 - [Theme and templates](reference/theme.md) covers how a site supplies its own
   templates and assets.
@@ -35,7 +35,7 @@ conversion.
 A build that runs cleanly reports every path it wrote, or why it did not:
 
 ```
-Wrote index.md
+Wrote README.md
 Wrote guide/setup.md
 Failed guide/broken.md: The document "guide/broken.md" links to "missing.md", which resolves to "guide/missing.md" and is neither a document nor an asset the scan found.
 ```
@@ -47,10 +47,10 @@ link on the published site, so the build names it rather than publishing it.
 
 ```
 docs/v1/
-  index.md            -> /
+  README.md           -> /
   getting-started.md  -> /getting-started/
   concepts/
-    index.md          -> /concepts/
+    README.md         -> /concepts/
     document.md       -> /concepts/document/
   assets/
     site.css          -> /assets/site.css

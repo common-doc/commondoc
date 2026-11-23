@@ -13,16 +13,24 @@ mounted at the base path rather than containing it.
 
 ## The index rule
 
-A document named `index` is the index of its own directory, not a directory of
-its own. One rule produces every case:
+A document named for the directory index is the index of its own directory, not a
+directory of its own. `README.md` is that name, and `index.md` is accepted as well,
+because a tag that was already cut carries whichever name it was cut with. One rule
+produces every case:
 
 | Source path | Published path | Output file |
 | --- | --- | --- |
-| `index.md` | `/` | `index.html` |
+| `README.md` | `/` | `index.html` |
+| `guide/README.md` | `/guide/` | `guide/index.html` |
 | `guide/index.md` | `/guide/` | `guide/index.html` |
 | `guide/setup.md` | `/guide/setup/` | `guide/setup/index.html` |
 
-Without the rule, `guide/index.md` would publish at `/guide/index/` and the
+The name matters because GitHub renders a directory's `README.md` and ignores an
+`index.md` entirely. A repository that names its landing page `README.md` is readable
+where people browse it and publishes the same page as its directory index, so there is
+one landing file rather than two files that have to be kept in step.
+
+Without the rule, `guide/README.md` would publish at `/guide/README/` and the
 directory would have no index at all.
 
 ## Two path types
