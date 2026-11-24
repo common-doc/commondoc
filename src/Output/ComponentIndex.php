@@ -29,6 +29,10 @@ use function trim;
  * its mount, unless it is mounted at the site root: that root is the site itself and
  * there is nothing to link to that the site's own address does not already do.
  *
+ * A root holding no document is not a component. It is still read, and everything in it is
+ * still copied, but there is no page to send a reader to, so a card for it would be a dead
+ * link: the theme directory mounted at `/theme/` is the case this exists for.
+ *
  * @type Entry = array{title: string, index: non-empty-string, target: non-empty-string, latest: string, segment: ?string}
  *
  * @api
@@ -75,6 +79,13 @@ final readonly class ComponentIndex
             $name = trim($root->mount, characters: '/');
 
             if (null !== $root->release || '' === $name) {
+                continue;
+            }
+
+            // A root holding no document is a directory of files a site publishes, such as the
+            // theme directory mounted at `/theme/`, and a card for it would link to a page that
+            // does not exist. It is still read and copied; it is simply not a component.
+            if ([] === $root->documents()) {
                 continue;
             }
 

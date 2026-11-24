@@ -153,7 +153,9 @@ a root, or sit inside one, and where that root is mounted decides the published 
   ```
 
   Measured: `theme/site/css/site.css` is written to `/theme/site/css/site.css`, which is the
-  value `$this->asset('site.css')` returns for the `site` theme.
+  value `$this->asset('site.css')` returns for the `site` theme. That root holds no document,
+  so it is published but not listed: the home page and the components menu name components,
+  and a root with nothing to read has no page to send a reader to.
 
 - **A site whose own pages are at `/`** cannot also mount `/theme/`: the two mounts overlap, and
   the build refuses both in the message. The theme directory sits inside that root instead:
