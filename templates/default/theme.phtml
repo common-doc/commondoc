@@ -1,0 +1,292 @@
+<?php
+
+/**
+ * This file is part of the commondoc package.
+ *
+ * Copyright (c) 2026 Joey Smith <jsmith@webinertia.net>
+ * and contributors.
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ *
+ * The document theme: Asciidoctor's default rendering, expressed as Bootstrap 5.3 variables
+ * and rules. Bootstrap supplies the components and the colour modes; this file supplies the
+ * type scale, the colours and the block treatments that make a page read like Asciidoctor's
+ * default stylesheet.
+ *
+ * A site replaces it by naming `commondoc::theme` under `theme.themes`, the same way it
+ * replaces the layout or the body template.
+ *
+ * Every colour is a variable with a light and a dark value, so the toggle in the navbar
+ * recolours the page without a reload and without a second stylesheet.
+ *
+ * @var string $content
+ */
+?>
+    :root {
+        --cd-serif: "Noto Serif", "DejaVu Serif", Georgia, serif;
+        --cd-sans: "Open Sans", "DejaVu Sans", system-ui, sans-serif;
+        --cd-mono: "Droid Sans Mono", "DejaVu Sans Mono", ui-monospace, monospace;
+        --cd-heading: #ba3925;
+        --cd-heading-muted: #7a2518;
+        --cd-rule: #dddddf;
+        --cd-code-bg: #f7f7f8;
+        --cd-code-border: #dedede;
+        --cd-table-head: #f7f8f7;
+        --cd-quote: rgba(0, 0, 0, .85);
+        --cd-muted: rgba(0, 0, 0, .6);
+    }
+
+    [data-bs-theme="dark"] {
+        --cd-heading: #e5827a;
+        --cd-heading-muted: #efa49b;
+        --cd-rule: #3a3a41;
+        --cd-code-bg: #26262b;
+        --cd-code-border: #3a3a41;
+        --cd-table-head: #2c2c32;
+        --cd-quote: rgba(255, 255, 255, .87);
+        --cd-muted: rgba(255, 255, 255, .65);
+    }
+
+    .document {
+        font-family: var(--cd-serif);
+        font-size: 1rem;
+        line-height: 1.6;
+        color: var(--bs-body-color);
+    }
+
+    .document p,
+    .document ul,
+    .document ol,
+    .document dl,
+    .document pre,
+    .document blockquote,
+    .document table {
+        margin-bottom: 1.25rem;
+    }
+
+    .document p {
+        line-height: 1.6;
+    }
+
+    .document h1,
+    .document h2,
+    .document h3,
+    .document h4,
+    .document h5,
+    .document h6 {
+        font-family: var(--cd-sans);
+        font-weight: 300;
+        font-style: normal;
+        color: var(--cd-heading);
+        line-height: 1.2;
+        word-spacing: -.05em;
+        margin-top: 1em;
+        margin-bottom: .5em;
+    }
+
+    .document h1 { font-size: 2.75rem; }
+    .document h2 { font-size: 2.3125rem; }
+    .document h3 { font-size: 1.6875rem; }
+    .document h4 { font-size: 1.4375rem; }
+    .document h5 { font-size: 1.125rem; }
+    .document h6 { font-size: 1rem; }
+
+    .document h1 strong,
+    .document h2 strong,
+    .document h3 strong {
+        font-weight: 400;
+    }
+
+    /* The document's own title reads as text, not as a section heading. */
+    .document > h1:first-child {
+        color: var(--cd-quote);
+        border-bottom: 1px solid var(--cd-rule);
+        padding-bottom: .5rem;
+    }
+
+    /* The anchor sits in the margin and appears when the heading is pointed at. */
+    .document .heading-permalink {
+        float: left;
+        width: 1.5ex;
+        margin-left: -1.5ex;
+        text-align: center;
+        font-weight: 400;
+        text-decoration: none;
+        opacity: 0;
+    }
+
+    .document h1:hover .heading-permalink,
+    .document h2:hover .heading-permalink,
+    .document h3:hover .heading-permalink,
+    .document h4:hover .heading-permalink,
+    .document h5:hover .heading-permalink,
+    .document h6:hover .heading-permalink,
+    .document .heading-permalink:focus {
+        opacity: 1;
+    }
+
+    .document :not(pre) > code {
+        font-family: var(--cd-mono);
+        font-size: .9375em;
+        letter-spacing: 0;
+        word-spacing: -.15em;
+        padding: .1em .5ex;
+        color: var(--bs-body-color);
+        background: var(--cd-code-bg);
+        border-radius: 4px;
+    }
+
+    .document pre {
+        font-family: var(--cd-mono);
+        font-size: .90625rem;
+        line-height: 1.45;
+        color: var(--cd-quote);
+        background: var(--cd-code-bg);
+        border: 1px solid var(--cd-code-border);
+        border-radius: 4px;
+        padding: 1rem;
+        overflow-x: auto;
+    }
+
+    .document pre code,
+    .document pre code.hljs {
+        font-size: inherit;
+        line-height: inherit;
+        color: inherit;
+        background: transparent;
+        padding: 0;
+    }
+
+    .document blockquote {
+        margin: 0 0 1.25rem;
+        padding: .5625rem 1.25rem 0 1.1875rem;
+        border-left: 1px solid var(--cd-rule);
+        color: var(--cd-quote);
+        line-height: 1.6;
+    }
+
+    .document blockquote > :last-child {
+        margin-bottom: 0;
+    }
+
+    .document table {
+        width: 100%;
+        background: var(--bs-body-bg);
+        border: 1px solid var(--cd-code-border);
+    }
+
+    .document th,
+    .document td {
+        padding: .5625rem .625rem;
+        line-height: 1.6;
+        text-align: left;
+        border: 1px solid var(--cd-code-border);
+    }
+
+    .document thead th,
+    .document tfoot th {
+        background: var(--cd-table-head);
+        font-weight: 700;
+    }
+
+    .document tbody th {
+        background: var(--cd-table-head);
+    }
+
+    /* A table that carries a title is a captioned block, so the caption reads like one. */
+    .document caption {
+        color: var(--cd-heading-muted);
+        font-family: var(--cd-serif);
+        font-style: italic;
+        font-weight: 400;
+        text-align: left;
+        padding-bottom: .5rem;
+    }
+
+    /*
+     * An admonition is a left rule with a label, not a filled alert: the stock stylesheet
+     * keeps the body text muted and lets the label carry the colour.
+     */
+    .document .admonition {
+        background: transparent;
+        border: 0;
+        border-left: 3px solid var(--bs-alert-border-color);
+        border-radius: 0;
+        padding: .5rem 0 0 1rem;
+        color: var(--cd-muted);
+    }
+
+    .document .admonition > :last-child {
+        margin-bottom: 0;
+    }
+
+    .document .admonition-title {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        margin-bottom: .5rem;
+        font-family: var(--cd-sans);
+        font-size: .875rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+        color: var(--bs-alert-color);
+    }
+
+    .document .admonition-important {
+        --bs-alert-color: var(--bs-purple-text-emphasis, #3d1a6e);
+        --bs-alert-border-color: var(--bs-purple-border-subtle, #c5b3e6);
+    }
+
+    [data-bs-theme="dark"] .document .admonition-important {
+        --bs-alert-color: #d3b8f0;
+        --bs-alert-border-color: #4a2f73;
+    }
+
+    /* The contents list: sans, no bullets, and a rule under it as the stock theme has. */
+    .document .table-of-contents {
+        font-family: var(--cd-sans);
+        list-style: none;
+        margin: 0 0 1.25rem;
+        padding: 0 0 .5rem;
+        border-bottom: 1px solid var(--cd-rule);
+    }
+
+    .document .table-of-contents ul {
+        list-style: none;
+        margin: .5rem 0 0;
+        padding-left: 1rem;
+    }
+
+    .document .table-of-contents li {
+        line-height: 1.3334;
+        margin-top: .3334em;
+    }
+
+    .document .table-of-contents a {
+        text-decoration: none;
+    }
+
+    .document .table-of-contents a:hover {
+        text-decoration: underline;
+    }
+
+    .document img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .document hr {
+        border: 0;
+        border-top: 1px solid var(--cd-rule);
+        margin: 1.25rem 0;
+    }
+
+    @media (max-width: 767.98px) {
+        .document h1 { font-size: 2.125rem; }
+        .document h2 { font-size: 1.6875rem; }
+        .document h3 { font-size: 1.375rem; }
+        .document h4 { font-size: 1.125rem; }
+        .document pre { font-size: .8125rem; }
+    }

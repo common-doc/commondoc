@@ -63,26 +63,7 @@ $this->headStyle()->appendStyle(<<<'CSS'
     .theme-toggle .when-dark { display: none; }
     [data-bs-theme="dark"] .theme-toggle .when-dark { display: inline; }
     [data-bs-theme="dark"] .theme-toggle .when-light { display: none; }
-    .document img { max-width: 100%; height: auto; }
-    .document pre { padding: 1rem; border-radius: var(--bs-border-radius); background: var(--bs-tertiary-bg); }
-    .document pre code.hljs { padding: 0; background: transparent; }
     .mermaid-diagram { text-align: center; margin: 1rem 0; }
-    .document table { width: 100%; margin-bottom: 1rem; }
-    .document th, .document td { padding: .375rem .75rem; border: 1px solid var(--bs-border-color); }
-    /* An admonition is an alert with a title. Each type picks one alert colour, and
-       `important` borrows Bootstrap's purple, which no alert variant provides. */
-    .admonition > :last-child { margin-bottom: 0; }
-    .admonition-title { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; font-weight: 600; }
-    .admonition-important {
-        --bs-alert-color: var(--bs-purple-text-emphasis, #3d1a6e);
-        --bs-alert-bg: var(--bs-purple-bg-subtle, #e2d9f3);
-        --bs-alert-border-color: var(--bs-purple-border-subtle, #c5b3e6);
-    }
-    [data-bs-theme="dark"] .admonition-important {
-        --bs-alert-color: #d3b8f0;
-        --bs-alert-bg: #2a1a40;
-        --bs-alert-border-color: #4a2f73;
-    }
     CSS);
 
 $this->inlineScript()
@@ -207,6 +188,7 @@ $this->inlineScript()
     <?= $this->headTitle('' === $project ? null : $project)->setSeparator(' | ') ?>
     <?= $this->headLink() ?>
     <?= $this->headStyle() ?>
+    <style><?= $this->partial('commondoc::theme') ?></style>
 </head>
 <body>
     <nav class="navbar border-bottom bg-body-tertiary">

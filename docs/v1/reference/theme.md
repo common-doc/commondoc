@@ -25,10 +25,17 @@ uses:
 | `commondoc::document` | One document's body |
 | `commondoc::layout` | The shell wrapped around every document |
 | `commondoc::redirect` | A component's own address, which redirects to its newest version |
+| `commondoc::home` | The generated home page of a composed site |
+| `commondoc::theme` | The stylesheet the layout renders into a `style` element |
 
-This package registers both in Laminas view's template map and sets
+This package registers them in Laminas view's template map and sets
 `templates.layout` to `commondoc::layout`, so a site with no theme configured gets
 the built-in templates from `templates/default/`.
+
+`commondoc::theme` is CSS, not markup, and it is the one template that is rendered inside a
+`style` element rather than as a page. It carries the Asciidoctor-style type scale and colour
+tokens, each with a light and a dark value, so the theme toggle recolours the page without a
+second request.
 
 ## Replacing a template
 

@@ -183,7 +183,7 @@ final class ConfigProviderTest extends TestCase
         $config = new ConfigProvider()->getViewConfig();
 
         static::assertSame(
-            ['commondoc::document', 'commondoc::home', 'commondoc::layout', 'commondoc::redirect'],
+            ['commondoc::document', 'commondoc::home', 'commondoc::layout', 'commondoc::redirect', 'commondoc::theme'],
             array_keys($config['map']),
         );
         static::assertSame('commondoc::layout', $config['layout']);

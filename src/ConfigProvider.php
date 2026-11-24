@@ -320,6 +320,7 @@ final readonly class ConfigProvider
                 'commondoc::home'     => dirname(__DIR__) . '/templates/default/home.phtml',
                 'commondoc::layout'   => dirname(__DIR__) . '/templates/default/layout.phtml',
                 'commondoc::redirect' => dirname(__DIR__) . '/templates/default/redirect.phtml',
+                'commondoc::theme'    => dirname(__DIR__) . '/templates/default/theme.phtml',
             ],
             'layout' => 'commondoc::layout',
         ];
