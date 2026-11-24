@@ -57,8 +57,10 @@ $this->headScript()->appendScript(<<<'JS'
 
 $this->headStyle()->appendStyle(<<<'CSS'
     .site-nav .list-group-item { padding: .3rem .5rem; }
-    /* The page being read, marked by the script because a built page has no request. */
-    .site-nav .list-group-item.active { background: var(--bs-tertiary-bg); color: var(--bs-emphasis-color); font-weight: 600; border-color: var(--bs-border-color); }
+    /* The page being read, marked by the script because a built page has no request. Its
+       colour is the theme's heading colour, so the row that is current reads at the same
+       weight as the title of the page it names. */
+    .site-nav .list-group-item.active { background: var(--bs-tertiary-bg); color: var(--cd-heading, var(--bs-emphasis-color)); font-weight: 600; border-color: var(--bs-border-color); }
     .theme-toggle .when-dark { display: none; }
     [data-bs-theme="dark"] .theme-toggle .when-dark { display: inline; }
     [data-bs-theme="dark"] .theme-toggle .when-light { display: none; }

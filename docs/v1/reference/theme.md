@@ -328,7 +328,8 @@ this package's own helpers:
   Which menu is listed is the one the page being converted names, which the helper reads from
   the build's page context, so the layout needs nothing handed to it; a document no root
   claims lists the base menu. The page being read is marked by the layout's script, not by
-  the build.
+  the build, in the theme's heading colour, so the current row reads at the weight of the
+  title it names.
 
   `pageMenu` is this package's own helper, registered in `view_helpers` under that alias and
   under `CommonDoc\View\Helper\PageMenu`, and it takes the heading above the list as its only
