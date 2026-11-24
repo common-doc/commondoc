@@ -237,8 +237,7 @@ The build also collects each document's headings as it parses it, as a level, a 
 a fragment. The fragment is the same value as the `id` above, so a heading found this way
 is a heading a link can reach. This is what lets a consumer name a section without
 building the site first and reading the HTML; it is available in process through
-`CommonDoc\View\PageContext::sections()` and is not yet handed to the layout, because
-nothing renders a per-page table of contents.
+`CommonDoc\View\PageContext::sections()`.
 
 ## Related
 

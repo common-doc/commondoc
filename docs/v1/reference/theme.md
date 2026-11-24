@@ -297,7 +297,7 @@ are this package's own helpers, and the sidebar's is the `navigation` view helpe
   read, and that item is marked, which the browser decides from the address; a static page
   has no request to match, so nothing is marked at build time. It is omitted when the site
   has no released components. Components that are not released versions are not listed;
-  see [Not settled yet](#not-settled-yet).
+  they get a card on the home page and no menu entry.
 
   `componentMenu` is this package's own helper, registered in `view_helpers` under that
   alias and under `CommonDoc\View\Helper\ComponentMenu`. A site replaces either the alias
@@ -370,21 +370,6 @@ templates/
 A site does not edit anything under `default/`. It adds its own directory beside it
 and states that directory in `theme.themes`, which is why the two can be upgraded
 independently.
-
-## Not settled yet
-
-These are known gaps rather than behaviour to rely on:
-
-- Components that are not released versions are not in the Components menu. A release
-  gets its own route at the component's address, but an unversioned component's index
-  page is already a document route, and a second route at that path would be refused as
-  a duplicate. They do get a card on the home page. Listing them would mean tagging that
-  existing route for both menus, which would show its label as `index` rather than the
-  component's name.
-- The home page is written only for a site with components. A site made of one root
-  mounted at `/` has none, because its own index page is the home page.
-- A per-page table of contents is not rendered. The headings are collected and
-  available in process, but nothing passes them to a template.
 
 ## Related
 

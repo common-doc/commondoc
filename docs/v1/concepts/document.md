@@ -24,19 +24,6 @@ still published.
 Paths come back sorted. Directory order differs between platforms, and a report
 that reordered itself between runs would be useless to diff.
 
-## Parsing
-
-Once the set is known, each document is read and converted. The conversion
-produces an abstract syntax tree, and everything downstream reads only that
-tree: the source string is gone by then. For CommonMark the tree is the
-document.
-
-The tree is an object graph of typed nodes. Every node has a class a renderer can
-key on, a position in a mutable structure, and a data bag for arbitrary values.
-That is what lets a site-specific concern ride on the tree without CommonMark
-learning the vocabulary: a value can be attached to a node, or a new node type
-can be declared along with its renderer.
-
 ## Links between documents
 
 A Markdown source refers to its neighbours the way a file system does, so a link

@@ -114,10 +114,6 @@ Each extension package is versioned and released independently, so it can track 
 commondoc release rather than move in lockstep with it. The constraint a site writes
 is on the extension package, not on this one.
 
-## Planned
-
-Nothing is planned that is not built. Extensions that are wanted but undecided are tracked in the repository's issues rather than here.
-
 ## Related
 
 - [Theme and templates](theme.md) covers how a site supplies its own templates
