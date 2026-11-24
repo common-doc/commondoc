@@ -65,7 +65,7 @@ return [
         'roots'        => [
             ['repository' => '.', 'mount' => '/'],
         ],
-        'projectName'  => 'commondoc',
+        'projectName'  => 'Common Doc',
         'projectSlug'  => 'commondoc',
         'versionLabel' => '',
     ],
