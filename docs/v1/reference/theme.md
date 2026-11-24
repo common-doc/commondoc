@@ -127,6 +127,15 @@ prefix.
 Names already in Laminas view's own `view_helper_config.asset.resource_map` are the
 base of the merged map, so a site that already declares assets there keeps working.
 
+One name is asked for by this package itself: `logo`, which the navbar renders as the
+site's brand. A theme that declares it puts a picture at the top left; a theme that does
+not gets the site's name as text instead. A second is asked for when the head is rendered:
+`favicon`, queued as a `link rel="icon"`. A theme that declares neither is unchanged, and
+nothing else about either is configured, because a picture only one theme could change would
+not be a theme's to set. Both are looked up through the `themeAsset` helper, which is the one
+place that turns a theme asset name into an address: it answers nothing for a name no theme
+declares, and it puts a root-relative answer under the base path.
+
 ### Publishing the files
 
 The helper returns a path and copies nothing. The asset pass is what writes the file, and
@@ -227,8 +236,21 @@ Both escape what they are given, so neither wants a hand-escaped address.
 The built-in layout is Bootstrap 5.3 from a pinned CDN version with integrity hashes, with Bootstrap Icons. Resources are queued through the Laminas head helpers (`headMeta`, `headLink`, `headScript`, `headStyle`, `inlineScript`). The layout prepends its own and a replacement page template appends, so order does not depend on which template ran first.
 
 - **Dark and light mode.** Bootstrap styles itself from `data-bs-theme` on the root element. A script in the head sets it from the reader's saved choice, or from the operating system when there is none, before the stylesheet is requested, so the first paint is in the right theme. The toggle in the navbar rewrites the attribute and saves the choice in `localStorage`. Every colour is a CSS variable, so switching never reloads or flashes.
-- **Layout.** A navbar with the components menu and the toggle, a sidebar holding the page
-  menu, the document beside it, and a footer at the bottom of the page.
+- **Layout.** A navbar with the brand, the components menu and the toggle, a sidebar holding
+  the page menu, the document beside it, and a footer at the bottom of the page.
+- **Brand.** The top left is one link home, showing the theme's `logo` asset when the active
+  theme declares one and otherwise the site's `projectName`, or `projectSlug` when no name is
+  stated. The `alt` text is that same name, so a reader who cannot see the picture is told
+  whose site this is. `brand` is this package's own helper, registered under that alias and
+  under `CommonDoc\View\Helper\Brand`, and it takes the asset name as its only argument. A
+  root-relative logo is emitted under the base path; a value already absolute is passed
+  through, since prefixing it would produce `/repo/https://...`.
+- **Favicon.** A theme that declares an asset named `favicon` gets it queued as
+  `link rel="icon"` through `headLink`, so the head keeps one order for every resource a
+  template adds. No `type` is written, because a browser sniffs the format and the theme may
+  serve an SVG, an ICO or a PNG. `favicon` is the helper, registered under that alias and
+  under `CommonDoc\View\Helper\Favicon`, and it takes the asset name as its only argument. It
+  is called in the head, before the layout renders `headLink`, and returns nothing.
 - **Admonitions.** The `AdmonitionExtension` writes this markup from a GitHub alert (`> [!WARNING]`, see [Extensions](extensions.md#admonitions)), and the theme styles it. An admonition is an alert with a title:
 
 ```html

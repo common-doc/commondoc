@@ -18,6 +18,7 @@ use CommonDoc\Command\BuildSiteCommand;
 use CommonDoc\CommandHandler\BuildSiteHandler;
 use CommonDoc\Console\BuildCommand;
 use CommonDoc\Container\AssetCopyMiddlewareFactory;
+use CommonDoc\Container\BrandFactory;
 use CommonDoc\Container\BuildCommandFactory;
 use CommonDoc\Container\BuildSiteHandlerFactory;
 use CommonDoc\Container\CommandPostHandleListenerFactory;
@@ -32,6 +33,7 @@ use CommonDoc\Container\DocumentViewRendererFactory;
 use CommonDoc\Container\EnvironmentFactory;
 use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Container\ExtensionPluginManagerFactory;
+use CommonDoc\Container\FaviconFactory;
 use CommonDoc\Container\HeadingListenerFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\OutputClearingMiddlewareFactory;
@@ -43,6 +45,7 @@ use CommonDoc\Container\ProjectNameFactory;
 use CommonDoc\Container\SearchIndexMiddlewareFactory;
 use CommonDoc\Container\SiteConfigFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
+use CommonDoc\Container\ThemeAssetFactory;
 use CommonDoc\Container\VersionSwitchFactory;
 use CommonDoc\Extension\Admonition\AdmonitionExtension;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
@@ -57,10 +60,13 @@ use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\DocumentRoute;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\HeadingListener;
+use CommonDoc\View\Helper\Brand;
 use CommonDoc\View\Helper\ComponentMenu;
 use CommonDoc\View\Helper\Copyright;
+use CommonDoc\View\Helper\Favicon;
 use CommonDoc\View\Helper\PageMenu;
 use CommonDoc\View\Helper\ProjectName;
+use CommonDoc\View\Helper\ThemeAsset;
 use CommonDoc\View\Helper\VersionSwitch;
 use CommonDoc\View\PageContext;
 use CommonDoc\View\PageContextListener;
@@ -342,17 +348,23 @@ final readonly class ConfigProvider
     {
         return [
             'aliases'   => [
+                'brand'         => Brand::class,
                 'componentMenu' => ComponentMenu::class,
                 'copyright'     => Copyright::class,
+                'favicon'       => Favicon::class,
                 'pageMenu'      => PageMenu::class,
                 'projectName'   => ProjectName::class,
+                'themeAsset'    => ThemeAsset::class,
                 'versionSwitch' => VersionSwitch::class,
             ],
             'factories' => [
+                Brand::class         => BrandFactory::class,
                 ComponentMenu::class => ComponentMenuFactory::class,
                 Copyright::class     => CopyrightFactory::class,
+                Favicon::class       => FaviconFactory::class,
                 PageMenu::class      => PageMenuFactory::class,
                 ProjectName::class   => ProjectNameFactory::class,
+                ThemeAsset::class    => ThemeAssetFactory::class,
                 VersionSwitch::class => VersionSwitchFactory::class,
             ],
         ];

@@ -184,6 +184,7 @@ $this->inlineScript()
 <html lang="en" data-bs-theme="light">
 <head>
     <?= $this->headMeta() ?>
+    <?php $this->favicon() ?>
     <?= $this->headScript() ?>
     <?php $project = $this->projectName(); ?>
     <?= $this->headTitle('' === $project ? null : $project)->setSeparator(' | ') ?>
@@ -194,7 +195,7 @@ $this->inlineScript()
 <body class="d-flex flex-column min-vh-100">
     <nav class="navbar border-bottom bg-body-tertiary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="<?= $this->escapeHtmlAttr($this->basePath('/')) ?>">Documentation</a>
+            <?= $this->brand() ?>
             <?= $this->componentMenu() ?>
             <?= $this->versionSwitch() ?>
             <div class="position-relative flex-grow-1 mx-3" style="max-width: 32rem" data-search data-index="<?= $this->escapeHtmlAttr($this->basePath('search-index.json')) ?>">
