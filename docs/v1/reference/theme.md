@@ -140,9 +140,16 @@ a root, or sit inside one, and where that root is mounted decides the published 
   value `$this->asset('site.css')` returns for the `site` theme.
 
 - **A site whose own pages are at `/`** cannot also mount `/theme/`: the two mounts overlap, and
-  the build refuses both in the message. In that shape the theme directory sits inside the root
-  at `/`, where `theme/site/css/site.css` is published at `/theme/site/css/site.css`, the same
-  path the helper emits.
+  the build refuses both in the message. The theme directory sits inside that root instead:
+
+  ```php
+  'roots' => [
+      ['path' => 'docs', 'mount' => '/'],
+  ],
+  ```
+
+  With the theme at `docs/theme/site/css/site.css`, the asset pass writes
+  `/theme/site/css/site.css`, the same path the helper emits.
 
 A theme directory belongs in the repository that publishes the site, not in a documented
 repository it composes.
