@@ -19,27 +19,64 @@ use CommonDoc\Input\Release;
 use CommonDoc\Input\Root;
 use CommonDoc\Input\Version;
 use CommonDoc\Output\ComponentIndex;
+use CommonDocTest\Support\AbstractTemporaryTree;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
+use function file_put_contents;
+use function mkdir;
+
+/**
+ * Which roots a site offers as components.
+ *
+ * A released root answers from its tags; any other answers from what is on disk, so the
+ * fixtures that exercise one write a directory rather than naming a path that does not exist.
+ */
 #[CoversClass(ComponentIndex::class)]
 #[CoversMethod(ComponentIndex::class, '__construct')]
 #[CoversMethod(ComponentIndex::class, 'entries')]
-final class ComponentIndexTest extends TestCase
+final class ComponentIndexTest extends AbstractTemporaryTree
 {
+    #[Test]
+    public function leavesOutARootThatHoldsNoDocument(): void
+    {
+        // A theme directory is mounted to publish files, not to be read: nothing in it is a
+        // page, so a card for it would link to a page that does not exist.
+        $root  = $this->makeTree();
+        $theme = "{$root}/theme";
+        mkdir(directory: $theme);
+        file_put_contents(
+            filename: "{$theme}/site.css",
+            data    : 'body {}',
+        );
+
+        static::assertSame(
+            [],
+            new ComponentIndex([new Root(
+                path : $theme,
+                mount: '/theme/',
+            )])->entries(),
+        );
+    }
+
     #[Test]
     public function leavesOutTheRootThatIsTheSiteItself(): void
     {
-        static::assertSame([], new ComponentIndex([new Root(path: 'docs')])->entries());
+        static::assertSame([], new ComponentIndex([new Root(path: $this->makeTree())])->entries());
     }
 
     #[Test]
     public function listsAnUnreleasedRootNamedFromItsMount(): void
     {
+        $this->makeTree();
+        file_put_contents(
+            filename: "{$this->tree}/readme.md",
+            data    : '# Email sender',
+        );
+
         $entries = new ComponentIndex([new Root(
-            path : '/nowhere/docs',
+            path : $this->tree,
             mount: '/email-sender/',
         )])->entries();
 
@@ -74,6 +111,11 @@ final class ComponentIndexTest extends TestCase
             ],
             $entries,
         );
+    }
+
+    protected function tearDown(): void
+    {
+        $this->removeTree();
     }
 
     private function release(int $major): Root

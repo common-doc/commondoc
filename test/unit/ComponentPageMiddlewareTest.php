@@ -39,6 +39,7 @@ use Webware\Router\QueryParamRouter;
 
 use function array_map;
 use function file_get_contents;
+use function file_put_contents;
 use function is_file;
 
 /**
@@ -72,6 +73,12 @@ final class ComponentPageMiddlewareTest extends AbstractTemporaryTree
     #[Test]
     public function listsAnUnreleasedComponentAsACardWithNoVersions(): void
     {
+        $documentation = $this->makeTree();
+        file_put_contents(
+            filename: "{$documentation}/readme.md",
+            data    : '# Email',
+        );
+
         $renderer = $this->createMock(TemplateRendererInterface::class);
         $renderer
             ->expects($this->once())
@@ -87,7 +94,7 @@ final class ComponentPageMiddlewareTest extends AbstractTemporaryTree
             ->willReturn('<p>home</p>');
 
         $this->process($this->command([new Root(
-            path : '/nowhere/docs',
+            path : $documentation,
             mount: '/email/',
         )]), $renderer);
 
