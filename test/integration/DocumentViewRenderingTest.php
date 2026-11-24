@@ -14,6 +14,10 @@ declare(strict_types=1);
 
 namespace CommonDocTestIntegration;
 
+use CommonDoc\Input\Component;
+use CommonDoc\Input\Release;
+use CommonDoc\Input\Version;
+use CommonDoc\SiteConfig;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\Page;
 use CommonDoc\View\PageContext;
@@ -57,6 +61,75 @@ use function unlink;
 final class DocumentViewRenderingTest extends TestCase
 {
     private string $directory;
+
+    #[Test]
+    public function buildsTheTitleFromThePageTheComponentAndTheProjectsName(): void
+    {
+        $config                                   = $this->config();
+        $config[SiteConfig::class]['projectName'] = 'CommonDoc';
+
+        $container = $this->container($config);
+
+        /** @var ConverterInterface $converter */
+        $converter = $container->get(ConverterInterface::class);
+
+        /** @var PageContext $context */
+        $context = $container->get(PageContext::class);
+
+        $context->set(new Page(
+            label       : 'Getting Started',
+            projectName : 'CommonDoc',
+            projectSlug : 'commondoc',
+            sourcePath  : 'bus/v2/getting-started.md',
+            url         : '/bus/v2/getting-started/',
+            versionLabel: '',
+            routeName   : '/bus/v2/getting-started/',
+            release     : new Release(
+                component: new Component('message-bus'),
+                version  : Version::fromTag('v2.0.0') ?? self::fail('The tag is not a version.'),
+            ),
+            titleSegment: 'Getting Started | Message Bus v2',
+        ));
+
+        $output = (string) $converter->convert("# Getting Started\n");
+        $context->clear();
+
+        static::assertStringContainsString(
+            '<title>Getting Started | Message Bus v2 | CommonDoc</title>',
+            $output,
+        );
+    }
+
+    #[Test]
+    public function dropsTheIndexLabelFromTheTitle(): void
+    {
+        $config                                   = $this->config();
+        $config[SiteConfig::class]['projectName'] = 'CommonDoc';
+
+        $container = $this->container($config);
+
+        /** @var ConverterInterface $converter */
+        $converter = $container->get(ConverterInterface::class);
+
+        /** @var PageContext $context */
+        $context = $container->get(PageContext::class);
+
+        $context->set(new Page(
+            label       : 'Index',
+            projectName : 'CommonDoc',
+            projectSlug : 'commondoc',
+            sourcePath  : 'README.md',
+            url         : '/',
+            versionLabel: '',
+            routeName   : '/',
+        ));
+
+        $output = (string) $converter->convert("Body\n");
+        $context->clear();
+
+        // The address already names the directory, so `Index` would only add length.
+        static::assertStringContainsString('<title>CommonDoc</title>', $output);
+    }
 
     #[Test]
     public function keepsTheLibraryRendererAndConverterUnsubclassed(): void
@@ -119,7 +192,12 @@ final class DocumentViewRenderingTest extends TestCase
     #[Test]
     public function rendersADocumentWithNoPagePresent(): void
     {
-        $container = $this->container($this->config());
+        // No project name, so the title proves the layout adds nothing when it has no page
+        // and no base to add.
+        $config                                   = $this->config();
+        $config[SiteConfig::class]['projectName'] = '';
+
+        $container = $this->container($config);
 
         /** @var PageContext $context */
         $context = $container->get(PageContext::class);
@@ -171,7 +249,10 @@ final class DocumentViewRenderingTest extends TestCase
     #[Test]
     public function rendersEachDocumentWithOnlyItsOwnContent(): void
     {
-        $container = $this->container($this->config());
+        $config                                   = $this->config();
+        $config[SiteConfig::class]['projectName'] = '';
+
+        $container = $this->container($config);
 
         /** @var ConverterInterface $converter */
         $converter = $container->get(ConverterInterface::class);
@@ -192,6 +273,7 @@ final class DocumentViewRenderingTest extends TestCase
                 url         : "/page-{$index}",
                 versionLabel: '1.0',
                 routeName   : '/page',
+                titleSegment: $label,
             ));
 
             $output = (string) $converter->convert("## Section {$index}\n\nBody {$index}.");

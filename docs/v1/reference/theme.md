@@ -340,8 +340,29 @@ Two things follow from a build having no request:
 
 - No item is marked active. The helper takes the active route from the request that
   matched it, and a build never matches one, so highlighting is left to the browser.
-- Every label is the file name without its suffix, so each directory's index page reads
-  `index`. A better label needs a source this build does not have yet.
+- A label is the file name without its suffix, normalised for display: separators become
+  spaces and each word is capitalised, so `api-reference` reads `Api Reference`. One rule
+  produces every label, in `CommonDoc\Input\Label`, so a menu entry and a page title cannot
+  disagree.
+
+A directory's index is not listed, so its label never reaches the menu. It does reach the
+page title, where it is dropped: the address already names the directory.
+
+## Page titles
+
+The title is built in two steps, which is the ordinary Laminas view arrangement. The page
+template pushes its own segments and the layout adds the site's name as the base:
+
+| Shape | Title |
+| --- | --- |
+| `/concepts/paths/` in a one-repository site with `projectName` set to `CommonDoc` | `Paths \| CommonDoc` |
+| `/message-bus/v2/getting-started/` in a composed site | `Getting Started \| Message Bus v2 \| CommonDoc` |
+| `/message-bus/v2/`, a directory index | `Message Bus v2 \| CommonDoc` |
+
+`projectName` supplies the base, so a site that states none gets no trailing separator. The
+component and version come from the release that owns the page, so a bookmark says which
+component and which version it holds. [Site configuration](configuration.md) covers
+`projectName` and `projectSlug`.
 
 A site that supplies its own configuration aggregates `Webware\Navigation\ConfigProvider`,
 which registers the helper, or a layout that calls it cannot resolve it. A site that

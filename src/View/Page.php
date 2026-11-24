@@ -16,6 +16,7 @@ namespace CommonDoc\View;
 
 use ArrayIterator;
 use CommonDoc\Exception\LogicException;
+use CommonDoc\Input\Release;
 use CommonDoc\Input\Source;
 use CommonDoc\Output\NavigationScope;
 use Laminas\View\Model\ModelInterface;
@@ -46,6 +47,10 @@ final readonly class Page implements ModelInterface
      *
      * @param list<Page> $children
      * @param non-empty-string $captureTo
+     * @param ?Release $release The component and version this page belongs to, or null when
+     *        the site composes no released version that holds it
+     * @param string $titleSegment The page's own share of the title, before the site's name,
+     *        or empty when the page contributes nothing to it
      * @param list<array{label: string, url: string, current: bool}> $versions The versions of
      *        this document's component, newest first, or none when it is not a versioned one
      * @param non-empty-string $navigation The identifier of the menu this page belongs to
@@ -59,6 +64,8 @@ final readonly class Page implements ModelInterface
         public string $url,
         public string $versionLabel,
         public string $routeName,
+        public ?Release $release = null,
+        public string $titleSegment = '',
         public ?Source $source = null,
         public ?string $repositoryPath = null,
         public bool $append = false,

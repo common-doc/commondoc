@@ -36,6 +36,7 @@ use function array_keys;
 #[CoversMethod(VersionMenu::class, '__construct')]
 #[CoversMethod(VersionMenu::class, 'latest')]
 #[CoversMethod(VersionMenu::class, 'links')]
+#[CoversMethod(VersionMenu::class, 'releaseOf')]
 final class VersionMenuTest extends TestCase
 {
     #[Test]
@@ -90,6 +91,17 @@ final class VersionMenuTest extends TestCase
     }
 
     #[Test]
+    public function namesNoReleaseForADocumentOutsideAVersionedComponent(): void
+    {
+        $menu = new VersionMenu([$this->root(
+            component: 'bus',
+            major    : 1,
+        )]);
+
+        static::assertNull($menu->releaseOf('guide/setup.md'));
+    }
+
+    #[Test]
     public function namesTheNewestVersionOfEachComponentWhateverTheConfiguredOrder(): void
     {
         $latest = new VersionMenu([
@@ -109,6 +121,29 @@ final class VersionMenuTest extends TestCase
 
         static::assertSame(['bus', 'log'], array_keys($latest));
         static::assertSame('/bus/v2/', $latest['bus']->mount);
+    }
+
+    #[Test]
+    public function namesTheReleaseThatOwnsADocument(): void
+    {
+        // The page title needs the component's label and the version being read, and both
+        // come from the release the mount belongs to.
+        $menu = new VersionMenu([
+            $this->root(
+                component: 'message-bus',
+                major    : 1,
+            ),
+            $this->root(
+                component: 'message-bus',
+                major    : 2,
+            ),
+        ]);
+
+        $release = $menu->releaseOf('message-bus/v1/guide/setup.md');
+
+        static::assertNotNull($release);
+        static::assertSame('Message Bus', $release->component->label);
+        static::assertSame(1, $release->version->major);
     }
 
     private function root(string $component, int $major): Root

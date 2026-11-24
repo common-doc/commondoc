@@ -28,6 +28,7 @@
         "composer/semver": "^3.4",
         "laminas/laminas-diactoros": "^3.8",
         "laminas/laminas-escaper": "^2.17",
+        "laminas/laminas-filter": "^3.5",
         "laminas/laminas-servicemanager": "^4.5",
         "laminas/laminas-view": "^3.1",
         "league/commonmark": "^2.10",

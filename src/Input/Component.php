@@ -16,8 +16,6 @@ namespace CommonDoc\Input;
 
 use CommonDoc\Exception\InvalidArgumentException;
 
-use function explode;
-use function implode;
 use function preg_replace;
 use function sprintf;
 use function str_ends_with;
@@ -25,7 +23,6 @@ use function strrpos;
 use function strtolower;
 use function substr;
 use function trim;
-use function ucfirst;
 
 /**
  * The identity a repository name carries on the published site.
@@ -86,7 +83,7 @@ final readonly class Component
     }
 
     /**
-     * The display form, with each word title-cased.
+     * The display form, with separators removed and each word title-cased.
      *
      * Derived from the segment rather than from the original name, so the label
      * and the address cannot be normalized by two rules that disagree: both come
@@ -95,20 +92,13 @@ final readonly class Component
      * @param non-empty-string $segment
      *
      * @return non-empty-string
+     *
      */
     private static function labelOf(string $segment): string
     {
-        $words = [];
-
-        foreach (explode(self::SEPARATOR, $segment) as $word) {
-            $words[] = ucfirst($word);
-        }
-
-        $label = implode(' ', $words);
-
-        // The segment is guaranteed non-empty, so the label is too; the fallback
-        // exists because the engine cannot see that through `explode` and `implode`.
-        return '' === $label ? $segment : $label;
+        // The chain falls back to what it was given, and a segment is never empty.
+        /** @var non-empty-string */
+        return Label::of($segment);
     }
 
     /**

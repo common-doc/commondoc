@@ -16,6 +16,8 @@ namespace CommonDoc\Container;
 
 use Closure;
 use CommonDoc\Exception\InvalidArgumentException;
+use CommonDoc\Input\Label;
+use CommonDoc\Input\Release;
 use CommonDoc\Input\Source;
 use CommonDoc\Output\DocumentRoute;
 use CommonDoc\Output\NavigationScope;
@@ -31,6 +33,10 @@ use Psl\Type;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
+
+use function basename;
+use function dirname;
+use function sprintf;
 
 /**
  * Builds the function a build calls to get the page for one document.
@@ -53,6 +59,37 @@ use Psr\Container\NotFoundExceptionInterface;
  */
 final readonly class PageFactoryFactory implements FactoryInterface
 {
+    private static function componentTitleOf(Release $release): string
+    {
+        return sprintf('%s v%d', $release->component->label, $release->version->major);
+    }
+
+    /**
+     * The title of a document: its own label, then the component and version when it has one.
+     */
+    private static function documentTitleOf(string $label, ?Release $release): string
+    {
+        return null === $release ? $label : $label . ' | ' . self::componentTitleOf($release);
+    }
+
+    /**
+     * The title of a directory index.
+     *
+     * No page segment: `Index` repeats what the address already says. Inside a released
+     * component the component and version say it instead, and outside one the name of the
+     * directory the index belongs to does.
+     */
+    private static function indexTitleOf(string $localPath, ?Release $release): string
+    {
+        if (null !== $release) {
+            return self::componentTitleOf($release);
+        }
+
+        $directory = basename(dirname($localPath));
+
+        return '.' === $directory ? '' : Label::of($directory);
+    }
+
     /**
      * @param ?array<array-key, mixed> $options
      *
@@ -95,7 +132,17 @@ final readonly class PageFactoryFactory implements FactoryInterface
         ) use ($site, $route, $menu, $scope): Page {
             // The page's route name is its URL: the provider registers each document's
             // route at the URL the pattern yields and names it by that path.
-            $url = $route->url($localPath);
+            $url     = $route->url($localPath);
+            $release = $menu->releaseOf($localPath);
+            $title   = $route->isIndex($localPath)
+                ? self::indexTitleOf(
+                    localPath: $localPath,
+                    release  : $release,
+                )
+                : self::documentTitleOf(
+                    label  : $label,
+                    release: $release,
+                );
 
             return new Page(
                 label         : $label,
@@ -105,6 +152,8 @@ final readonly class PageFactoryFactory implements FactoryInterface
                 url           : $url,
                 versionLabel  : $site->versionLabel,
                 routeName     : $url,
+                release       : $release,
+                titleSegment  : $title,
                 source        : $source,
                 repositoryPath: $repositoryPath,
                 versions      : $menu->links($localPath, $route),

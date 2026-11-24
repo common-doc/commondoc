@@ -16,6 +16,7 @@ namespace CommonDoc\Output;
 
 use CommonDoc\Exception\InvalidArgumentException;
 use CommonDoc\Http\Middleware\NotServedMiddleware;
+use CommonDoc\Input\Label;
 use CommonDoc\Input\Markdown;
 use CommonDoc\Input\Root;
 use InvalidArgumentException as NativeInvalidArgumentException;
@@ -73,11 +74,11 @@ final readonly class RouteProvider
     {
         $segments = explode(self::SEPARATOR, $document);
 
-        return substr(
+        return Label::of(substr(
             string: array_pop($segments),
             offset: 0,
             length: -strlen(Markdown::EXTENSION),
-        );
+        ));
     }
 
     /**

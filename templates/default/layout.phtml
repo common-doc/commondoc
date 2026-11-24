@@ -203,7 +203,8 @@ $this->inlineScript()
 <head>
     <?= $this->headMeta() ?>
     <?= $this->headScript() ?>
-    <?= $this->headTitle()->setSeparator(' | ') ?>
+    <?php $project = $this->projectName(); ?>
+    <?= $this->headTitle('' === $project ? null : $project)->setSeparator(' | ') ?>
     <?= $this->headLink() ?>
     <?= $this->headStyle() ?>
 </head>
