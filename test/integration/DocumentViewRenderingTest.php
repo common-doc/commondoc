@@ -192,7 +192,12 @@ final class DocumentViewRenderingTest extends TestCase
     #[Test]
     public function rendersADocumentWithNoPagePresent(): void
     {
-        $container = $this->container($this->config());
+        // No project name, so the title proves the layout adds nothing when it has no page
+        // and no base to add.
+        $config                                   = $this->config();
+        $config[SiteConfig::class]['projectName'] = '';
+
+        $container = $this->container($config);
 
         /** @var PageContext $context */
         $context = $container->get(PageContext::class);
@@ -244,7 +249,10 @@ final class DocumentViewRenderingTest extends TestCase
     #[Test]
     public function rendersEachDocumentWithOnlyItsOwnContent(): void
     {
-        $container = $this->container($this->config());
+        $config                                   = $this->config();
+        $config[SiteConfig::class]['projectName'] = '';
+
+        $container = $this->container($config);
 
         /** @var ConverterInterface $converter */
         $converter = $container->get(ConverterInterface::class);
