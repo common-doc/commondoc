@@ -18,7 +18,10 @@
 $this->headTitle('Home');
 ?>
 <main class="document">
-    <h1 class="mb-4">Documentation</h1>
+    <?php $heading = $this->homeTitle(); ?>
+    <?php if ('' !== $heading) : ?>
+        <h1 class="mb-4"><?= $this->escapeHtml($heading) ?></h1>
+    <?php endif ?>
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
         <?php foreach ($cards as $card) : ?>
             <div class="col">

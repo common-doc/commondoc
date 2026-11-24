@@ -392,6 +392,19 @@ Two things follow from a build having no request:
 A directory's index is not listed, so its label never reaches the menu. It does reach the
 page title, where it is dropped: the address already names the directory.
 
+## The landing page
+
+A composed site publishes no document at its root, so the build writes the home page: a card
+for each component, under a heading. The heading is `homeTitle`, and a site that states none
+gets its `siteName`, because a landing page headed with the site's own name is right more
+often than one with no heading. A site that states neither gets no heading rather than an
+empty one.
+
+`homeTitle` is the helper, registered under that alias and under
+`CommonDoc\View\Helper\HomeTitle`, and it takes no argument. The cards below it are not
+configurable in the same way: their titles come from the roots, their versions from the tags,
+and the page is written only when no document already publishes at the site root.
+
 ## Page titles
 
 The title is built in two steps, which is the ordinary Laminas view arrangement. The page

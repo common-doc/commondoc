@@ -36,6 +36,7 @@ use CommonDoc\Container\ExtensionPluginManager;
 use CommonDoc\Container\ExtensionPluginManagerFactory;
 use CommonDoc\Container\FaviconFactory;
 use CommonDoc\Container\HeadingListenerFactory;
+use CommonDoc\Container\HomeTitleFactory;
 use CommonDoc\Container\MarkdownConverterFactory;
 use CommonDoc\Container\OutputClearingMiddlewareFactory;
 use CommonDoc\Container\PageContextFactory;
@@ -66,6 +67,7 @@ use CommonDoc\View\Helper\Brand;
 use CommonDoc\View\Helper\ComponentMenu;
 use CommonDoc\View\Helper\Copyright;
 use CommonDoc\View\Helper\Favicon;
+use CommonDoc\View\Helper\HomeTitle;
 use CommonDoc\View\Helper\PageMenu;
 use CommonDoc\View\Helper\SiteName;
 use CommonDoc\View\Helper\ThemeAsset;
@@ -254,6 +256,7 @@ final class ConfigProviderTest extends TestCase
                 EnvironmentInterface::class      => EnvironmentFactory::class,
                 ExtensionPluginManager::class    => ExtensionPluginManagerFactory::class,
                 HeadingListener::class           => HeadingListenerFactory::class,
+                HomeTitle::class                 => HomeTitleFactory::class,
                 MarkdownConverter::class         => MarkdownConverterFactory::class,
                 PageContext::class               => PageContextFactory::class,
                 PageContextListener::class       => PageContextListenerFactory::class,
@@ -293,6 +296,7 @@ final class ConfigProviderTest extends TestCase
                 'componentMenu' => ComponentMenu::class,
                 'copyright'     => Copyright::class,
                 'favicon'       => Favicon::class,
+                'homeTitle'     => HomeTitle::class,
                 'pageMenu'      => PageMenu::class,
                 'siteName'      => SiteName::class,
                 'themeAsset'    => ThemeAsset::class,
@@ -306,6 +310,7 @@ final class ConfigProviderTest extends TestCase
                 ComponentMenu::class => ComponentMenuFactory::class,
                 Copyright::class     => CopyrightFactory::class,
                 Favicon::class       => FaviconFactory::class,
+                HomeTitle::class     => HomeTitleFactory::class,
                 PageMenu::class      => PageMenuFactory::class,
                 SiteName::class      => SiteNameFactory::class,
                 ThemeAsset::class    => ThemeAssetFactory::class,
