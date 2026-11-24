@@ -1,8 +1,8 @@
 # Site configuration
 
-A build is described by one section, keyed by `CommonDoc\SiteConfig::class`, so a
-deployment states its own values in its own autoload file and this package never
-names one.
+The site is one array entry under the `CommonDoc\SiteConfig::class` key of the `'config'`
+service. This package ships a default in `config/autoload/commondoc.global.php` that builds its
+own documentation; a deployment replaces it in its own autoload file.
 
 One key is not in that section. The base path is stated as
 `view_helper_config.base_path`, because that is the value Laminas view's
@@ -13,7 +13,7 @@ than read, and the refusal names the key that is used instead.
 
 | Key | Meaning |
 | --- | --- |
-| `pathType` | `Directory` publishes `guide/setup.md` at `/guide/setup/`, served by an `index.html` inside it. `File` publishes it at `/guide/setup.html` |
+| `pathType` | How each document becomes a path. `Directory`, the default, gives every document its own directory: `guide/README.md` is served at `/guide/` from `guide/index.html`, and `guide/setup.md` at `/guide/setup/` from `guide/setup/index.html`. `File` keeps the name: `guide/setup.md` is served at `/guide/setup.html` |
 | `output` | The directory a build writes to. It is cleared before the first file is written, so a deploy never carries a page that was deleted or renamed |
 | `target` | Where a repository keeps its documentation, relative to that repository's root |
 | `roots` | The source roots the site is composed from |
