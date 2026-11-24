@@ -63,10 +63,10 @@ final class DocumentViewRenderingTest extends TestCase
     private string $directory;
 
     #[Test]
-    public function buildsTheTitleFromThePageTheComponentAndTheProjectsName(): void
+    public function buildsTheTitleFromThePageTheComponentAndTheSitesName(): void
     {
-        $config                                   = $this->config();
-        $config[SiteConfig::class]['projectName'] = 'CommonDoc';
+        $config                                = $this->config();
+        $config[SiteConfig::class]['siteName'] = 'CommonDoc';
 
         $container = $this->container($config);
 
@@ -78,8 +78,7 @@ final class DocumentViewRenderingTest extends TestCase
 
         $context->set(new Page(
             label       : 'Getting Started',
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             sourcePath  : 'bus/v2/getting-started.md',
             url         : '/bus/v2/getting-started/',
             versionLabel: '',
@@ -103,8 +102,8 @@ final class DocumentViewRenderingTest extends TestCase
     #[Test]
     public function dropsTheIndexLabelFromTheTitle(): void
     {
-        $config                                   = $this->config();
-        $config[SiteConfig::class]['projectName'] = 'CommonDoc';
+        $config                                = $this->config();
+        $config[SiteConfig::class]['siteName'] = 'CommonDoc';
 
         $container = $this->container($config);
 
@@ -116,8 +115,7 @@ final class DocumentViewRenderingTest extends TestCase
 
         $context->set(new Page(
             label       : 'Index',
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             sourcePath  : 'README.md',
             url         : '/',
             versionLabel: '',
@@ -192,10 +190,10 @@ final class DocumentViewRenderingTest extends TestCase
     #[Test]
     public function rendersADocumentWithNoPagePresent(): void
     {
-        // No project name, so the title proves the layout adds nothing when it has no page
+        // No site name, so the title proves the layout adds nothing when it has no page
         // and no base to add.
-        $config                                   = $this->config();
-        $config[SiteConfig::class]['projectName'] = '';
+        $config                                = $this->config();
+        $config[SiteConfig::class]['siteName'] = '';
 
         $container = $this->container($config);
 
@@ -249,8 +247,8 @@ final class DocumentViewRenderingTest extends TestCase
     #[Test]
     public function rendersEachDocumentWithOnlyItsOwnContent(): void
     {
-        $config                                   = $this->config();
-        $config[SiteConfig::class]['projectName'] = '';
+        $config                                = $this->config();
+        $config[SiteConfig::class]['siteName'] = '';
 
         $container = $this->container($config);
 
@@ -267,8 +265,7 @@ final class DocumentViewRenderingTest extends TestCase
 
             $context->set(new Page(
                 label       : $label,
-                projectName : 'CommonDoc',
-                projectSlug : 'commondoc',
+                siteName    : 'CommonDoc',
                 sourcePath  : "docs/page-{$index}.md",
                 url         : "/page-{$index}",
                 versionLabel: '1.0',
@@ -323,8 +320,7 @@ final class DocumentViewRenderingTest extends TestCase
 
         $context->set(new Page(
             label       : 'Guide',
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             sourcePath  : 'bus/v1/index.md',
             url         : '/bus/v1/',
             versionLabel: '1.0',

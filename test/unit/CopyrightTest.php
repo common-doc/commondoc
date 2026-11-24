@@ -76,11 +76,11 @@ final class CopyrightTest extends TestCase
         );
     }
 
-    private function site(string $projectName = ''): SiteConfig
+    private function site(string $siteName = ''): SiteConfig
     {
         return new SiteConfig(
             documentRoot: new DocumentRoot('/'),
-            projectName : $projectName,
+            siteName    : $siteName,
         );
     }
 }

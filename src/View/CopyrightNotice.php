@@ -28,7 +28,7 @@ use function sprintf;
  * on every visit. A rebuild rolls it forward, which is the only event that changes a site
  * the build writes.
  *
- * The project name is left out when a site states none, because a bare `@copyright 2026`
+ * The site name is left out when a site states none, because a bare `@copyright 2026`
  * is still true and an invented name would not be.
  */
 final readonly class CopyrightNotice
@@ -37,14 +37,14 @@ final readonly class CopyrightNotice
 
     private const string MARK = '@copyright';
 
-    public function text(string $projectName, int $year): string
+    public function text(string $siteName, int $year): string
     {
         $years = $year > self::SINCE
             ? sprintf('%d - %d', self::SINCE, $year)
             : (string) self::SINCE;
 
-        return '' === $projectName
+        return '' === $siteName
             ? sprintf('%s %s', self::MARK, $years)
-            : sprintf('%s %s %s', self::MARK, $projectName, $years);
+            : sprintf('%s %s %s', self::MARK, $siteName, $years);
     }
 }

@@ -152,7 +152,7 @@ final readonly class SiteConfigFactory implements FactoryInterface
      * when it has the right type and replaced with its default when it does not,
      * so a single typo costs one setting instead of all of them.
      *
-     * @return array{roots: list<Root>, basePath: string, pathType: PathType, output: string, projectName: string, projectSlug: string, versionLabel: string}
+     * @return array{roots: list<Root>, basePath: string, pathType: PathType, output: string, siteName: string, versionLabel: string}
      *
      * @throws InvalidArgumentException When a configured mount cannot prefix a path,
      *         or when the site section states a base path that belongs in the view
@@ -192,13 +192,9 @@ final readonly class SiteConfigFactory implements FactoryInterface
                 configured: $section['roots'] ?? null,
                 fallbacks : self::fallbacks($section),
             ),
-            'projectName'  => self::text(
+            'siteName'     => self::text(
                 section: $section,
-                key    : 'projectName',
-            ),
-            'projectSlug'  => self::text(
-                section: $section,
-                key    : 'projectSlug',
+                key    : 'siteName',
             ),
             'versionLabel' => self::text(
                 section: $section,
@@ -281,8 +277,7 @@ final readonly class SiteConfigFactory implements FactoryInterface
             ),
             roots       : $section['roots'],
             output      : $section['output'],
-            projectName : $section['projectName'],
-            projectSlug : $section['projectSlug'],
+            siteName    : $section['siteName'],
             versionLabel: $section['versionLabel'],
         );
     }

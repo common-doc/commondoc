@@ -58,8 +58,7 @@ final readonly class Page implements ModelInterface
     // @mago-expect lint:excessive-parameter-list - a page descriptor needs all sixteen inputs.
     public function __construct(
         public string $label,
-        public string $projectName,
-        public string $projectSlug,
+        public string $siteName,
         public string $sourcePath,
         public string $url,
         public string $versionLabel,
@@ -143,8 +142,7 @@ final readonly class Page implements ModelInterface
         return [
             'label'        => $this->label,
             'url'          => $this->url,
-            'projectSlug'  => $this->projectSlug,
-            'projectName'  => $this->projectName,
+            'siteName'     => $this->siteName,
             'versionLabel' => $this->versionLabel,
             'routeName'    => $this->routeName,
             'sourcePath'   => $this->sourcePath,

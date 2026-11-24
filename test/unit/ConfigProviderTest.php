@@ -42,9 +42,9 @@ use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Container\PageMenuFactory;
-use CommonDoc\Container\ProjectNameFactory;
 use CommonDoc\Container\SearchIndexMiddlewareFactory;
 use CommonDoc\Container\SiteConfigFactory;
+use CommonDoc\Container\SiteNameFactory;
 use CommonDoc\Container\SourceLoadingMiddlewareFactory;
 use CommonDoc\Container\ThemeAssetFactory;
 use CommonDoc\Container\VersionSwitchFactory;
@@ -67,7 +67,7 @@ use CommonDoc\View\Helper\ComponentMenu;
 use CommonDoc\View\Helper\Copyright;
 use CommonDoc\View\Helper\Favicon;
 use CommonDoc\View\Helper\PageMenu;
-use CommonDoc\View\Helper\ProjectName;
+use CommonDoc\View\Helper\SiteName;
 use CommonDoc\View\Helper\ThemeAsset;
 use CommonDoc\View\Helper\VersionSwitch;
 use CommonDoc\View\PageContext;
@@ -294,7 +294,7 @@ final class ConfigProviderTest extends TestCase
                 'copyright'     => Copyright::class,
                 'favicon'       => Favicon::class,
                 'pageMenu'      => PageMenu::class,
-                'projectName'   => ProjectName::class,
+                'siteName'      => SiteName::class,
                 'themeAsset'    => ThemeAsset::class,
                 'versionSwitch' => VersionSwitch::class,
             ],
@@ -307,7 +307,7 @@ final class ConfigProviderTest extends TestCase
                 Copyright::class     => CopyrightFactory::class,
                 Favicon::class       => FaviconFactory::class,
                 PageMenu::class      => PageMenuFactory::class,
-                ProjectName::class   => ProjectNameFactory::class,
+                SiteName::class      => SiteNameFactory::class,
                 ThemeAsset::class    => ThemeAssetFactory::class,
                 VersionSwitch::class => VersionSwitchFactory::class,
             ],

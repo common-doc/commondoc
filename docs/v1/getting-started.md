@@ -63,7 +63,7 @@ return [
             ['path' => '/github/workspace/theme', 'mount' => '/theme/'],
             ['path' => '/github/workspace/components/core', 'mount' => '/core/'],
         ],
-        'projectName' => 'My documentation',
+        'siteName' => 'My documentation',
     ],
 ];
 ```

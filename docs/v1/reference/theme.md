@@ -201,7 +201,7 @@ rendering an empty string.
 | `documentBody` | `string` | The document rendered to HTML, which is what a template echoes |
 | `page` | `CommonDoc\View\Page` or `null` | The page this document belongs to, or `null` when the render is not part of a build |
 
-Every field of `Page` is public and readable: `label`, `projectName`, `projectSlug`,
+Every field of `Page` is public and readable: `label`, `siteName`,
 `sourcePath`, `url`, `versionLabel`, `append`, `captureTo`, `children`, `template`
 and `terminal`.
 
@@ -241,10 +241,10 @@ The built-in layout is Bootstrap 5.3 from a pinned CDN version with integrity ha
 - **Layout.** A navbar with the brand, the components menu and the toggle, a sidebar holding
   the page menu, the document beside it, and a footer at the bottom of the page.
 - **Brand.** The top left is one link home, showing the theme's `logo` asset when the active
-  theme declares one and otherwise the site's `projectName`, or `projectSlug` when no name is
-  stated. The `alt` text is that same name, so a reader who cannot see the picture is told
-  whose site this is. `brand` is this package's own helper, registered under that alias and
-  under `CommonDoc\View\Helper\Brand`, and it takes the asset name as its only argument. A
+  theme declares one and otherwise the site's `siteName`. The `alt` text is that same name, so
+  a reader who cannot see the picture is told whose site this is. `brand` is this package's own
+  helper, registered under that alias and under `CommonDoc\View\Helper\Brand`, and it takes the
+  asset name as its only argument. A
   root-relative logo is emitted under the base path; a value already absolute is passed
   through, since prefixing it would produce `/repo/https://...`.
 - **Favicon.** A theme that declares an asset named `favicon` gets it queued as
@@ -399,14 +399,14 @@ template pushes its own segments and the layout adds the site's name as the base
 
 | Shape | Title |
 | --- | --- |
-| `/concepts/paths/` in a one-repository site with `projectName` set to `Common Doc` | `Paths \| Common Doc` |
+| `/concepts/paths/` in a one-repository site with `siteName` set to `Common Doc` | `Paths \| Common Doc` |
 | `/message-bus/v2/getting-started/` in a composed site | `Getting Started \| Message Bus v2 \| Common Doc` |
 | `/message-bus/v2/`, a directory index | `Message Bus v2 \| Common Doc` |
 
-`projectName` supplies the base, so a site that states none gets no trailing separator. The
+`siteName` supplies the base, so a site that states none gets no trailing separator. The
 component and version come from the release that owns the page, so a bookmark says which
 component and which version it holds. [Site configuration](configuration.md) covers
-`projectName` and `projectSlug`.
+`siteName`.
 
 A site that supplies its own configuration aggregates `Webware\Navigation\ConfigProvider`,
 which registers the helper, or a layout that calls it cannot resolve it. A site that
@@ -426,12 +426,12 @@ Every page ends with a `footer` element carrying the site's copyright notice:
 
 The body is a flex column at least a viewport tall and the document column grows to fill it,
 so the footer sits at the bottom of a short page instead of floating under the last paragraph.
-The notice is `@copyright`, the site's `projectName`, and one year or a span of them: the year
+The notice is `@copyright`, the site's `siteName`, and one year or a span of them: the year
 the site was first published, and then the year it was built, written `2026 - 2027` once the
-two differ. A site that states no `projectName` gets the years alone.
+two differ. A site that states no `siteName` gets the years alone.
 
 The notice comes from the `copyright` helper, registered in `view_helpers` under that alias and
-under `CommonDoc\View\Helper\Copyright`, and it takes no argument. It reads `projectName` from
+under `CommonDoc\View\Helper\Copyright`, and it takes no argument. It reads `siteName` from
 the site configuration and the year from the clock of the machine running the build, because a
 built page is a file: a notice that followed the reader's clock would need a script to say
 something different on every visit. A rebuild is what rolls it forward.

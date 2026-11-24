@@ -65,16 +65,14 @@ final class SiteConfigTest extends TestCase
             documentRoot: $documentRoot,
             roots       : [$root],
             output      : 'site',
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             versionLabel: '1.0',
         );
 
         static::assertSame($documentRoot, $site->documentRoot);
         static::assertSame([$root], $site->roots);
         static::assertSame('site', $site->output);
-        static::assertSame('CommonDoc', $site->projectName);
-        static::assertSame('commondoc', $site->projectSlug);
+        static::assertSame('CommonDoc', $site->siteName);
         static::assertSame('1.0', $site->versionLabel);
     }
 

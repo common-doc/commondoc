@@ -155,8 +155,7 @@ final class ConverterFactoryFactoryTest extends TestCase
         $context = new PageContext();
         $context->set(new Page(
             label       : 'Setup',
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             sourcePath  : 'guide/setup.md',
             url         : '/guide/setup/',
             versionLabel: '1.0',

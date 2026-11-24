@@ -47,23 +47,16 @@ final readonly class SiteConfig
      * @param DocumentRoot $documentRoot The published path space, and the only translation
      * @param list<Root>   $roots        The source roots the site is composed from
      * @param string       $output       The directory a build writes to
-     * @param string       $projectName  The project's display name, or empty for none
-     * @param string       $projectSlug  The project's identifier, or empty for none
+     * @param string       $siteName     The site's display name, or empty for none
      * @param string       $versionLabel The version this build documents, or empty for none
      *
      * @throws InvalidArgumentException When two roots would publish at overlapping paths
-     *
-     * @mago-expect lint:excessive-parameter-list A deployment's constant values, each
-     * named at the call site. Grouping the three identity strings into a type of their
-     * own would add a type that exists only to shorten this signature, and every one of
-     * these is read by a different collaborator.
      */
     public function __construct(
         public DocumentRoot $documentRoot,
         public array $roots = [],
         public string $output = 'build',
-        public string $projectName = '',
-        public string $projectSlug = '',
+        public string $siteName = '',
         public string $versionLabel = '',
     ) {
         self::assertExclusive($roots);

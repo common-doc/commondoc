@@ -43,8 +43,8 @@ final readonly class Copyright implements HelperInterface
     public function __invoke(): string
     {
         return $this->notice->text(
-            projectName: $this->site->projectName,
-            year       : (int) date('Y'),
+            siteName: $this->site->siteName,
+            year    : (int) date('Y'),
         );
     }
 }

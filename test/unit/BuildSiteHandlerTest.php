@@ -89,8 +89,7 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
 
             return new Page(
                 label         : $label,
-                projectName   : 'CommonDoc',
-                projectSlug   : 'commondoc',
+                siteName      : 'CommonDoc',
                 sourcePath    : $localPath,
                 url           : $route->url($localPath),
                 versionLabel  : '1.0',

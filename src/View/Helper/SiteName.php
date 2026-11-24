@@ -18,7 +18,7 @@ use CommonDoc\SiteConfig;
 use Laminas\View\Helper\HelperInterface;
 
 /**
- * The project's display name, for the layout to use as the base of the page title.
+ * The site's display name, for the layout to use as the base of the page title.
  *
  * It reads the site configuration because the layout renders without a page, so there is no
  * `Page` to take the name from. Returning an empty string when nothing is configured is what
@@ -26,7 +26,7 @@ use Laminas\View\Helper\HelperInterface;
  *
  * @api
  */
-final readonly class ProjectName implements HelperInterface
+final readonly class SiteName implements HelperInterface
 {
     public function __construct(
         private SiteConfig $site,
@@ -34,6 +34,6 @@ final readonly class ProjectName implements HelperInterface
 
     public function __invoke(): string
     {
-        return $this->site->projectName;
+        return $this->site->siteName;
     }
 }

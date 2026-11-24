@@ -67,8 +67,7 @@ final class PageTest extends TestCase
     {
         return new Page(
             label       : 'Reference page',
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             sourcePath  : 'docs/reference/page.md',
             url         : '/reference/page',
             versionLabel: '1.0',
@@ -83,8 +82,7 @@ final class PageTest extends TestCase
         $children = [self::leaf(), self::leaf()];
         $page     = new Page(
             label       : 'Parent',
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             sourcePath  : 'docs/parent.md',
             url         : '/parent',
             versionLabel: '1.0',
@@ -123,8 +121,7 @@ final class PageTest extends TestCase
             [
                 'label'        => 'Reference page',
                 'url'          => '/reference/page',
-                'projectSlug'  => 'commondoc',
-                'projectName'  => 'CommonDoc',
+                'siteName'     => 'CommonDoc',
                 'versionLabel' => '1.0',
                 'routeName'    => 'commondoc.reference-page',
                 'sourcePath'   => 'docs/reference/page.md',
@@ -177,8 +174,7 @@ final class PageTest extends TestCase
     {
         $page = new Page(
             label       : 'Parent',
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             sourcePath  : 'docs/parent.md',
             url         : '/parent',
             versionLabel: '1.0',

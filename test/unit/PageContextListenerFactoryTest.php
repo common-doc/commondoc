@@ -35,8 +35,7 @@ final class PageContextListenerFactoryTest extends TestCase
     {
         $page = new Page(
             label       : 'Reference page',
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             sourcePath  : 'docs/page.md',
             url         : '/page',
             versionLabel: '1.0',
