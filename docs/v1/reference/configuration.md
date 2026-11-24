@@ -18,6 +18,7 @@ than read, and the refusal names the key that is used instead.
 | `target` | Where a repository keeps its documentation, relative to that repository's root |
 | `roots` | The source roots the site is composed from |
 | `siteName` | The site's display name: the base of every page title, the navbar brand when the theme carries no logo, and the name in the footer notice, or empty for none |
+| `homeTitle` | The heading over the landing page's cards, which is written only in a composed site, or empty for the site's name |
 | `versionLabel` | The version this build documents, or empty for none |
 
 The base path is the applied prefix, so it is stated once at the top of the

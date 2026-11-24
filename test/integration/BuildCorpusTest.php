@@ -156,6 +156,9 @@ final class BuildCorpusTest extends TestCase
 
             static::assertStringNotContainsString('class="site-nav', $home);
             static::assertStringContainsString('<div class="col-12 py-3 px-md-4">', $home);
+
+            // The heading is the site's own, and a site that states none gets its name.
+            static::assertStringContainsString('<h1 class="mb-4">Common Doc</h1>', $home);
         } finally {
             $this->removeDirectory($source);
             $this->removeDirectory($output);
