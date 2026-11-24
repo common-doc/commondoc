@@ -336,6 +336,10 @@ this package's own helpers:
   without touching the layout. A menu with no pages renders nothing, heading included, so a
   root that publishes no pages leaves no empty label in the sidebar.
 
+  A page with no menu has no sidebar column either: the document takes the width the column
+  would have held. That is the composed site's root, and a component landing page, neither of
+  which publishes pages of its own.
+
   A directory's index is not in it. That page is the directory's landing page, addressed by
   the directory itself, so listing it beside the directory's other pages would show one
   place twice, once as the group and once as a member. A version whose only document is its

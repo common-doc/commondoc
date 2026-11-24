@@ -144,6 +144,17 @@ final class BuildCorpusTest extends TestCase
 
             static::assertStringContainsString('href="/two/concepts/paths/#the-index-rule"', $document);
             static::assertStringContainsString('href="/two/getting-started/"', $document);
+
+            // The site root publishes no pages of its own, so it has no sidebar to render:
+            // a document that took the width a menu would have left is the whole page
+            // rather than a column beside an empty one.
+            $home = $this->read(
+                directory: $output,
+                relative : 'index.html',
+            );
+
+            static::assertStringNotContainsString('class="site-nav', $home);
+            static::assertStringContainsString('<div class="col-12 py-3 px-md-4">', $home);
         } finally {
             $this->removeDirectory($source);
             $this->removeDirectory($output);

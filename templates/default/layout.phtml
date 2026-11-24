@@ -207,10 +207,13 @@ $this->inlineScript()
     </nav>
     <div class="container-fluid">
         <div class="row">
-            <nav class="site-nav col-md-3 col-xl-2 py-3">
-                <?= $this->pageMenu() ?>
-            </nav>
-            <div class="col-md-9 col-xl-10 py-3 px-md-4">
+            <?php $menu = $this->pageMenu(); ?>
+            <?php if ('' !== $menu) : ?>
+                <nav class="site-nav col-md-3 col-xl-2 py-3">
+                    <?= $menu ?>
+                </nav>
+            <?php endif ?>
+            <div class="<?= '' === $menu ? 'col-12' : 'col-md-9 col-xl-10' ?> py-3 px-md-4">
                 <?= $this->content ?>
             </div>
         </div>
