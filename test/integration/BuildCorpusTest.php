@@ -203,6 +203,32 @@ final class BuildCorpusTest extends TestCase
     }
 
     #[Test]
+    public function rendersTheSiteBrandFromTheConfiguredName(): void
+    {
+        $output = $this->temporaryDirectory();
+
+        try {
+            $this->build(self::CORPUS, $output);
+
+            $document = $this->read(
+                directory: $output,
+                relative : 'concepts/paths/index.html',
+            );
+
+            // The name comes from the tracked configuration, not from a literal in the
+            // layout: a site that states its own name sees it here, and a theme that
+            // declares a logo replaces this text with the picture.
+            static::assertStringContainsString(
+                '<a class="navbar-brand" href="&#x2F;">Common Doc</a>',
+                $document,
+            );
+            static::assertStringNotContainsString('>Documentation<', $document);
+        } finally {
+            $this->removeDirectory($output);
+        }
+    }
+
+    #[Test]
     public function rendersTheSiteFooterAtTheBottomOfEveryPage(): void
     {
         $output = $this->temporaryDirectory();
