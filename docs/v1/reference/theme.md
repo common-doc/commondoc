@@ -288,13 +288,13 @@ the browser. There is no server and nothing to configure.
 
 ## Navigation
 
-The built-in layout has two menus in the navbar and one in the sidebar. The two navbar menus
-are this package's own helpers, and the sidebar's is the `navigation` view helper:
+The built-in layout has two menus in the navbar and one in the sidebar, all three of them
+this package's own helpers:
 
 ```php
 <?= $this->componentMenu() ?>
 <?= $this->versionSwitch() ?>
-<?= $this->navigation($scope)->menu() ?>
+<?= $this->pageMenu() ?>
 ```
 
 - **Components.** One link for each released component, at the component's own address,
@@ -322,11 +322,24 @@ are this package's own helpers, and the sidebar's is the `navigation` view helpe
   `CommonDoc\View\Helper\VersionSwitch`, and takes no argument because the page it describes
   is the one being rendered. Both menus share the markup in `CommonDoc\View\Dropdown`, so a
   theme that wants a different control for both has one place to change.
-- **Pages.** The pages of the component and version being read, and no others. Each root
-  gets a menu of its own, named from its mount by `NavigationScope`, so a page lists
-  `message-bus` v2 and not every version of everything. The document template hands its
-  page's menu to the layout through the `commondoc.scope` placeholder, because the layout
-  renders after it. The page being read is marked by the layout's script, not by the build.
+- **Pages.** The pages of the component and version being read, and no others, as a Bootstrap
+  list group under a heading. Each root gets a menu of its own, named from its mount by
+  `NavigationScope`, so a page lists `message-bus` v2 and not every version of everything.
+  Which menu is listed is the one the page being converted names, which the helper reads from
+  the build's page context, so the layout needs nothing handed to it; a document no root
+  claims lists the base menu. The page being read is marked by the layout's script, not by
+  the build, in the theme's heading colour, so the current row reads at the weight of the
+  title it names.
+
+  `pageMenu` is this package's own helper, registered in `view_helpers` under that alias and
+  under `CommonDoc\View\Helper\PageMenu`, and it takes the heading above the list as its only
+  argument. A site replaces either the alias or the class to change the sidebar's markup
+  without touching the layout. A menu with no pages renders nothing, heading included, so a
+  root that publishes no pages leaves no empty label in the sidebar.
+
+  A page with no menu has no sidebar column either: the document takes the width the column
+  would have held. That is the composed site's root, and a component landing page, neither of
+  which publishes pages of its own.
 
   A directory's index is not in it. That page is the directory's landing page, addressed by
   the directory itself, so listing it beside the directory's other pages would show one

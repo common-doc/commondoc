@@ -144,6 +144,17 @@ final class BuildCorpusTest extends TestCase
 
             static::assertStringContainsString('href="/two/concepts/paths/#the-index-rule"', $document);
             static::assertStringContainsString('href="/two/getting-started/"', $document);
+
+            // The site root publishes no pages of its own, so it has no sidebar to render:
+            // a document that took the width a menu would have left is the whole page
+            // rather than a column beside an empty one.
+            $home = $this->read(
+                directory: $output,
+                relative : 'index.html',
+            );
+
+            static::assertStringNotContainsString('class="site-nav', $home);
+            static::assertStringContainsString('<div class="col-12 py-3 px-md-4">', $home);
         } finally {
             $this->removeDirectory($source);
             $this->removeDirectory($output);
@@ -206,11 +217,17 @@ final class BuildCorpusTest extends TestCase
             // Outside the body, so this is the layout's own contribution. The links are the
             // routes the build registered, generated from the routing table.
             static::assertStringContainsString('<nav class="site-nav ', $document);
-            static::assertStringContainsString('<a class="nav-link" href="/concepts/paths/">Paths</a>', $document);
-            static::assertStringContainsString('<a class="nav-link" href="/reference/cli/">Cli</a>', $document);
-            // No item is written as active: a build has no request to match a route against,
+            static::assertStringContainsString(
+                '<a class="list-group-item list-group-item-action" href="&#x2F;concepts&#x2F;paths&#x2F;">Paths</a>',
+                $document,
+            );
+            static::assertStringContainsString(
+                '<a class="list-group-item list-group-item-action" href="&#x2F;reference&#x2F;cli&#x2F;">Cli</a>',
+                $document,
+            );
+            // No row is written as active: a build has no request to match a route against,
             // so the layout's own script marks the current page in the browser instead.
-            static::assertStringNotContainsString('nav-link active', $document);
+            static::assertStringNotContainsString('list-group-item active', $document);
         } finally {
             $this->removeDirectory($output);
         }

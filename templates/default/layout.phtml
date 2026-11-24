@@ -56,10 +56,11 @@ $this->headScript()->appendScript(<<<'JS'
     JS);
 
 $this->headStyle()->appendStyle(<<<'CSS'
-    .site-nav .nav-link { padding: .25rem .5rem; border-radius: var(--bs-border-radius); }
-    .site-nav .nav-link:hover { background: var(--bs-tertiary-bg); }
-    /* The page being read, marked by the script because a built page has no request. */
-    .site-nav .nav-link.active { background: var(--bs-tertiary-bg); color: var(--bs-emphasis-color); font-weight: 600; }
+    .site-nav .list-group-item { padding: .3rem .5rem; }
+    /* The page being read, marked by the script because a built page has no request. Its
+       colour is the theme's heading colour, so the row that is current reads at the same
+       weight as the title of the page it names. */
+    .site-nav .list-group-item.active { background: var(--bs-tertiary-bg); color: var(--cd-heading, var(--bs-emphasis-color)); font-weight: 600; border-color: var(--bs-border-color); }
     .theme-toggle .when-dark { display: none; }
     [data-bs-theme="dark"] .theme-toggle .when-dark { display: inline; }
     [data-bs-theme="dark"] .theme-toggle .when-light { display: none; }
@@ -175,7 +176,7 @@ $this->inlineScript()
             if (box && current) {
                 box.querySelector('[data-dropdown-toggle="components"]').textContent = current.textContent;
             }
-            mark('.site-nav a.nav-link', false);
+            mark('.site-nav a.list-group-item', false);
         })();
         JS);
 ?>
@@ -208,14 +209,13 @@ $this->inlineScript()
     </nav>
     <div class="container-fluid">
         <div class="row">
-            <nav class="site-nav col-md-3 col-xl-2 py-3 border-end">
-                <?php $pages = $this->navigation((string) $this->placeholder('commondoc.scope')); ?>
-                <?php if ([] !== $pages->getItems()) : ?>
-                    <h2 class="h6 text-uppercase text-body-secondary px-2">Pages</h2>
-                    <?= $pages->menu() ?>
-                <?php endif ?>
-            </nav>
-            <div class="col-md-9 col-xl-10 py-3 px-md-4">
+            <?php $menu = $this->pageMenu(); ?>
+            <?php if ('' !== $menu) : ?>
+                <nav class="site-nav col-md-3 col-xl-2 py-3">
+                    <?= $menu ?>
+                </nav>
+            <?php endif ?>
+            <div class="<?= '' === $menu ? 'col-12' : 'col-md-9 col-xl-10' ?> py-3 px-md-4">
                 <?= $this->content ?>
             </div>
         </div>
