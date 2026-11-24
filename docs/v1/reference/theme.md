@@ -140,11 +140,29 @@ Wrote theme/webware/css/theme.css
 ```
 
 Only `.md` files become documents, so the theme's CSS, JavaScript and images are
-copied unchanged by the ordinary asset pass, at the path the helper emits. There
-is nothing to configure for this and no second root to add: a root mounted at
-`/theme/` alongside a root at `/` is refused as overlapping, and it would say the
-same thing twice anyway. A theme directory belongs in the repository that builds the
-site, not in a documented repository it composes.
+copied unchanged by the ordinary asset pass, at the path the helper emits. A theme
+directory belongs in the repository that publishes the site, not in a documented
+repository it composes.
+
+Which root publishes it depends on the shape of the site:
+
+- **A composed site has no root at `/`**, because its component sources are mounted
+  at `/{component}/v{major}/` and its home page is generated. Mount the theme
+  directory there as a root of its own, and the helper's paths already point into it:
+
+  ```php
+  'roots' => [
+      ['path' => 'theme', 'mount' => '/theme/'],
+  ],
+  ```
+
+  Measured: `theme/site/css/site.css` is written to `/theme/site/css/site.css`, which
+  is the value `$this->asset('site.css')` returns for the `site` theme.
+
+- **A site whose own pages are at `/`** cannot also mount `/theme/`: the two mounts
+  overlap, and the build refuses the combination with both of them in the message.
+  In that shape the theme directory sits inside the root at `/`, beside the documents,
+  because the asset pass copies nothing outside a root.
 
 ### Base path
 
