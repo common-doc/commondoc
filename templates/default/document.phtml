@@ -22,11 +22,6 @@
     <?php $this->headTitle($page->titleSegment); ?>
 <?php endif ?>
 <?php
-// The layout renders after this template, so the page's menu is handed over through a
-// placeholder. It is always written, including the base identifier when there is no
-// page, so a document rendered after one that had a page cannot inherit its menu.
-$this->placeholder('commondoc.scope')->set($page?->navigation ?? \CommonDoc\Output\NavigationScope::BASE);
-
 // Code highlighting and diagrams are only loaded by a page that has some, so every other page
 // stays as light as it was. Both come from a pinned version with an integrity hash, like
 // Bootstrap, and both follow the theme: the loaders read `data-bs-theme` and watch it, so the

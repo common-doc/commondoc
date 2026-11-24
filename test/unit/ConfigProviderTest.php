@@ -38,6 +38,7 @@ use CommonDoc\Container\OutputClearingMiddlewareFactory;
 use CommonDoc\Container\PageContextFactory;
 use CommonDoc\Container\PageContextListenerFactory;
 use CommonDoc\Container\PageFactoryFactory;
+use CommonDoc\Container\PageMenuFactory;
 use CommonDoc\Container\ProjectNameFactory;
 use CommonDoc\Container\SearchIndexMiddlewareFactory;
 use CommonDoc\Container\SiteConfigFactory;
@@ -58,6 +59,7 @@ use CommonDoc\SiteConfig;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\HeadingListener;
 use CommonDoc\View\Helper\ComponentMenu;
+use CommonDoc\View\Helper\PageMenu;
 use CommonDoc\View\Helper\ProjectName;
 use CommonDoc\View\Helper\VersionSwitch;
 use CommonDoc\View\PageContext;
@@ -280,6 +282,7 @@ final class ConfigProviderTest extends TestCase
         static::assertSame(
             [
                 'componentMenu' => ComponentMenu::class,
+                'pageMenu'      => PageMenu::class,
                 'projectName'   => ProjectName::class,
                 'versionSwitch' => VersionSwitch::class,
             ],
@@ -288,6 +291,7 @@ final class ConfigProviderTest extends TestCase
         static::assertSame(
             [
                 ComponentMenu::class => ComponentMenuFactory::class,
+                PageMenu::class      => PageMenuFactory::class,
                 ProjectName::class   => ProjectNameFactory::class,
                 VersionSwitch::class => VersionSwitchFactory::class,
             ],
