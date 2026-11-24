@@ -191,7 +191,7 @@ $this->inlineScript()
     <?= $this->headStyle() ?>
     <style><?= $this->partial('commondoc::theme') ?></style>
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <nav class="navbar border-bottom bg-body-tertiary">
         <div class="container-fluid">
             <a class="navbar-brand" href="<?= $this->escapeHtmlAttr($this->basePath('/')) ?>">Documentation</a>
@@ -207,7 +207,7 @@ $this->inlineScript()
             </button>
         </div>
     </nav>
-    <div class="container-fluid">
+    <div class="container-fluid flex-grow-1">
         <div class="row">
             <?php $menu = $this->pageMenu(); ?>
             <?php if ('' !== $menu) : ?>
@@ -220,6 +220,11 @@ $this->inlineScript()
             </div>
         </div>
     </div>
+    <footer class="border-top py-3 mt-auto">
+        <div class="container-fluid">
+            <p class="small text-body-secondary mb-0"><?= $this->escapeHtml($this->copyright()) ?></p>
+        </div>
+    </footer>
     <?= $this->inlineScript() ?>
 </body>
 </html>
