@@ -228,7 +228,7 @@ The built-in layout is Bootstrap 5.3 from a pinned CDN version with integrity ha
 
 - **Dark and light mode.** Bootstrap styles itself from `data-bs-theme` on the root element. A script in the head sets it from the reader's saved choice, or from the operating system when there is none, before the stylesheet is requested, so the first paint is in the right theme. The toggle in the navbar rewrites the attribute and saves the choice in `localStorage`. Every colour is a CSS variable, so switching never reloads or flashes.
 - **Layout.** A navbar with the components menu and the toggle, a sidebar holding the page
-  menu, and the document beside it.
+  menu, the document beside it, and a footer at the bottom of the page.
 - **Admonitions.** The `AdmonitionExtension` writes this markup from a GitHub alert (`> [!WARNING]`, see [Extensions](extensions.md#admonitions)), and the theme styles it. An admonition is an alert with a title:
 
 ```html
@@ -387,6 +387,30 @@ component and which version it holds. [Site configuration](configuration.md) cov
 A site that supplies its own configuration aggregates `Webware\Navigation\ConfigProvider`,
 which registers the helper, or a layout that calls it cannot resolve it. A site that
 replaces the layout is free not to render a menu at all.
+
+## The footer
+
+Every page ends with a `footer` element carrying the site's copyright notice:
+
+```html
+<footer class="border-top py-3 mt-auto">
+    <div class="container-fluid">
+        <p class="small text-body-secondary mb-0">@copyright Common Doc 2026</p>
+    </div>
+</footer>
+```
+
+The body is a flex column at least a viewport tall and the document column grows to fill it,
+so the footer sits at the bottom of a short page instead of floating under the last paragraph.
+The notice is `@copyright`, the site's `projectName`, and one year or a span of them: the year
+the site was first published, and then the year it was built, written `2026 - 2027` once the
+two differ. A site that states no `projectName` gets the years alone.
+
+The notice comes from the `copyright` helper, registered in `view_helpers` under that alias and
+under `CommonDoc\View\Helper\Copyright`, and it takes no argument. It reads `projectName` from
+the site configuration and the year from the clock of the machine running the build, because a
+built page is a file: a notice that followed the reader's clock would need a script to say
+something different on every visit. A rebuild is what rolls it forward.
 
 ## Where the built-in templates live
 

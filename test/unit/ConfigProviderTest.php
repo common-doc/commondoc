@@ -26,6 +26,7 @@ use CommonDoc\Container\CommandPreHandleListenerFactory;
 use CommonDoc\Container\ComponentMenuFactory;
 use CommonDoc\Container\ComponentPageMiddlewareFactory;
 use CommonDoc\Container\ConverterFactoryFactory;
+use CommonDoc\Container\CopyrightFactory;
 use CommonDoc\Container\DocumentRootFactory;
 use CommonDoc\Container\DocumentRouteFactory;
 use CommonDoc\Container\DocumentViewRendererFactory;
@@ -59,6 +60,7 @@ use CommonDoc\SiteConfig;
 use CommonDoc\View\DocumentViewRenderer;
 use CommonDoc\View\HeadingListener;
 use CommonDoc\View\Helper\ComponentMenu;
+use CommonDoc\View\Helper\Copyright;
 use CommonDoc\View\Helper\PageMenu;
 use CommonDoc\View\Helper\ProjectName;
 use CommonDoc\View\Helper\VersionSwitch;
@@ -282,6 +284,7 @@ final class ConfigProviderTest extends TestCase
         static::assertSame(
             [
                 'componentMenu' => ComponentMenu::class,
+                'copyright'     => Copyright::class,
                 'pageMenu'      => PageMenu::class,
                 'projectName'   => ProjectName::class,
                 'versionSwitch' => VersionSwitch::class,
@@ -291,6 +294,7 @@ final class ConfigProviderTest extends TestCase
         static::assertSame(
             [
                 ComponentMenu::class => ComponentMenuFactory::class,
+                Copyright::class     => CopyrightFactory::class,
                 PageMenu::class      => PageMenuFactory::class,
                 ProjectName::class   => ProjectNameFactory::class,
                 VersionSwitch::class => VersionSwitchFactory::class,

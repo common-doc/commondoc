@@ -38,6 +38,7 @@ use Webware\MessageBus\ResultInterface;
 use function array_keys;
 use function bin2hex;
 use function copy;
+use function date;
 use function dirname;
 use function file_get_contents;
 use function file_put_contents;
@@ -197,6 +198,28 @@ final class BuildCorpusTest extends TestCase
             static::assertFileDoesNotExist("{$output}/reference/cli/index.html");
         } finally {
             $this->removeDirectory($source);
+            $this->removeDirectory($output);
+        }
+    }
+
+    #[Test]
+    public function rendersTheSiteFooterAtTheBottomOfEveryPage(): void
+    {
+        $output = $this->temporaryDirectory();
+
+        try {
+            $this->build(self::CORPUS, $output);
+
+            $document = $this->read(
+                directory: $output,
+                relative : 'concepts/paths/index.html',
+            );
+
+            // The notice is written into the page, so it names the year the site was built
+            // rather than the year a reader opens it in.
+            static::assertStringContainsString('<footer class="border-top py-3 mt-auto">', $document);
+            static::assertStringContainsString('@copyright Common Doc ' . date('Y'), $document);
+        } finally {
             $this->removeDirectory($output);
         }
     }
