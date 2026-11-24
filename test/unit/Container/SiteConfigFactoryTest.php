@@ -181,8 +181,7 @@ final class SiteConfigFactoryTest extends TestCase
     {
         $site = self::site();
 
-        static::assertSame('', $site->projectName);
-        static::assertSame('', $site->projectSlug);
+        static::assertSame('', $site->siteName);
         static::assertSame('', $site->versionLabel);
     }
 
@@ -192,8 +191,7 @@ final class SiteConfigFactoryTest extends TestCase
         $site = self::site(
             section         : [
                 'pathType'     => PathType::File,
-                'projectName'  => 'CommonDoc',
-                'projectSlug'  => 'commondoc',
+                'siteName'     => 'CommonDoc',
                 'versionLabel' => '1.0',
             ],
             viewHelperConfig: ['base_path' => '/repo/'],
@@ -201,8 +199,7 @@ final class SiteConfigFactoryTest extends TestCase
 
         static::assertSame('/repo/', $site->documentRoot->basePath);
         static::assertSame(PathType::File, $site->documentRoot->pathType);
-        static::assertSame('CommonDoc', $site->projectName);
-        static::assertSame('commondoc', $site->projectSlug);
+        static::assertSame('CommonDoc', $site->siteName);
         static::assertSame('1.0', $site->versionLabel);
     }
 

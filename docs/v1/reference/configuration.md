@@ -17,8 +17,7 @@ than read, and the refusal names the key that is used instead.
 | `output` | The directory a build writes to. It is cleared before the first file is written, so a deploy never carries a page that was deleted or renamed |
 | `target` | Where a repository keeps its documentation, relative to that repository's root |
 | `roots` | The source roots the site is composed from |
-| `projectName` | The display name the layout uses as the base of every page title, and the name a template can read from the page, or empty for none |
-| `projectSlug` | The identifier every page carries, or empty for none |
+| `siteName` | The site's display name: the base of every page title, the navbar brand when the theme carries no logo, and the name in the footer notice, or empty for none |
 | `versionLabel` | The version this build documents, or empty for none |
 
 The base path is the applied prefix, so it is stated once at the top of the

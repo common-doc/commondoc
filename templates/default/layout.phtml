@@ -186,8 +186,8 @@ $this->inlineScript()
     <?= $this->headMeta() ?>
     <?php $this->favicon() ?>
     <?= $this->headScript() ?>
-    <?php $project = $this->projectName(); ?>
-    <?= $this->headTitle('' === $project ? null : $project)->setSeparator(' | ') ?>
+    <?php $site = $this->siteName(); ?>
+    <?= $this->headTitle('' === $site ? null : $site)->setSeparator(' | ') ?>
     <?= $this->headLink() ?>
     <?= $this->headStyle() ?>
     <style><?= $this->partial('commondoc::theme') ?></style>

@@ -15,7 +15,7 @@ declare(strict_types=1);
 namespace CommonDoc\Container;
 
 use CommonDoc\SiteConfig;
-use CommonDoc\View\Helper\ProjectName;
+use CommonDoc\View\Helper\SiteName;
 use Laminas\ServiceManager\Factory\FactoryInterface;
 use Override;
 use Psl\Type;
@@ -28,7 +28,7 @@ use Psr\Container\NotFoundExceptionInterface;
  *
  * @internal
  */
-final readonly class ProjectNameFactory implements FactoryInterface
+final readonly class SiteNameFactory implements FactoryInterface
 {
     /**
      * @param ?array<array-key, mixed> $options
@@ -42,8 +42,8 @@ final readonly class ProjectNameFactory implements FactoryInterface
         ContainerInterface $container,
         string $requestedName,
         ?array $options = null,
-    ): ProjectName {
-        return new ProjectName(
+    ): SiteName {
+        return new SiteName(
             site: Type\instance_of(SiteConfig::class)->coerce($container->get(SiteConfig::class)),
         );
     }

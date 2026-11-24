@@ -78,7 +78,7 @@ final class BrandFactoryTest extends TestCase
                     HelperPluginManager::class => $helpers,
                     SiteConfig::class          => new SiteConfig(
                         documentRoot: new DocumentRoot('/'),
-                        projectName : 'Webware',
+                        siteName    : 'Webware',
                     ),
                     Escaper::class             => new Escaper(),
                     EscaperInterface::class    => new Escaper(),

@@ -320,8 +320,7 @@ final class EnvironmentFactoryTest extends TestCase
     {
         $this->page = new Page(
             label       : 'Install',
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             sourcePath  : 'docs/install.md',
             url         : '/install/',
             versionLabel: '1.0',

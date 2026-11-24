@@ -95,8 +95,7 @@ final class VersionSwitchTest extends TestCase
         $context = new PageContext();
         $context->set(new Page(
             label       : 'Guide',
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             sourcePath  : 'bus/v1/index.md',
             url         : '/bus/v1/',
             versionLabel: '1.0',

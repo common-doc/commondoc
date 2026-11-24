@@ -126,8 +126,7 @@ final class PageMenuTest extends TestCase
         if (NavigationScope::BASE !== $navigation) {
             $context->set(new Page(
                 label       : 'Other',
-                projectName : 'Project',
-                projectSlug : 'project',
+                siteName    : 'Site',
                 sourcePath  : 'other/index.md',
                 url         : '/other/',
                 versionLabel: 'v1',

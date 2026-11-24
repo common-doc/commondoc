@@ -48,7 +48,7 @@ use function sprintf;
  *
  * The collaborators are resolved here once and captured by value, so the callable
  * never sees the container. Everything shared by every page in a deployment (the
- * project name, the slug, the version label) comes from `SiteConfig`. The URL comes
+ * site name, the version label) comes from `SiteConfig`. The URL comes
  * from the routing table through the URL helper rather than from a translation computed
  * here, so a page cannot carry an address the router disagrees with.
  *
@@ -146,8 +146,7 @@ final readonly class PageFactoryFactory implements FactoryInterface
 
             return new Page(
                 label         : $label,
-                projectName   : $site->projectName,
-                projectSlug   : $site->projectSlug,
+                siteName      : $site->siteName,
                 sourcePath    : $localPath,
                 url           : $url,
                 versionLabel  : $site->versionLabel,

@@ -14,10 +14,10 @@ declare(strict_types=1);
 
 namespace CommonDocTest;
 
-use CommonDoc\Container\ProjectNameFactory;
+use CommonDoc\Container\SiteNameFactory;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\SiteConfig;
-use CommonDoc\View\Helper\ProjectName;
+use CommonDoc\View\Helper\SiteName;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -30,25 +30,25 @@ use Psr\Container\ContainerInterface;
  * The layout renders without a page, so the name comes from the site configuration rather
  * than from the document being rendered.
  */
-#[CoversClass(ProjectName::class)]
-#[CoversClass(ProjectNameFactory::class)]
-#[CoversMethod(ProjectName::class, '__construct')]
-#[CoversMethod(ProjectName::class, '__invoke')]
-#[CoversMethod(ProjectNameFactory::class, '__invoke')]
-final class ProjectNameTest extends TestCase
+#[CoversClass(SiteName::class)]
+#[CoversClass(SiteNameFactory::class)]
+#[CoversMethod(SiteName::class, '__construct')]
+#[CoversMethod(SiteName::class, '__invoke')]
+#[CoversMethod(SiteNameFactory::class, '__invoke')]
+final class SiteNameTest extends TestCase
 {
     #[Test]
     public function answersNothingWhenTheSiteStatesNoName(): void
     {
         // An empty answer is what lets the layout leave the title alone rather than emit a
         // separator with nothing after it.
-        static::assertSame('', new ProjectName($this->site())());
+        static::assertSame('', new SiteName($this->site())());
     }
 
     #[Test]
     public function answersTheConfiguredName(): void
     {
-        static::assertSame('Webware', new ProjectName($this->site('Webware'))());
+        static::assertSame('Webware', new SiteName($this->site('Webware'))());
     }
 
     #[Test]
@@ -59,15 +59,15 @@ final class ProjectNameTest extends TestCase
 
         static::assertSame(
             'Webware',
-            new ProjectNameFactory()($container, ProjectName::class)(),
+            new SiteNameFactory()($container, SiteName::class)(),
         );
     }
 
-    private function site(string $projectName = ''): SiteConfig
+    private function site(string $siteName = ''): SiteConfig
     {
         return new SiteConfig(
             documentRoot: new DocumentRoot('/'),
-            projectName : $projectName,
+            siteName    : $siteName,
         );
     }
 }

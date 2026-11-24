@@ -34,8 +34,8 @@ final class CopyrightNoticeTest extends TestCase
         static::assertSame(
             '@copyright Common Doc 2026',
             $this->notice()->text(
-                projectName: 'Common Doc',
-                year       : 2025,
+                siteName: 'Common Doc',
+                year    : 2025,
             ),
         );
     }
@@ -44,8 +44,8 @@ final class CopyrightNoticeTest extends TestCase
     public function leavesTheNameOutWhenTheSiteStatesNone(): void
     {
         static::assertSame('@copyright 2026', $this->notice()->text(
-            projectName: '',
-            year       : 2026,
+            siteName: '',
+            year    : 2026,
         ));
     }
 
@@ -55,8 +55,8 @@ final class CopyrightNoticeTest extends TestCase
         static::assertSame(
             '@copyright Common Doc 2026 - 2027',
             $this->notice()->text(
-                projectName: 'Common Doc',
-                year       : 2027,
+                siteName: 'Common Doc',
+                year    : 2027,
             ),
         );
     }
@@ -67,8 +67,8 @@ final class CopyrightNoticeTest extends TestCase
         static::assertSame(
             '@copyright Common Doc 2026',
             $this->notice()->text(
-                projectName: 'Common Doc',
-                year       : 2026,
+                siteName: 'Common Doc',
+                year    : 2026,
             ),
         );
     }

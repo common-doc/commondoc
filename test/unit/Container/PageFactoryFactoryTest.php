@@ -56,7 +56,7 @@ final class PageFactoryFactoryTest extends TestCase
     /**
      * The function the container would serve for this factory's name.
      *
-     * @param array{projectName?: string, projectSlug?: string, versionLabel?: string} $identity
+     * @param array{siteName?: string, versionLabel?: string} $identity
      *
      * @return Closure(non-empty-string $localPath, string $label, ?Source $source, ?string $repositoryPath): Page
      */
@@ -67,8 +67,7 @@ final class PageFactoryFactoryTest extends TestCase
         $siteConfig = new SiteConfig(
             documentRoot: $root,
             roots       : $roots,
-            projectName : $identity['projectName'] ?? '',
-            projectSlug : $identity['projectSlug'] ?? '',
+            siteName    : $identity['siteName'] ?? '',
             versionLabel: $identity['versionLabel'] ?? '',
         );
 
@@ -144,8 +143,7 @@ final class PageFactoryFactoryTest extends TestCase
     public function capturesTheDeploymentIdentityForEveryPage(): void
     {
         $pages = self::pages([
-            'projectName'  => 'CommonDoc',
-            'projectSlug'  => 'commondoc',
+            'siteName'     => 'CommonDoc',
             'versionLabel' => '1.0',
         ]);
 
@@ -158,13 +156,11 @@ final class PageFactoryFactoryTest extends TestCase
             label    : 'Setup',
         );
 
-        static::assertSame('CommonDoc', $first->projectName);
-        static::assertSame('commondoc', $first->projectSlug);
+        static::assertSame('CommonDoc', $first->siteName);
         static::assertSame('1.0', $first->versionLabel);
 
         // The identity is shared; only what differs per document is not.
-        static::assertSame($first->projectName, $second->projectName);
-        static::assertSame($first->projectSlug, $second->projectSlug);
+        static::assertSame($first->siteName, $second->siteName);
         static::assertSame($first->versionLabel, $second->versionLabel);
         static::assertNotSame($first->url, $second->url);
     }
@@ -227,14 +223,13 @@ final class PageFactoryFactoryTest extends TestCase
     public function leavesTheIdentityBlankWhenNoSectionIsConfigured(): void
     {
         // A deployment that states no identity still yields a usable page: a page
-        // with no project name is cosmetic, a build that cannot start is not.
+        // with no site name is cosmetic, a build that cannot start is not.
         $page = self::pages(root: new DocumentRoot('/'))(
             localPath: 'index.md',
             label    : 'Home',
         );
 
-        static::assertSame('', $page->projectName);
-        static::assertSame('', $page->projectSlug);
+        static::assertSame('', $page->siteName);
         static::assertSame('', $page->versionLabel);
         static::assertSame('/', $page->url);
     }

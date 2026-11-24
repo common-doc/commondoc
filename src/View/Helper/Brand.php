@@ -36,8 +36,8 @@ use function sprintf;
  * theme that wants a different name passes it, and the layout stays free of the decision.
  *
  * The alt text is the site's name, which is also the text shown when there is no logo, so a
- * reader who cannot see the picture is told whose site this is. A site that states neither a
- * name nor a slug gets no brand at all rather than a link with nothing in it.
+ * reader who cannot see the picture is told whose site this is. A site that states no name
+ * gets no brand at all rather than a link with nothing in it.
  */
 final readonly class Brand implements HelperInterface
 {
@@ -56,7 +56,7 @@ final readonly class Brand implements HelperInterface
     public function __invoke(string $name = 'logo'): string
     {
         $href  = $this->escaper->escapeHtmlAttr($this->basePath->__invoke('/'));
-        $label = '' === $this->site->projectName ? $this->site->projectSlug : $this->site->projectName;
+        $label = $this->site->siteName;
         $logo  = $this->themeAsset->__invoke($name);
 
         if ('' !== $logo) {

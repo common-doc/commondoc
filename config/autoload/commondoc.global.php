@@ -42,7 +42,7 @@ declare(strict_types=1);
  * rather than a variation this package decides.
  *
  * The identity values are blank for a single-repository build, which is the correct
- * answer rather than a placeholder: a page with no project name is a cosmetic
+ * answer rather than a placeholder: a page with no site name is a cosmetic
  * problem, and inventing one would be worse than leaving it empty.
  */
 
@@ -65,8 +65,7 @@ return [
         'roots'        => [
             ['repository' => '.', 'mount' => '/'],
         ],
-        'projectName'  => 'Common Doc',
-        'projectSlug'  => 'commondoc',
+        'siteName'  => 'Common Doc',
         'versionLabel' => '',
     ],
 ];

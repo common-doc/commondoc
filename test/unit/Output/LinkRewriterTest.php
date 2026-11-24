@@ -107,8 +107,7 @@ final class LinkRewriterTest extends TestCase
         if (null !== $sourcePath) {
             $document->data->set('commondoc.page', new Page(
                 label         : 'Setup',
-                projectName   : 'CommonDoc',
-                projectSlug   : 'commondoc',
+                siteName      : 'CommonDoc',
                 sourcePath    : $sourcePath,
                 url           : '/guide/setup/',
                 versionLabel  : '1.0',

@@ -32,8 +32,7 @@ final class PageContextListenerTest extends TestCase
     {
         return new Page(
             label       : $label,
-            projectName : 'CommonDoc',
-            projectSlug : 'commondoc',
+            siteName    : 'CommonDoc',
             sourcePath  : 'docs/page.md',
             url         : '/page',
             versionLabel: '1.0',

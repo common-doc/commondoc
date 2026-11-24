@@ -43,7 +43,7 @@ final class BrandTest extends TestCase
     {
         static::assertStringContainsString(
             'src="&#x2F;theme&#x2F;webware&#x2F;img&#x2F;mark.svg"',
-            $this->brand(['mark' => '/theme/webware/img/mark.svg'], projectName: 'Webware')(name: 'mark'),
+            $this->brand(['mark' => '/theme/webware/img/mark.svg'], siteName: 'Webware')(name: 'mark'),
         );
     }
 
@@ -52,7 +52,7 @@ final class BrandTest extends TestCase
     {
         static::assertStringContainsString(
             '<img src="&#x2F;theme&#x2F;webware&#x2F;img&#x2F;logo.svg"',
-            $this->brand(['logo' => '/theme/webware/img/logo.svg'], projectName: 'Webware')(),
+            $this->brand(['logo' => '/theme/webware/img/logo.svg'], siteName: 'Webware')(),
         );
     }
 
@@ -61,27 +61,21 @@ final class BrandTest extends TestCase
     {
         static::assertStringContainsString(
             'alt="A &lt; B"',
-            $this->brand(['logo' => '/theme/webware/img/logo.svg'], projectName: 'A < B')(),
+            $this->brand(['logo' => '/theme/webware/img/logo.svg'], siteName: 'A < B')(),
         );
         static::assertStringContainsString(
             '>A &lt; B</a>',
-            $this->brand(projectName: 'A < B')(),
+            $this->brand(siteName: 'A < B')(),
         );
     }
 
     #[Test]
     public function fallsBackToTheSiteNameWhenTheThemeCarriesNoLogo(): void
     {
-        $brand = $this->brand(projectName: 'Webware')();
+        $brand = $this->brand(siteName: 'Webware')();
 
         static::assertStringContainsString('>Webware</a>', $brand);
         static::assertStringNotContainsString('<img', $brand);
-    }
-
-    #[Test]
-    public function fallsBackToTheSlugWhenTheSiteStatesNoName(): void
-    {
-        static::assertStringContainsString('>webware</a>', $this->brand(projectSlug: 'webware')());
     }
 
     #[Test]
@@ -91,7 +85,7 @@ final class BrandTest extends TestCase
             'src="https&#x3A;&#x2F;&#x2F;cdn.example&#x2F;logo.svg"',
             $this->brand(
                 ['logo' => 'https://cdn.example/logo.svg'],
-                projectName: 'Webware',
+                siteName: 'Webware',
                 basePath: '/repo/',
             )(),
         );
@@ -103,8 +97,8 @@ final class BrandTest extends TestCase
         static::assertStringContainsString(
             'href="&#x2F;repo&#x2F;"',
             $this->brand(
-                projectName: 'Webware',
-                basePath   : '/repo/',
+                siteName: 'Webware',
+                basePath: '/repo/',
             )(),
         );
     }
@@ -114,7 +108,7 @@ final class BrandTest extends TestCase
     {
         static::assertStringContainsString(
             'alt="Webware"',
-            $this->brand(['logo' => '/theme/webware/img/logo.svg'], projectName: 'Webware')(),
+            $this->brand(['logo' => '/theme/webware/img/logo.svg'], siteName: 'Webware')(),
         );
     }
 
@@ -125,7 +119,7 @@ final class BrandTest extends TestCase
             'src="&#x2F;repo&#x2F;theme&#x2F;webware&#x2F;img&#x2F;logo.svg"',
             $this->brand(
                 ['logo' => '/theme/webware/img/logo.svg'],
-                projectName: 'Webware',
+                siteName: 'Webware',
                 basePath: '/repo/',
             )(),
         );
@@ -143,15 +137,13 @@ final class BrandTest extends TestCase
      */
     private function brand(
         array $assets = [],
-        string $projectName = '',
-        string $projectSlug = '',
+        string $siteName = '',
         string $basePath = '/',
     ): Brand {
         return new Brand(
             site      : new SiteConfig(
                 documentRoot: new DocumentRoot($basePath),
-                projectName : $projectName,
-                projectSlug : $projectSlug,
+                siteName    : $siteName,
             ),
             themeAsset: new ThemeAsset(
                 asset   : new Asset($assets),
