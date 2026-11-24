@@ -17,7 +17,11 @@ namespace CommonDocTest\Container;
 use Closure;
 use CommonDoc\Container\PageFactoryFactory;
 use CommonDoc\Exception\InvalidArgumentException;
+use CommonDoc\Input\Component;
+use CommonDoc\Input\Release;
+use CommonDoc\Input\Root;
 use CommonDoc\Input\Source;
+use CommonDoc\Input\Version;
 use CommonDoc\Output\DocumentRoot;
 use CommonDoc\Output\DocumentRoute;
 use CommonDoc\SiteConfig;
@@ -56,12 +60,13 @@ final class PageFactoryFactoryTest extends TestCase
      *
      * @return Closure(non-empty-string $localPath, string $label, ?Source $source, ?string $repositoryPath): Page
      */
-    private static function pages(array $identity = [], ?DocumentRoot $root = null): Closure
+    private static function pages(array $identity = [], ?DocumentRoot $root = null, array $roots = []): Closure
     {
         $root ??= new DocumentRoot('/repo/');
 
         $siteConfig = new SiteConfig(
             documentRoot: $root,
+            roots       : $roots,
             projectName : $identity['projectName'] ?? '',
             projectSlug : $identity['projectSlug'] ?? '',
             versionLabel: $identity['versionLabel'] ?? '',
@@ -79,6 +84,18 @@ final class PageFactoryFactoryTest extends TestCase
             );
 
         return new PageFactoryFactory()($container, PageFactoryFactory::class);
+    }
+
+    private static function released(): Root
+    {
+        return new Root(
+            path   : '/bus/1',
+            mount  : '/message-bus/v1/',
+            release: new Release(
+                component: new Component('message-bus'),
+                version  : Version::fromTag('v1.0.0') ?? self::fail('The tag is not a version.'),
+            ),
+        );
     }
 
     /**
@@ -112,6 +129,18 @@ final class PageFactoryFactoryTest extends TestCase
     }
 
     #[Test]
+    public function addsTheComponentAndVersionToADocumentOfAReleasedComponent(): void
+    {
+        static::assertSame(
+            'Setup | Message Bus v1',
+            self::pages(roots: [self::released()])(
+                localPath: 'message-bus/v1/guide/setup.md',
+                label    : 'Setup',
+            )->titleSegment,
+        );
+    }
+
+    #[Test]
     public function capturesTheDeploymentIdentityForEveryPage(): void
     {
         $pages = self::pages([
@@ -141,6 +170,19 @@ final class PageFactoryFactoryTest extends TestCase
     }
 
     #[Test]
+    public function carriesTheReleaseThePageBelongsTo(): void
+    {
+        $page = self::pages(roots: [self::released()])(
+            localPath: 'message-bus/v1/guide/setup.md',
+            label    : 'Setup',
+        );
+
+        static::assertNotNull($page->release);
+        static::assertSame('Message Bus', $page->release->component->label);
+        static::assertSame(1, $page->release->version->major);
+    }
+
+    #[Test]
     public function carriesTheSourceAndTheRepositoryPathItWasGiven(): void
     {
         $source = new Source('https://github.com/example/repo', 'abc123', 'docs/2.0');
@@ -154,6 +196,18 @@ final class PageFactoryFactoryTest extends TestCase
 
         static::assertSame($source, $page->source);
         static::assertSame('docs/2.0/guide/setup.md', $page->repositoryPath);
+    }
+
+    #[Test]
+    public function contributesNothingToTheTitleForTheRootIndex(): void
+    {
+        static::assertSame(
+            '',
+            self::pages()(
+                localPath: 'README.md',
+                label    : 'Readme',
+            )->titleSegment,
+        );
     }
 
     #[Test]
@@ -186,6 +240,31 @@ final class PageFactoryFactoryTest extends TestCase
     }
 
     #[Test]
+    public function namesOnlyTheComponentAndVersionForADirectoryIndex(): void
+    {
+        // `Index` repeats what the address already says.
+        static::assertSame(
+            'Message Bus v1',
+            self::pages(roots: [self::released()])(
+                localPath: 'message-bus/v1/README.md',
+                label    : 'Readme',
+            )->titleSegment,
+        );
+    }
+
+    #[Test]
+    public function namesTheDirectoryForAnIndexOutsideAReleasedComponent(): void
+    {
+        static::assertSame(
+            'Concepts',
+            self::pages()(
+                localPath: 'concepts/README.md',
+                label    : 'Readme',
+            )->titleSegment,
+        );
+    }
+
+    #[Test]
     public function refusesALocalPathThatIsNotADocument(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -193,6 +272,18 @@ final class PageFactoryFactoryTest extends TestCase
         self::pages()(
             localPath: 'guide/setup.html',
             label    : 'Setup',
+        );
+    }
+
+    #[Test]
+    public function titlesADocumentWithItsOwnLabel(): void
+    {
+        static::assertSame(
+            'Setup',
+            self::pages()(
+                localPath: 'guide/setup.md',
+                label    : 'Setup',
+            )->titleSegment,
         );
     }
 }
