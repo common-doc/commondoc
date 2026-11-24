@@ -155,13 +155,13 @@ final class BuildSiteHandlerTest extends AbstractTemporaryTree
             $labels[$path] = $label;
         })->handle($this->command());
 
-        // No special case for `index`: a better label needs a source this build
-        // does not have yet, and inventing navigation vocabulary here would hide
-        // that rather than state it.
+        // The label is the file name normalised for display. `index` keeps its own
+        // label here: it is the title that drops it, because the page's address
+        // already names the directory.
         static::assertSame(
             [
-                'guide/setup.md' => 'setup',
-                'index.md'       => 'index',
+                'guide/setup.md' => 'Setup',
+                'index.md'       => 'Index',
             ],
             $labels,
         );

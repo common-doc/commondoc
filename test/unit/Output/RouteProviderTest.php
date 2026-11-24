@@ -62,7 +62,7 @@ final class RouteProviderTest extends TestCase
         static::assertSame(
             [
                 '/{path}'       => [],
-                '/guide/setup/' => ['order' => 0, 'navigation' => NavigationScope::BASE, 'label' => 'setup'],
+                '/guide/setup/' => ['order' => 0, 'navigation' => NavigationScope::BASE, 'label' => 'Setup'],
                 '/'             => ['order' => 1],
             ],
             $options,
@@ -72,10 +72,11 @@ final class RouteProviderTest extends TestCase
     #[Test]
     public function derivesALabelFromTheFileNameWithNoSpecialCaseForIndex(): void
     {
-        // A better label needs a source this build does not have yet, so every index page
-        // is labelled `index` and that is stated rather than hidden.
-        static::assertSame('setup', RouteProvider::labelFor('guide/setup.md'));
-        static::assertSame('index', RouteProvider::labelFor('index.md'));
+        // The label is the file name normalised for display, so a hyphenated name reads as
+        // English. An index keeps its label; dropping it from the title is the title's job.
+        static::assertSame('Setup', RouteProvider::labelFor('guide/setup.md'));
+        static::assertSame('Api Reference', RouteProvider::labelFor('guide/api-reference.md'));
+        static::assertSame('Index', RouteProvider::labelFor('index.md'));
     }
 
     #[Test]

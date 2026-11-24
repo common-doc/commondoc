@@ -18,8 +18,8 @@
  * @var \CommonDoc\View\Page|null $page
  */
 ?>
-<?php if (null !== $page) : ?>
-    <?php $this->headTitle($page->label); ?>
+<?php if (null !== $page && '' !== $page->titleSegment) : ?>
+    <?php $this->headTitle($page->titleSegment); ?>
 <?php endif ?>
 <?php
 // The layout renders after this template, so the page's menu is handed over through a

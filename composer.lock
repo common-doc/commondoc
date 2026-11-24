@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "84e111bfaf80412557b61fef96813862",
+    "content-hash": "08f0febc8c3a6e2cb345f9249bbd2ec5",
     "packages": [
         {
             "name": "brick/math",
@@ -623,6 +623,88 @@
             ],
             "time": "2026-11-12T11:04:36+00:00",
             "published-time": "2026-11-12T11:06:11+00:00"
+        },
+        {
+            "name": "laminas/laminas-filter",
+            "version": "3.5.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/laminas/laminas-filter.git",
+                "reference": "ff520fb3a87611da8ddccec5c2fd9ba83e94fa02"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/laminas/laminas-filter/zipball/ff520fb3a87611da8ddccec5c2fd9ba83e94fa02",
+                "reference": "ff520fb3a87611da8ddccec5c2fd9ba83e94fa02",
+                "shasum": ""
+            },
+            "require": {
+                "ext-fileinfo": "*",
+                "ext-filter": "*",
+                "ext-iconv": "*",
+                "ext-mbstring": "*",
+                "laminas/laminas-servicemanager": "^4.5.1",
+                "laminas/laminas-stdlib": "^3.22.0",
+                "php": "~8.3.0 || ~8.4.0 || ~8.5.0 || ~8.6.0",
+                "psr/container": "^1 || ^2.0.2",
+                "psr/http-factory": "^1.1",
+                "psr/http-message": "^2.0"
+            },
+            "require-dev": {
+                "ext-bz2": "*",
+                "ext-zip": "*",
+                "ext-zlib": "*",
+                "laminas/internal-tooling": "^1.0",
+                "laminas/laminas-coding-standard": "^3.1.0",
+                "laminas/laminas-diactoros": "^3.10",
+                "pear/archive_tar": "^1.6.1",
+                "pear/pear": "^1.10.18",
+                "phpunit/phpunit": "^11.5.57",
+                "psalm/plugin-phpunit": "~0.22.2",
+                "vimeo/psalm": "^6.20.10"
+            },
+            "suggest": {
+                "laminas/laminas-i18n": "Laminas\\I18n component for filters depending on i18n functionality",
+                "psr/http-factory-implementation": "psr/http-factory-implementation, for creating file upload instances when consuming PSR-7 in file upload filters"
+            },
+            "type": "library",
+            "extra": {
+                "laminas": {
+                    "component": "Laminas\\Filter",
+                    "config-provider": "Laminas\\Filter\\ConfigProvider"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Laminas\\Filter\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-3-Clause"
+            ],
+            "description": "Programmatically filter and normalize data and files",
+            "homepage": "https://laminas.dev",
+            "keywords": [
+                "filter",
+                "laminas"
+            ],
+            "support": {
+                "chat": "https://laminas.dev/chat",
+                "docs": "https://docs.laminas.dev/laminas-filter/",
+                "forum": "https://discourse.laminas.dev",
+                "issues": "https://github.com/laminas/laminas-filter/issues",
+                "rss": "https://github.com/laminas/laminas-filter/releases.atom",
+                "source": "https://github.com/laminas/laminas-filter"
+            },
+            "funding": [
+                {
+                    "url": "https://crowdfunding.linuxfoundation.org/initiatives/laminas-project",
+                    "type": "custom"
+                }
+            ],
+            "time": "2026-11-10T09:43:58+00:00",
+            "published-time": "2026-11-10T09:44:32+00:00"
         },
         {
             "name": "laminas/laminas-hydrator",

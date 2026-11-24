@@ -133,16 +133,29 @@ final readonly class VersionMenu
     }
 
     /**
-     * The segment of the component whose version mount holds a document, or null.
+     * The release whose version mount holds a document, or null when none does.
+     *
+     * One walk answers both questions a caller can ask of a path, so the component's segment
+     * and its label, and the version being read, cannot disagree about which root owns it.
+     *
+     * @param string $sitePath The document's site path
      */
-    private function componentOf(string $sitePath): ?string
+    public function releaseOf(string $sitePath): ?Release
     {
         foreach ($this->versions as $version) {
             if (str_starts_with("/{$sitePath}", $version['root']->mount)) {
-                return $version['release']->component->segment;
+                return $version['release'];
             }
         }
 
         return null;
+    }
+
+    /**
+     * The segment of the component whose version mount holds a document, or null.
+     */
+    private function componentOf(string $sitePath): ?string
+    {
+        return $this->releaseOf($sitePath)?->component->segment;
     }
 }
