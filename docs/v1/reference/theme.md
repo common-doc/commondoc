@@ -355,9 +355,9 @@ template pushes its own segments and the layout adds the site's name as the base
 
 | Shape | Title |
 | --- | --- |
-| `/concepts/paths/` in a one-repository site with `projectName` set to `CommonDoc` | `Paths \| CommonDoc` |
-| `/message-bus/v2/getting-started/` in a composed site | `Getting Started \| Message Bus v2 \| CommonDoc` |
-| `/message-bus/v2/`, a directory index | `Message Bus v2 \| CommonDoc` |
+| `/concepts/paths/` in a one-repository site with `projectName` set to `Common Doc` | `Paths \| Common Doc` |
+| `/message-bus/v2/getting-started/` in a composed site | `Getting Started \| Message Bus v2 \| Common Doc` |
+| `/message-bus/v2/`, a directory index | `Message Bus v2 \| Common Doc` |
 
 `projectName` supplies the base, so a site that states none gets no trailing separator. The
 component and version come from the release that owns the page, so a bookmark says which
