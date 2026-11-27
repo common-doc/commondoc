@@ -17,9 +17,10 @@ set does.
 
 ## Enabled by default
 
-These load on every build whether or not anything registers an extension. The order
-below is the load order and is part of the contract, because an extension that
-depends on another extension's parse step has to be added after it:
+These load on every build whether or not anything registers an extension, so the list
+is the whole default set rather than the bundled part of it. The order below is the load
+order and is part of the contract, because an extension that depends on another
+extension's parse step has to be added after it:
 
 | Order | Extension | What it adds |
 | --- | --- | --- |
@@ -32,13 +33,18 @@ depends on another extension's parse step has to be added after it:
 | 7 | `ExternalLinkExtension` | `rel` attributes on links that leave the site |
 | 8 | `AutolinkExtension` | Bare URLs become links |
 | 9 | `DisallowedRawHtmlExtension` | The GFM tagfilter list |
+| 10 | `AdmonitionExtension` | GitHub alert callouts, `> [!NOTE]` and the four other kinds, described under [Admonitions](#admonitions) |
 
-`CommonMarkCoreExtension` is added before all nine and is not configurable.
+`CommonMarkCoreExtension` is added before all ten and is not configurable.
 
-Every one of these ships with `league/commonmark`, so enabling them costs no
+The first nine ship with `league/commonmark`, so enabling them costs no
 dependency. Their configuration lives under the extension's own key inside the
 `League\CommonMark\Environment\EnvironmentInterface` section, and each key is
 documented with its defaults in `config/autoload/commonmark.global.php`.
+
+The tenth ships in this package and needs nothing installed either. It is
+contributed through the plugin manager's config section, which is the same route an
+installed extension package takes, so it loads after the nine rather than beside them.
 
 ## Admonitions
 
