@@ -2,7 +2,7 @@
 
 Two setups. A site author needs the first, a commondoc contributor the second.
 
-## Build your own site locally
+## Run a build locally
 
 Requires a container runtime only. The image is the one the GitHub action runs, so a local
 build matches the deployed one, and it pulls anonymously:
@@ -16,7 +16,10 @@ docker run --rm \
 Three tags name the same release: `1.0.0` is exact, `1` follows the newest 1.x, and `latest`
 follows every release including prereleases. A site that has to stay put pins the exact one.
 
-### Files
+## Set up a site
+
+A site repository holds its configuration, the templates it renders through, and the theme
+assets it serves:
 
 ```text
 <site repo>/
@@ -26,9 +29,7 @@ follows every release including prereleases. A site that has to stay put pins th
   theme/site/css/site.css         theme asset, published at /theme/site/css/site.css
 ```
 
-### Configuration
-
-One file returning an array. The image copies it to
+The configuration is one file returning an array. The image copies it to
 `/app/config/autoload/commondoc.global.php` before the command runs.
 
 ```php
@@ -83,7 +84,7 @@ Every path is read inside the container, where `/github/workspace` is the mounte
 `content`. [Theme and templates](reference/theme.md) and [Site
 configuration](reference/configuration.md) cover both blocks in full.
 
-### Build
+## Build and view the site
 
 ```bash
 docker run --rm \
@@ -94,18 +95,18 @@ docker run --rm \
 ```
 
 Exit `0` prints one `Wrote` line per file. Exit `1` prints one `Failed` line per failure with
-its reason, and still writes the pages that rendered.
+its reason, and still writes the pages that rendered. Exit `2` is a refusal: the configuration,
+the source or the output directory could not be used, and nothing was written.
 
-### View
+Serve the output directory to read the result. Any static server works:
 
 ```bash
 php -S 127.0.0.1:8080 -t build
 ```
 
-Any static server works. Rebuilding is enough to refresh: the files are read from disk on each
-request.
+Rebuilding is enough to refresh: the files are read from disk on each request.
 
-### Common mistakes
+## Common mistakes
 
 | Symptom | Cause |
 | --- | --- |
@@ -144,7 +145,7 @@ each command with `docker compose exec tooling`.
 All four gates and both suites have to be clean. On Windows use `bin\mago.bat` in place of
 `mago`. Fix a finding at its source; a suppression carries a reason beside it.
 
-### Build the documentation you are reading
+## Build and preview the documentation you are reading
 
 ```powershell
 php vendor/bin/webware commondoc:build
@@ -154,7 +155,7 @@ The default configuration reads `docs/v1` and publishes at `/`. That writes `bui
 gitignored; `--output` writes elsewhere. On Windows name the interpreter, because the Composer
 proxy for `vendor/bin/webware` is extensionless and Windows has no shebang handling.
 
-### Preview
+The preview container serves the same directory and rebuilds it on a change:
 
 ```bash
 docker compose up -d preview     # http://localhost:8080/
@@ -164,7 +165,7 @@ docker compose down
 Bound to `127.0.0.1` only. `base_path` must be `/`. If `build/` is deleted rather than rebuilt
 into, run `docker compose restart preview`.
 
-### Compose several checkouts
+## Compose several checkouts
 
 Add a gitignored `config/autoload/*.local.php` instead of editing the tracked default:
 

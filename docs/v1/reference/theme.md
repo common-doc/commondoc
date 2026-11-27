@@ -60,7 +60,15 @@ return [
 `theme.active` names the theme in use. A map is keyed by the exact name the
 renderer asks for, so a hit is a lookup and nothing touches the filesystem.
 
-### Fallback is per name
+The theme is consulted before the template map, which is what lets a site's file
+win over the identical name this package registered. That ordering is declared
+by the theme package rather than left to the order of a provider list, so a site
+does not have to arrange its own `config.php` to get it. It does require that
+config is aggregated by a manager that understands provider ordering, such as
+`webware/webware-configmanager`, or by one that happens to merge the theme
+provider last.
+
+## Fallback is per name
 
 The `default` theme is the fallback for every other theme, resolved one name at a
 time rather than as a whole. With `theme.active` set to `webware`, the name
@@ -76,16 +84,6 @@ gets exactly that. There is no requirement to supply both.
 A theme name is a single path segment: it begins with a letter or digit and the rest
 is letters, digits, hyphen and underscore. A name containing a slash or a dot, or one
 beginning with a hyphen or underscore, is refused when the helper is built.
-
-## Ordering the resolver
-
-The theme is consulted before the template map, which is what lets a site's file
-win over the identical name this package registered. That ordering is declared
-by the theme package rather than left to the order of a provider list, so a site
-does not have to arrange its own `config.php` to get it. It does require that
-config is aggregated by a manager that understands provider ordering, such as
-`webware/webware-configmanager`, or by one that happens to merge the theme
-provider last.
 
 ## Assets
 
@@ -136,7 +134,7 @@ not be a theme's to set. Both are looked up through the `themeAsset` helper, whi
 place that turns a theme asset name into an address: it answers nothing for a name no theme
 declares, and it puts a root-relative answer under the base path.
 
-### Publishing the files
+## Publishing the files
 
 The helper returns a path and copies nothing. The asset pass is what writes the file, and
 it copies every non-Markdown file beneath a configured root. So the theme directory has to be
@@ -172,7 +170,7 @@ a root, or sit inside one, and where that root is mounted decides the published 
 A theme directory belongs in the repository that publishes the site, not in a documented
 repository it composes.
 
-### Base path
+## Base path
 
 The asset helper applies no base path. It returns the value from the map verbatim,
 so a site served under a prefix composes the two in its template:

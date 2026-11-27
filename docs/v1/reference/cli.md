@@ -2,18 +2,21 @@
 
 ## `commondoc:build`
 
-Build the documentation site from a directory of Markdown sources.
+Build the documentation site. Run it with no arguments to build the site the
+configuration describes, which is the common case: a workflow runs this from configuration
+alone, so anything it had to pass would have moved the site definition into the workflow.
 
 ```bash
-php vendor/bin/webware commondoc:build <source> [--output|-o <dir>]
+php vendor/bin/webware commondoc:build [<source>] [--output|-o <dir>]
 ```
-
-### Arguments
 
 | Name | Required | Meaning |
 | --- | --- | --- |
-| `source` | yes | Directory holding the Markdown sources |
-| `output` | no | Directory the rendered site is written to. Defaults to `build`, and it is cleared before the build writes, so the output describes this build rather than every build run into it |
+| `source` | no | Build this directory alone, published at `/`, instead of the configured roots. Omitting it is how a composed site is built |
+| `output` | no | Write the site here instead of the configured output directory. It is cleared before the build writes, so the output describes this build rather than every build run into it |
+
+Neither can express a mount, because a mount is part of what the site is and is read from
+configuration.
 
 Both accept an absolute path. See [Getting started](../getting-started.md) for
 why that matters on a machine where the entry point changes directory.
@@ -22,10 +25,8 @@ Clearing is destructive, so a path that could not be a site's output is refused 
 than emptied: an empty path, `.`, a filesystem root, or a directory that holds one of the
 build's own sources. The refusal happens before anything is removed.
 
-### Report
-
-Each path written produces one line. Each failure produces one line naming the
-path and the reason:
+A build reports as it goes: each path written produces one line, and each failure produces one
+line naming the path and the reason:
 
 ```text
 Wrote README.md
@@ -35,15 +36,18 @@ Failed concepts/paths.md: The document "concepts/paths.md" links to "nope.md", w
 
 Paths are named as they were discovered, relative to the source root.
 
-### Exit codes
+## Exit codes
 
 | Code | Meaning |
 | --- | --- |
 | `0` | Every document and asset was written |
 | `1` | At least one path was not written, or the result could not be read |
+| `2` | The build was refused before it could start, and nothing was written |
 
 A document that fails is recorded and the build continues, so one run reports
-the whole list rather than the first problem.
+the whole list rather than the first problem. A refusal is the other case: the
+configuration, the source or the output directory could not be used at all, so the
+message says what was wrong instead of reporting pages.
 
 ## Related
 
