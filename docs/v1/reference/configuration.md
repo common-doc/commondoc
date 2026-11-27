@@ -53,7 +53,7 @@ everything about it:
 They are orthogonal. A repository can be mounted at any prefix regardless of its
 target, and several repositories can share a target.
 
-### Mount
+## Mount
 
 `mount` is the prefix a root publishes at. A file is published at the mount
 followed by its path inside that root, so once the mount is applied everything
@@ -75,7 +75,7 @@ from one repository at a path belonging to another cannot be diagnosed from
 the finished site, so the combination is refused at construction with both mounts
 named.
 
-### Target
+## Target
 
 `target` is where a repository keeps its documentation, relative to that
 repository's root. It defaults to `docs/v1`, which is this repository's habit and

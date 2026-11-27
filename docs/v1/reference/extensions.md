@@ -97,7 +97,7 @@ Three things make that enough:
 - The manager is a single-instance plugin manager, which is what CommonMark expects:
   one extension object per name, holding no per-document state.
 
-### Load order
+## Load order
 
 The nine bundled extensions load first, then whatever the site's config section
 declares. Within the declared set, `invokables` load before `factories`, and within
@@ -107,8 +107,6 @@ A package that has to run before a bundled extension cannot state that through
 configuration. Arranging it means contributing through `factories` and being aware
 that the bundled set still comes first; if that is genuinely required, it is a change
 to this package rather than to a site's configuration.
-
-### Versioning
 
 Each extension package is versioned and released independently, so it can track a
 commondoc release rather than move in lockstep with it. The constraint a site writes
