@@ -4,16 +4,17 @@ Two setups. A site author needs the first, a commondoc contributor the second.
 
 ## Build your own site locally
 
-Requires Docker only. The image is the one the GitHub action runs, so a local build matches the
-deployed one.
-
-`ghcr.io/common-doc/commondoc:1` is not public yet. Until it is, build it from a checkout and
-use `commondoc:local` in place of the image name:
+Requires a container runtime only. The image is the one the GitHub action runs, so a local
+build matches the deployed one, and it pulls anonymously:
 
 ```bash
-git clone https://github.com/common-doc/commondoc.git
-docker build -f commondoc/docker/Dockerfile -t commondoc:local commondoc
+docker run --rm \
+  -v "$PWD:/github/workspace" \
+  ghcr.io/common-doc/commondoc:1 --help
 ```
+
+Three tags name the same release: `1.0.0` is exact, `1` follows the newest 1.x, and `latest`
+follows every release including prereleases. A site that has to stay put pins the exact one.
 
 ### Files
 
@@ -109,10 +110,12 @@ request.
 | Symptom | Cause |
 | --- | --- |
 | The build writes this package's documentation | a root path is relative, so it resolved under `/app`; use `/github/workspace/...` |
+| The build names a target that is not a readable directory | a `repository` entry's `target` does not exist in that repository, so nothing was guessed |
 | Nothing builds, the console help is printed | no argument was passed; the image's default command is `--help` |
 | `.phtml` files appear in the published site | a template sits inside a source root; every non-Markdown file under a root is published |
 | The stylesheet 404s | the theme directory is not inside a root mounted at `/theme/` |
 | Links are wrong in the browser | `base_path` does not match where the site is served |
+| The action cannot pull its image on a self-hosted runner | the published image is `linux/amd64` only |
 
 ## Work on commondoc
 

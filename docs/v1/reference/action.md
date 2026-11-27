@@ -64,6 +64,56 @@ A `COMMONDOC_CONFIG` that is set but unreadable is refused and the build exits
 `2`. A workflow that named a file and quietly got a build of the image's own
 documentation instead would look like a successful run of the wrong site.
 
+## Several repositories, listed one by one
+
+Not every site can use an organization search. The repositories may be private, the
+organization may not carry the custom property, or no token may be available. Listing each
+repository as a root works in all three cases, and the workflow is what puts them on disk.
+
+```yaml
+- name: Check out the site definition
+  uses: actions/checkout@v7
+
+- name: Check out the repositories the site is composed from
+  uses: actions/checkout@v7
+  with:
+    repository: acme/one
+    path: components/one
+
+- uses: actions/checkout@v7
+  with:
+    repository: acme/two
+    path: components/two
+```
+
+Each root then names its checkout, absolutely, and the mount it publishes at:
+
+```php
+'roots' => [
+    ['path' => '/github/workspace/components/one', 'mount' => '/one/'],
+    ['path' => '/github/workspace/components/two', 'mount' => '/two/'],
+],
+```
+
+Four rules apply to a list like that.
+
+- **One mount per root, and they must not overlap.** A root at `/` publishes everything
+  beneath it, so no other root can be mounted inside that space. The site's own pages at
+  `/` and the components beside it means the site root is one root and each component is
+  another. [Site configuration](configuration.md#mount) states the refusal.
+- **Every root's target has to exist in the repository it names.** A `repository` entry
+  whose `target` matches nothing is refused by name rather than skipped, so a repository
+  that will be documented later cannot be listed early. Leave it out until its
+  documentation directory exists. [Site configuration](configuration.md#target) covers the
+  candidates.
+- **A checkout carries the workflow's token, so private repositories work.** This is the
+  difference between the two composition styles: the organization search clones with no
+  credential and therefore sees public repositories only, while a checkout step uses the
+  token the workflow already has.
+- **A repository with no document is published but not listed.** Its files are copied, and
+  it gets no card on the home page and no entry in the components menu, because there is no
+  page to link to. A directory of theme files mounted at `/theme/` is the usual case.
+
 ## Building every repository of an organization
 
 A `roots` entry can name an organization instead of a repository, and the build
@@ -213,10 +263,14 @@ versioned build reads a git tag and writes that version's pages. The image that
 passes them is the image that is pushed, because it is tagged from the same local
 build rather than built again.
 
-The image is public, so pulling it needs no credentials. That is a package
-setting rather than something the workflow can set: after the first push, set the
-package's visibility to Public in the package settings, because until it is set a
-workflow pulling `ghcr.io/common-doc/commondoc:1` fails with a missing manifest.
+The image is public, so pulling it needs no credentials, and the three tags name
+the same release: `1.0.0` is exact, `1` follows the newest 1.x, and `latest`
+follows every release including prereleases. A site that has to stay put pins the
+exact tag.
+
+The image is `linux/amd64` only. A GitHub-hosted `ubuntu-latest` runner is
+amd64, so the action runs there unchanged; a self-hosted runner on another
+architecture needs an image built for it.
 
 The action passes no token to the container unless the step gives it one:
 `github-token` is the only credential it can hand over, and it is used for an
