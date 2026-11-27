@@ -28,12 +28,15 @@ name: Publish image
 # 1.0.0`) rather than a branch: from a branch there is no version to derive and
 # only `latest` would move.
 #
-# The major alias is derived with `type=match`, not `type=semver,pattern={{major}}`.
-# metadata-action suppresses semver major and minor tags for prerelease
-# versions by design, so on `1.0.0-alpha.3` the semver form publishes
-# `1.0.0-alpha.3` and `latest` only, and the action's `:1` pull fails with a
-# missing manifest. Matching the leading number off the tag produces `1` for
-# both `1.0.0-alpha.3` and `1.0.0`.
+# The major alias is derived with `type=match`, not `type=semver,pattern={{major}}`,
+# because metadata-action suppresses semver major tags for prerelease versions by
+# design, and the alias has to be reachable once a line is stable.
+#
+# That alias and `latest` are published for stable tags only. A prerelease moves
+# neither: `2.0.0-alpha.1` publishes `2.0.0-alpha.1` and nothing else, so a
+# consumer pinned to `1`, or to `latest`, is never handed a build of a line that
+# is still in development. The action in this repository references `:1`, so a
+# prerelease moving that alias would change what every consumer runs.
 #
 # The package must be public for third parties to pull the image without
 # credentials. Visibility is a package setting, not something GITHUB_TOKEN can
@@ -77,8 +80,8 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=semver,pattern={{version}}
-            type=match,pattern=^(\d+),group=1
-            type=raw,value=latest
+            type=match,pattern=^(\d+),group=1,enable=${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-') }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref_name, '-') }}
       - name: Build the runtime image locally
         uses: docker/build-push-action@v7
         with:
@@ -227,6 +230,10 @@ jobs:
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
           set -eu
+          if [ -z "$TAGS" ]; then
+            echo "::error::No image tag was derived from ${GITHUB_REF}. A branch publishes nothing, because only a stable release tag may move the major alias or latest. Dispatch a tag instead, for example: gh workflow run publish-image.yml --ref 1.0.0"
+            exit 1
+          fi
           printf '%s\n' "$TAGS" | while IFS= read -r tag; do
             [ -n "$tag" ] || continue
             docker tag commondoc-runtime:assert "$tag"
