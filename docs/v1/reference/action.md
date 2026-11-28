@@ -228,6 +228,85 @@ The repository's Pages source has to be set to `GitHub Actions` once, under
 Settings then Pages. The first run fails the deploy step until it is, because
 there is no Pages site to deploy to.
 
+## Rebuilding on a release tag
+
+A versioned site reads its tags at build time, so nothing in the site definition changes
+when a release is cut. What has to happen is the build, and a tag in a documented
+repository does not reach the site's workflow: they are different repositories, and a
+workflow only starts from an event in the repository that holds it.
+
+Two things close that, and a site may use either or both:
+
+- `repository_dispatch`, sent by the repository that cut the tag. The site rebuilds within
+  a minute of the release.
+- `schedule`, on the site itself. Nothing has to be asked to send it, so it also serves
+  repositories that carry no workflow at all. It costs latency up to the interval, and
+  GitHub disables a scheduled workflow in a public repository after 60 days without a
+  commit, so it needs the schedule line kept alive by ordinary work.
+
+A manual dispatch remains available for a build nobody's release triggered.
+
+## The dispatch token
+
+Sending a dispatch is a write against the site's repository, so it needs a token that
+may write there and nothing more:
+
+1. Create a fine-grained personal access token owned by the organization that owns the
+   site, with repository access limited to the site repository, and one permission:
+   **Contents: Read and write**. That is what `repository_dispatch` requires; every other
+   permission stays at no access.
+2. Store it as an organization secret granted to the repositories that send the dispatch,
+   not to the site repository:
+
+   ```bash
+   gh secret set DOCS_DISPATCH_TOKEN --org <owner> --repos <component>,<component>
+   ```
+
+   An organization secret is inherited by the repositories you grant it to, so one token
+   serves every component that releases, and a component added later is granted access
+   rather than given a copy.
+
+The search token described under [organizations](#building-every-repository-of-an-organization)
+is a different credential with different permissions, because it reads repositories rather
+than writing to one.
+
+## Wiring the dispatch
+
+The dispatch only starts a workflow that exists on the site's default branch, so the
+`on` block of the site's workflow gains the event:
+
+```yaml
+on:
+  push:
+    branches: [main]
+  repository_dispatch:
+  workflow_dispatch:
+```
+
+The releasing repository asks for the build from a workflow that runs on its tags, and
+from nothing else:
+
+```yaml
+on:
+  push:
+    tags: ['[0-9]*']
+
+# ...
+
+      - name: Ask the documentation site to rebuild
+        env:
+          GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+        run: gh api "repos/<owner>/<site>/dispatches" -f event_type=docs
+```
+
+A repository that publishes several things keeps this apart from each of them. The step
+belongs to the release, not to a build that happens to run on the same tag, so a component
+that publishes no image still has the one file to copy.
+
+The event carries no payload. The build reads every composed repository's tags when it
+runs, so a tag, a branch, or a version number in the payload would be a second answer to a
+question the build already answers.
+
 ## Base path
 
 `view_helper_config.base_path` is where the site is served, and both the paths a
@@ -248,25 +327,16 @@ is a second thing to get wrong.
 
 ## The image
 
-`ghcr.io/common-doc/commondoc` is built from `docker/Dockerfile` by the
-`Publish image` workflow, which runs on a release tag and publishes the version,
-the `1` major alias the action references, and `latest`. The image carries PHP,
-the extensions the package requires, git, the runtime dependencies, and the
-console entry point. It does not carry Mago, Xdebug, PCOV, PHPUnit, Infection or
-the dev dependencies.
+`ghcr.io/common-doc/commondoc` runs the build, so a workflow or a shell needs a
+container runtime and nothing else. It carries PHP, the extensions the package requires,
+git, the runtime dependencies, and the console entry point. It does not carry Mago,
+Xdebug, PCOV, PHPUnit, Infection or the dev dependencies.
 
-Nothing is pushed until the image has passed its assertions: that it carries no
-dev toolchain, that it offers `commondoc:build`, that a build renders a document
-and gives its headings a linkable `id`, that git is present and reads a
-repository owned by another user, that the PHP extensions load, and that a
-versioned build reads a git tag and writes that version's pages. The image that
-passes them is the image that is pushed, because it is tagged from the same local
-build rather than built again.
-
-The image is public, so pulling it needs no credentials, and the three tags name
-the same release: `1.0.0` is exact, `1` follows the newest 1.x, and `latest`
-follows every release including prereleases. A site that has to stay put pins the
-exact tag.
+The image is public, so pulling it needs no credentials, and three tags can name one
+release: `1.0.0` is exact, `1` follows the newest 1.x, and `latest` follows the newest
+release of any major. `1` and `latest` are published from a stable tag only, so a
+prerelease publishes its own version tag and moves neither. A site that has to stay put
+pins the exact tag.
 
 The image is `linux/amd64` only. A GitHub-hosted `ubuntu-latest` runner is
 amd64, so the action runs there unchanged; a self-hosted runner on another

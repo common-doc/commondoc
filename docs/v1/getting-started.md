@@ -13,8 +13,10 @@ docker run --rm \
   ghcr.io/common-doc/commondoc:1 --help
 ```
 
-Three tags name the same release: `1.0.0` is exact, `1` follows the newest 1.x, and `latest`
-follows every release including prereleases. A site that has to stay put pins the exact one.
+Three tags can name one release: `1.0.0` is exact, `1` follows the newest 1.x, and `latest`
+follows the newest release of any major. `1` and `latest` are published from a stable tag only,
+so a prerelease publishes its own version tag and moves neither. A site that has to stay put
+pins the exact one.
 
 ## Set up a site
 
