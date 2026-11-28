@@ -1,0 +1,38 @@
+name: Notify docs
+
+# A documentation site is a separate repository, so a tag here does not start its
+# workflow. This asks the site to rebuild, and it runs on the tag and nothing else.
+#
+# It is deliberately not part of the image workflow. The image workflow means "an
+# image was built", which is not the same fact: a component that publishes docs and
+# no image has no version of it to hang this on. One file whose only subject is the
+# release is what another component copies.
+#
+# The token is an organization secret granted to the repositories that send the
+# dispatch. It holds Contents write on the site repository alone, which is what a
+# dispatch requires, and it is passed through the environment so no value is
+# substituted into the shell.
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  notify:
+    name: Ask the documentation site to rebuild
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send the dispatch
+        env:
+          GH_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}
+          SITE_REPOSITORY: common-doc/docs.commondoc.dev
+          EVENT_TYPE: docs
+        run: |
+          set -euo pipefail
+          : "${GH_TOKEN:?SITE_DISPATCH_TOKEN is not set for this repository, so the site cannot be asked to rebuild.}"
+          gh api "repos/${SITE_REPOSITORY}/dispatches" -f "event_type=${EVENT_TYPE}"

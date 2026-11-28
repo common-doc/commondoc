@@ -259,7 +259,7 @@ may write there and nothing more:
    not to the site repository:
 
    ```bash
-   gh secret set DOCS_DISPATCH_TOKEN --org <owner> --repos <component>,<component>
+   gh secret set SITE_DISPATCH_TOKEN --org <owner> --repos <component>,<component>
    ```
 
    An organization secret is inherited by the repositories you grant it to, so one token
@@ -295,7 +295,7 @@ on:
 
       - name: Ask the documentation site to rebuild
         env:
-          GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          GH_TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}
         run: gh api "repos/<owner>/<site>/dispatches" -f event_type=docs
 ```
 
