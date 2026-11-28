@@ -327,20 +327,10 @@ is a second thing to get wrong.
 
 ## The image
 
-`ghcr.io/common-doc/commondoc` is built from `docker/Dockerfile` by the
-`Publish image` workflow, which runs on a release tag and publishes the version,
-the `1` major alias the action references, and `latest`. The image carries PHP,
-the extensions the package requires, git, the runtime dependencies, and the
-console entry point. It does not carry Mago, Xdebug, PCOV, PHPUnit, Infection or
-the dev dependencies.
-
-Nothing is pushed until the image has passed its assertions: that it carries no
-dev toolchain, that it offers `commondoc:build`, that a build renders a document
-and gives its headings a linkable `id`, that git is present and reads a
-repository owned by another user, that the PHP extensions load, and that a
-versioned build reads a git tag and writes that version's pages. The image that
-passes them is the image that is pushed, because it is tagged from the same local
-build rather than built again.
+`ghcr.io/common-doc/commondoc` runs the build, so a workflow or a shell needs a
+container runtime and nothing else. It carries PHP, the extensions the package requires,
+git, the runtime dependencies, and the console entry point. It does not carry Mago,
+Xdebug, PCOV, PHPUnit, Infection or the dev dependencies.
 
 The image is public, so pulling it needs no credentials, and three tags can name one
 release: `1.0.0` is exact, `1` follows the newest 1.x, and `latest` follows the newest
