@@ -283,15 +283,25 @@ on:
   workflow_dispatch:
 ```
 
-The releasing repository asks for the build after it has published, with the token in
-the environment rather than on the command line:
+The releasing repository asks for the build from a workflow that runs on its tags, and
+from nothing else:
 
 ```yaml
+on:
+  push:
+    tags: ['[0-9]*']
+
+# ...
+
       - name: Ask the documentation site to rebuild
         env:
           GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
         run: gh api "repos/<owner>/<site>/dispatches" -f event_type=docs
 ```
+
+A repository that publishes several things keeps this apart from each of them. The step
+belongs to the release, not to a build that happens to run on the same tag, so a component
+that publishes no image still has the one file to copy.
 
 The event carries no payload. The build reads every composed repository's tags when it
 runs, so a tag, a branch, or a version number in the payload would be a second answer to a
