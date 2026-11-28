@@ -1,0 +1,66 @@
+name: Backwards compatibility
+
+# A released major line may not change its public API without a new major, and
+# nothing in the build compares two revisions to see whether it did. This does,
+# on the pull request that would make the change.
+#
+# The baseline is the newest stable tag reachable from the branch being merged
+# into, in that branch's own major. A patch or a minor on 1.x is compared with
+# the newest 1.x release, so the gate reads the API consumers are holding. A new
+# major starts from its own tags instead of inheriting the previous major's API,
+# and before it has a stable release of its own there is nothing to compare with,
+# so the check passes and says so.
+#
+# The tool is already a dev dependency, so the version under test is the one the
+# lock file pins, and it needs the whole history and every tag to find that
+# baseline.
+
+on:
+  pull_request:
+    branches:
+      - '*.x'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bc-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backwards-compatibility:
+    name: Backwards compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      # The tool refuses to install on PHP 8.6, so this leg is the package's own
+      # floor rather than the newest runtime the suite covers.
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Compare with the newest release on the target branch
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          major="${BASE_REF%%.*}"
+
+          if ! baseline="$(git describe --tags --abbrev=0 --exclude='*-*' --match="${major}.*" "origin/${BASE_REF}" 2>/dev/null)"; then
+            echo "No stable ${major}.x release is reachable from ${BASE_REF}, so nothing has been published to compare with yet."
+            exit 0
+          fi
+
+          echo "Comparing ${baseline} with this pull request."
+          php vendor/bin/roave-backward-compatibility-check --from="${baseline}" --format=console
